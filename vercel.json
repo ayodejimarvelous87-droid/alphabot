@@ -2,24 +2,8 @@
   "outputDirectory": "public/user",
   "rewrites": [
     {
-      "source": "/users/:path*",
-      "destination": "https://alphabot-1.onrender.com/users/:path*"
-    },
-    {
-      "source": "/wallet/:path*",
-      "destination": "https://alphabot-1.onrender.com/wallet/:path*"
-    },
-    {
-      "source": "/products/:path*",
-      "destination": "https://alphabot-1.onrender.com/products/:path*"
-    },
-    {
-      "source": "/orders/:path*",
-      "destination": "https://alphabot-1.onrender.com/orders/:path*"
-    },
-    {
-      "source": "/funding/:path*",
-      "destination": "https://alphabot-1.onrender.com/funding/:path*"
+      "source": "/(.*)",
+      "destination": "https://alphabot-1.onrender.com/$1"
     }
   ]
 }
