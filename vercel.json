@@ -1,3 +1,9 @@
 {
-  "outputDirectory": "public/user"
+  "outputDirectory": "public/user",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "https://alphabot-1.onrender.com/$1"
+    }
+  ]
 }
