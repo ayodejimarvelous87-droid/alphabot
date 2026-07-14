@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Wallet = require("../models/wallet");
 const Order = require("../models/Order");
 const Transaction = require("../models/Transaction");
+const Notification = require("../models/Notification");
 
 
 // Get all users
@@ -79,9 +80,28 @@ const getTransactions = async (req, res) => {
 };
 
 
+// Get all notifications
+const getNotifications = async (req, res) => {
+  try {
+
+    const notifications = await Notification.find()
+      .sort({ createdAt: -1 });
+
+    res.json(notifications);
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message
+    });
+
+  }
+};
+
 module.exports = {
   getUsers,
   getWallets,
   getOrders,
-  getTransactions
+  getTransactions,
+  getNotifications
 };

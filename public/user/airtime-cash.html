@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Airtime To Cash - AlphaBot</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+<div class="top">
+
+<h2>💰 Airtime To Cash</h2>
+
+<a href="dashboard.html">←</a>
+
+</div>
+
+
+<div class="wallet-card">
+
+<p>
+Convert unused airtime to cash
+</p>
+
+<h2>
+80% Conversion Rate
+</h2>
+
+</div>
+
+
+<div class="card">
+
+
+<div class="input-group">
+
+<label>📡 Network</label>
+
+<select id="network">
+
+<option value="">Select Network</option>
+<option value="MTN">MTN</option>
+<option value="Airtel">Airtel</option>
+<option value="Glo">Glo</option>
+<option value="9mobile">9mobile</option>
+
+</select>
+
+</div>
+
+
+
+<div class="input-group">
+
+<label>📱 Airtime Phone Number</label>
+
+<input id="phone" placeholder="Enter phone number">
+
+</div>
+
+
+
+<div class="input-group">
+
+<label>💰 Airtime Amount</label>
+
+<input id="amount" type="number" placeholder="Enter amount">
+
+</div>
+
+
+<button id="convert">
+
+Convert Airtime
+
+</button>
+
+
+<p id="message"></p>
+
+
+</div>
+
+
+<a class="back" href="dashboard.html">
+Back to Dashboard
+</a>
+
+
+</div>
+
+
+<script src="js/theme.js"></script>
+<script src="js/airtime-cash.js"></script>
+
+</body>
+
+</html>

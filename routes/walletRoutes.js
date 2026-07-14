@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
+const maintenance = require("../middleware/maintenance");
+
 
 const {
   fundWallet,
@@ -11,13 +13,36 @@ const {
 } = require("../controllers/walletController");
 
 
-router.post("/fund", auth, fundWallet);
+// Customer wallet actions (blocked during maintenance)
 
-router.get("/balance/:phone", auth, checkBalance);
+router.post(
+  "/fund",
+  auth,
+  maintenance,
+  fundWallet
+);
 
-router.get("/transactions/:phone", auth, transactionHistory);
 
-router.post("/pay", auth, payWallet);
+router.get(
+  "/balance/:phone",
+  auth,
+  checkBalance
+);
+
+
+router.get(
+  "/transactions/:phone",
+  auth,
+  transactionHistory
+);
+
+
+router.post(
+  "/pay",
+  auth,
+  maintenance,
+  payWallet
+);
 
 
 module.exports = router;

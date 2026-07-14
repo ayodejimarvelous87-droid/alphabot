@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Receipt - AlphaBot</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+<div class="top">
+
+<h2>
+🧾 Receipt
+</h2>
+
+<a href="transactions.html">
+←
+</a>
+
+</div>
+
+
+<div class="card">
+
+<p>Service</p>
+<h3 id="description">Loading...</h3>
+
+<p>Amount</p>
+<h2 id="amount">₦0</h2>
+
+<p>Reference</p>
+<h3 id="reference">Loading...</h3>
+
+<p>Status</p>
+<h3 id="status">Loading...</h3>
+
+<p>Date</p>
+<h3 id="date">Loading...</h3>
+
+</div>
+
+<button onclick="window.print()">
+🖨️ Print Receipt
+</button>
+
+<button onclick="shareReceipt()">
+📤 Share Receipt
+</button>
+
+<button onclick="downloadReceipt()">
+📥 Download Receipt
+</button>
+
+
+</div>
+
+
+<script src="js/receipt.js"></script>
+
+<script src="js/theme.js"></script>
+</body>
+
+</html>

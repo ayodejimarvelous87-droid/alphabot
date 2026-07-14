@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Buy Data - AlphaBot</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+
+<div class="app">
+
+
+<div class="top">
+<h2>📱 Buy Data</h2>
+<div class="top-icons">
+<a href="dashboard.html" class="back-icon">←</a>
+<button id="themeToggle" class="icon-btn">🌙</button>
+</div>
+</div>
+
+
+
+
+<div class="wallet-card">
+
+<p>
+Purchase data instantly
+</p>
+
+<h2>
+Choose Your Plan 🚀
+</h2>
+
+</div>
+
+
+
+
+
+<div class="card">
+
+<h3>
+Saved Beneficiary</h3>
+<select id="beneficiarySelect"><option value="">Select saved number</option></select>
+
+<h3>
+Available Data Plans
+</h3>
+
+
+<div id="products">
+Loading products...
+</div>
+
+
+<br>
+
+
+
+<div class="input-group">
+<label>🔐 Transaction PIN</label>
+<input id="transactionPin" type="password" maxlength="4" placeholder="Enter 4-digit PIN">
+</div>
+
+<p id="message"></p>
+
+<a class="back" href="dashboard.html">
+Back to Dashboard
+</a>
+
+</div>
+
+<script src="js/theme.js"></script>
+<script src="js/buy.js"></script>
+
+</body>
+</html>

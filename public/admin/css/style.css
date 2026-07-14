@@ -1,0 +1,490 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Inter,Arial,sans-serif;
+}
+
+
+body{
+    background:
+    radial-gradient(circle at top,#123b75,#050816 45%);
+    color:#fff;
+    min-height:100vh;
+}
+
+
+
+/* LOGIN */
+
+.login-box{
+
+    width:360px;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(15px);
+
+    padding:35px;
+    border-radius:20px;
+
+    border:1px solid rgba(255,255,255,0.15);
+
+    box-shadow:
+    0 0 30px rgba(37,99,235,0.3);
+
+    margin:120px auto;
+
+}
+
+
+.login-box h1{
+
+    text-align:center;
+    color:#3b82f6;
+    font-size:36px;
+
+}
+
+
+.login-box p{
+
+    text-align:center;
+    color:#cbd5e1;
+    margin:10px 0 25px;
+
+}
+
+
+input{
+
+    width:100%;
+    padding:14px;
+
+    margin-bottom:15px;
+
+    background:#0f172a;
+
+    border:1px solid #1e40af;
+
+    color:white;
+
+    border-radius:12px;
+
+}
+
+
+input:focus{
+
+    outline:none;
+    border-color:#38bdf8;
+
+}
+
+
+
+/* DASHBOARD */
+
+
+.dashboard{
+
+    width:90%;
+    max-width:1200px;
+    margin:40px auto;
+
+}
+
+
+
+.dashboard h1{
+
+    font-size:34px;
+
+    color:#60a5fa;
+
+    margin-bottom:30px;
+
+}
+
+
+
+/* CARDS */
+
+
+.cards{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(220px,1fr));
+
+    gap:20px;
+
+}
+
+
+
+.card{
+
+    background:
+    rgba(255,255,255,0.08);
+
+    backdrop-filter:blur(15px);
+
+    padding:25px;
+
+    border-radius:20px;
+
+    border:1px solid rgba(255,255,255,0.1);
+
+    box-shadow:
+    0 0 25px rgba(37,99,235,0.15);
+
+}
+
+
+
+.card h2{
+
+    color:#94a3b8;
+
+    font-size:15px;
+
+}
+
+
+
+.card p{
+
+    margin-top:15px;
+
+    font-size:30px;
+
+    font-weight:bold;
+
+    color:#38bdf8;
+
+}
+
+
+
+/* BUTTONS */
+
+
+button,
+.menu a{
+
+    cursor:pointer;
+
+    text-decoration:none;
+
+    background:
+
+    linear-gradient(135deg,#2563eb,#06b6d4);
+
+    color:white;
+
+    padding:14px 22px;
+
+    border:none;
+
+    border-radius:12px;
+
+    font-weight:bold;
+
+    transition:.3s;
+
+}
+
+
+
+button:hover,
+.menu a:hover{
+
+    transform:translateY(-3px);
+
+    box-shadow:
+    0 0 20px #2563eb;
+
+}
+
+
+
+
+.menu{
+
+    margin-top:35px;
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    gap:15px;
+
+}
+
+
+
+/* TABLE */
+
+
+table{
+
+    width:100%;
+
+    background:#0f172a;
+
+    border-collapse:collapse;
+
+    margin-top:25px;
+
+    border-radius:15px;
+
+    overflow:hidden;
+
+}
+
+
+
+th{
+
+    background:#2563eb;
+
+    color:white;
+
+    padding:15px;
+
+}
+
+
+
+td{
+
+    padding:15px;
+
+    border-bottom:1px solid #1e293b;
+
+    color:#e2e8f0;
+
+}
+
+
+
+/* MOBILE */
+
+@media(max-width:600px){
+
+.dashboard{
+
+width:95%;
+
+}
+
+
+.dashboard h1{
+
+font-size:26px;
+
+}
+
+
+.menu a,
+.menu button{
+
+width:100%;
+
+text-align:center;
+
+}
+
+}
+/* SIDEBAR LAYOUT */
+
+.layout{
+
+    display:flex;
+    min-height:100vh;
+
+}
+
+
+.sidebar{
+
+    width:260px;
+
+    background:
+    rgba(15,23,42,0.95);
+
+    backdrop-filter:blur(15px);
+
+    padding:30px 20px;
+
+    border-right:1px solid rgba(255,255,255,0.1);
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:15px;
+
+}
+
+
+
+.sidebar h1{
+
+    color:#38bdf8;
+
+    margin-bottom:30px;
+
+    font-size:28px;
+
+}
+
+
+
+.sidebar a{
+
+    text-decoration:none;
+
+    color:#cbd5e1;
+
+    padding:14px;
+
+    border-radius:12px;
+
+    transition:.3s;
+
+}
+
+
+
+.sidebar a:hover{
+
+    background:#2563eb;
+
+    color:white;
+
+}
+
+
+
+.sidebar button{
+
+    margin-top:auto;
+
+}
+
+
+
+.layout .dashboard{
+
+    flex:1;
+
+    width:auto;
+
+    margin:40px;
+
+}
+
+
+
+/* MOBILE SIDEBAR */
+
+@media(max-width:800px){
+
+.layout{
+
+    flex-direction:column;
+
+}
+
+
+
+.sidebar{
+
+    width:100%;
+
+}
+
+
+
+.layout .dashboard{
+
+    margin:20px;
+
+}
+
+}
+
+
+/* FUNDING GRID */
+
+.funding-grid{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(auto-fit,minmax(280px,1fr));
+
+    gap:20px;
+
+}
+
+
+
+/* ACTION BUTTONS */
+
+.card button{
+
+    margin-top:15px;
+
+    margin-right:10px;
+
+}
+
+
+
+/* STATUS COLORS */
+
+.pending{
+
+    color:#facc15 !important;
+
+}
+
+
+.success{
+
+    color:#22c55e !important;
+
+}
+
+
+.failed{
+
+    color:#ef4444 !important;
+
+}
+
+
+
+/* LINKS INSIDE CONTENT */
+
+.dashboard a{
+
+    color:#38bdf8;
+
+    text-decoration:none;
+
+}
+
+
+
+/* SMOOTH SCROLL */
+
+html{
+
+    scroll-behavior:smooth;
+
+}
+
+

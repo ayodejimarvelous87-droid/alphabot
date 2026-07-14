@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Beneficiaries - AlphaBot</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+<div class="top">
+<h2>👥 Beneficiaries</h2>
+<a href="profile.html">←</a>
+</div>
+
+<div class="card">
+
+<h3>Add Beneficiary</h3>
+
+<input id="owner" placeholder="Phone number">
+
+<input id="nickname" placeholder="Nickname">
+
+<select id="service">
+<option value="data">Data</option>
+<option value="airtime">Airtime</option>
+<option value="tv">TV</option>
+<option value="electricity">Electricity</option>
+</select>
+
+<button onclick="saveBeneficiary()">
+Save
+</button>
+
+<p id="message"></p>
+
+</div>
+
+
+<div id="list"></div>
+
+
+</div>
+
+
+<script src="js/theme.js"></script>
+<script src="js/beneficiaries.js"></script>
+
+</body>
+</html>

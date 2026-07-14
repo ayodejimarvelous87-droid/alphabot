@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Exam PIN Stock - Admin</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+<div class="top">
+
+<h2>🎓 Exam PIN Manager</h2>
+
+<a href="dashboard.html">←</a>
+
+</div>
+
+
+
+<div class="card">
+
+
+<div class="input-group">
+
+<label>Exam</label>
+
+<select id="exam">
+
+<option value="WAEC">WAEC</option>
+<option value="JAMB">JAMB</option>
+<option value="NECO">NECO</option>
+<option value="NABTEB">NABTEB</option>
+
+</select>
+
+</div>
+
+
+
+<div class="input-group">
+
+<label>PIN</label>
+
+<input id="pin" placeholder="Enter PIN">
+
+</div>
+
+
+
+<div class="input-group">
+
+<label>Price</label>
+
+<input id="price" type="number" placeholder="Enter price">
+
+</div>
+
+
+
+<button id="addPin">
+
+Add PIN
+
+</button>
+
+
+<p id="message"></p>
+
+
+</div>
+
+
+
+
+<div class="card">
+
+<h3>Available Stock</h3>
+
+<div id="stock">
+
+Loading...
+
+</div>
+
+</div>
+
+
+
+</div>
+
+
+<script src="js/theme.js"></script>
+<script src="js/exam-pin.js"></script>
+
+
+</body>
+
+</html>

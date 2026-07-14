@@ -8,7 +8,7 @@ const getTransactions = async (req, res) => {
     const { phone } = req.params;
 
 
-    if (req.user.phone !== phone) {
+    if (req.user.role !== "admin" && req.user.phone !== phone) {
       return res.status(403).json({
         message: "Unauthorized transaction access"
       });

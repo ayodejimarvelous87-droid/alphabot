@@ -14,7 +14,7 @@ const productSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["data", "airtime", "cable", "electricity"],
+      enum: ["data", "airtime", "cable", "electricity", "mifi"],
       required: true
     },
 

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>My Profile</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+<div class="app">
+
+
+<div class="top">
+
+<h2>
+👤 My Profile
+</h2>
+
+<a href="dashboard.html">
+←
+</a>
+
+</div>
+
+
+
+<div class="wallet-card">
+
+<p>
+Account Information
+</p>
+
+<h2 id="name">
+Loading...
+</h2>
+
+</div>
+
+
+
+
+<div class="card">
+
+<p>
+📱 Phone Number
+</p>
+
+<h3 id="phone">
+Loading...
+</h3>
+
+
+<br>
+
+
+<p>
+📧 Email
+</p>
+
+<h3 id="email">
+Loading...
+</h3>
+
+
+<br>
+
+
+<p>
+🎁 Referral Code
+</p>
+
+<h3 id="referralCode">
+Loading...
+</h3>
+
+
+
+<button onclick="navigator.clipboard.writeText(document.getElementById('referralCode').innerText);alert('Referral code copied');">
+
+Copy Referral Code
+
+</button>
+
+
+</div>
+
+
+
+
+
+<div class="card">
+
+<p>
+💵 Referral Earnings
+</p>
+
+<h2 id="earnings">
+₦0
+</h2>
+
+</div>
+
+
+
+
+
+<div class="card">
+
+
+<h3>
+🔐 Security
+</h3>
+
+<a href="beneficiaries.html" class="security-item">
+<div>
+<i class="fa-solid fa-users"></i>
+<section>
+<b>Saved Beneficiaries</b>
+<small>Manage frequently used numbers</small>
+</section>
+</div>
+<span>→</span>
+</a>
+<div class="security-menu">
+
+<a href="edit-profile.html" class="security-item">
+<div>
+<i class="fa-solid fa-user-pen"></i>
+<section>
+<b>Edit Profile</b>
+<small>Update your account information</small>
+</section>
+</div>
+<span>→</span>
+</a>
+
+<a href="change-password.html" class="security-item">
+<div>
+<i class="fa-solid fa-key"></i>
+<section>
+<b>Change Password</b>
+<small>Keep your account secure</small>
+</section>
+</div>
+<span>→</span>
+</a>
+
+<a href="security.html" class="security-item">
+<div>
+<i class="fa-solid fa-lock"></i>
+<section>
+<b>Transaction PIN</b>
+<small>Protect your payments</small>
+</section>
+</div>
+<span>→</span>
+</a>
+
+</div>
+
+
+</a>
+
+
+</div>
+
+
+
+
+
+
+
+
+<a class="back" href="dashboard.html">
+
+Back to Dashboard
+
+</a>
+
+
+</div>
+
+
+
+<script src="js/theme.js"></script>
+
+<script src="js/profile.js"></script>
+
+
+<script src="js/theme.js"></script>
+</body>
+
+</html>

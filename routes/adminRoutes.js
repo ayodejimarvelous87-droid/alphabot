@@ -8,11 +8,31 @@ const {
   getUsers,
   getWallets,
   getOrders,
-  getTransactions
+  getTransactions,
+  getNotifications
 } = require("../controllers/adminController");
 
 
-// Admin dashboard data
+const {
+  adminLogin
+} = require("../controllers/adminAuthController");
+
+
+const {
+  searchWallet,
+  addFunds,
+  deductFunds
+} = require("../controllers/adminWalletController");
+
+
+
+// Admin login
+router.post("/login", adminLogin);
+
+
+
+// Protected admin routes
+
 router.get("/users", auth, admin, getUsers);
 
 router.get("/wallets", auth, admin, getWallets);
@@ -20,6 +40,36 @@ router.get("/wallets", auth, admin, getWallets);
 router.get("/orders", auth, admin, getOrders);
 
 router.get("/transactions", auth, admin, getTransactions);
+
+router.get("/notifications", auth, admin, getNotifications);
+
+
+
+// Wallet management
+
+router.get(
+  "/wallet/:phone",
+  auth,
+  admin,
+  searchWallet
+);
+
+
+router.post(
+  "/wallet/add",
+  auth,
+  admin,
+  addFunds
+);
+
+
+router.post(
+  "/wallet/deduct",
+  auth,
+  admin,
+  deductFunds
+);
+
 
 
 module.exports = router;

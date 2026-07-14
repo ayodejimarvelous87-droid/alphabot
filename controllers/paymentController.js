@@ -2,9 +2,12 @@ require("dotenv").config();
 
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const normalizePhone = require("../utils/phone");
+const { createNotification } = require("../services/notificationService");
 
 const paymentWebhook = async (req, res) => {
   try {
+
     const secret = req.headers["x-payment-secret"];
 
     if (secret !== process.env.PAYMENT_SECRET) {
@@ -15,7 +18,9 @@ const paymentWebhook = async (req, res) => {
 
     const { phone, amount, reference } = req.body;
 
-    if (!phone || !amount || !reference) {
+    const cleanPhone = normalizePhone(phone);
+
+    if (!cleanPhone || !amount || !reference) {
       return res.status(400).json({
         message: "Invalid payment data"
       });
@@ -31,7 +36,9 @@ const paymentWebhook = async (req, res) => {
       });
     }
 
-    const wallet = await Wallet.findOne({ phone });
+    const wallet = await Wallet.findOne({
+      phone: cleanPhone
+    });
 
     if (!wallet) {
       return res.status(404).json({
@@ -44,12 +51,19 @@ const paymentWebhook = async (req, res) => {
     await wallet.save();
 
     await Transaction.create({
-      phone,
+      phone: cleanPhone,
       type: "fund",
-      amount,
+      amount: Number(amount),
       description: `Wallet funding - ${reference}`,
       status: "successful"
     });
+
+    await createNotification(
+      cleanPhone,
+      "Wallet Funded",
+      `₦${Number(amount).toLocaleString()} has been added to your wallet successfully.`,
+      "success"
+    );
 
     res.json({
       message: "Wallet funded successfully",
@@ -57,11 +71,13 @@ const paymentWebhook = async (req, res) => {
     });
 
   } catch (error) {
+
     console.log(error);
 
     res.status(500).json({
       message: error.message
     });
+
   }
 };
 

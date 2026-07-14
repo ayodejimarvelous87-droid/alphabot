@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Maintenance Settings - AlphaBot</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+<div class="dashboard">
+
+<h1>Maintenance Settings</h1>
+
+
+<div class="card">
+
+<h2>System Status</h2>
+
+<p id="status">
+Checking...
+</p>
+
+
+<button onclick="turnOn()">
+Turn ON Maintenance
+</button>
+
+
+<button onclick="turnOff()">
+Turn OFF Maintenance
+</button>
+
+
+</div>
+
+
+
+<div class="card">
+
+<h2>Maintenance Message</h2>
+
+<input id="message"
+placeholder="Maintenance message">
+
+
+<button onclick="updateMessage()">
+Save Message
+</button>
+
+
+</div>
+
+
+
+<br>
+
+<a href="dashboard.html">
+Back to Dashboard
+</a>
+
+
+</div>
+
+
+<script src="js/maintenance.js"></script>
+
+
+</body>
+
+</html>

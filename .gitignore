@@ -1,2 +1,7 @@
 node_modules/
 .env
+.vercel
+
+*.backup.js
+*_backup.js
+*.tgz

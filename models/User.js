@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -7,11 +8,13 @@ const userSchema = new mongoose.Schema(
       required: true
     },
 
+
     phone: {
       type: String,
       required: true,
       unique: true
     },
+
 
     email: {
       type: String,
@@ -19,24 +22,59 @@ const userSchema = new mongoose.Schema(
       sparse: true
     },
 
+
     password: {
       type: String,
       required: true
     },
+
 
     wallet: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Wallet"
     },
 
+
     role: {
       type: String,
       default: "user"
+    },
+
+
+    referralCode: {
+      type: String,
+      unique: true
+    },
+
+
+    referredBy: {
+      type: String,
+      default: null
+    },
+
+
+    referralEarnings: {
+      type: Number,
+      default: 0
+    },
+
+
+    firstPurchaseCompleted: {
+      type: Boolean,
+      default: false
+    },
+
+
+    referralRewardGiven: {
+      type: Boolean,
+      default: false
     }
+
   },
   {
     timestamps: true
   }
 );
+
 
 module.exports = mongoose.model("User", userSchema);

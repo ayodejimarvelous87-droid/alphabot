@@ -1,5 +1,11 @@
 module.exports = {
-  apiUrl: "",
-  apiKey: "",
-  secretKey: ""
+
+  apiUrl: "https://www.nellobytesystems.com",
+
+  userId: "CK101284200",
+
+  walletKey: "U731AUX75V65P3M7BK1SLPX6N504J9U1ZSX4GU431A5872BGB3JG43I56X135VKO",
+
+  dataKey: "8367J9S32P8WBP26Z2W7Y31IL6822AK7P406F0BHGLWN4XPNS4HW7A034RX1XQ82"
+
 };

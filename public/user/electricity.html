@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Electricity Payment - AlphaBot</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+
+<div class="app">
+
+
+<div class="top">
+<h2>💡 Electricity Bill</h2>
+<div class="top-icons">
+<a href="dashboard.html" class="back-icon">←</a>
+<button id="themeToggle" class="icon-btn">🌙</button>
+</div>
+</div>
+
+
+
+
+<div class="wallet-card">
+
+<p>
+Pay your electricity bills easily
+</p>
+
+<h2>
+Fast & Secure
+</h2>
+
+</div>
+
+
+
+
+
+<div class="card">
+
+
+<div class="input-group">
+<label>⚡ Select Disco</label>
+<select id="disco">
+<option value="">Select Disco</option>
+<option value="IKEDC">Ikeja Electric (IKEDC)</option>
+<option value="EKEDC">Eko Electric (EKEDC)</option>
+<option value="AEDC">Abuja Electric (AEDC)</option>
+<option value="IBEDC">Ibadan Electric (IBEDC)</option>
+<option value="Other">Other</option>
+</select>
+</div>
+
+<div class="input-group">
+<label>🔌 Meter Type</label>
+<select id="meterType">
+<option value="prepaid">Prepaid</option>
+<option value="postpaid">Postpaid</option>
+</select>
+</div>
+
+<div class="input-group">
+<label>🔢 Meter Number</label>
+<input id="meterNumber" placeholder="Enter meter number">
+</div>
+
+<div class="input-group">
+<label>💰 Amount</label>
+<input id="amount" placeholder="Enter amount" type="number">
+</div>
+
+<button id="payElectricity">
+
+Pay Electricity
+
+</button>
+
+
+
+
+<p id="message"></p>
+
+
+</div>
+
+
+
+
+
+
+
+
+<a class="back" href="dashboard.html">
+
+Back to Dashboard
+
+</a>
+
+
+</div>
+
+
+
+
+<script src="js/theme.js"></script>
+
+<script src="js/electricity.js"></script>
+
+
+</body>
+
+</html>

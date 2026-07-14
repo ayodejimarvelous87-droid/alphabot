@@ -8,16 +8,24 @@ const {
   deleteProduct
 } = require("../controllers/productController");
 
-// Add product
-router.post("/add", addProduct);
+const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
 
-// Get products
+
+// Admin only - add product
+router.post("/add", auth, admin, addProduct);
+
+
+// Public - customers view products
 router.get("/", getProducts);
 
-// Update product
-router.put("/:id", updateProduct);
 
-// Delete product
-router.delete("/:id", deleteProduct);
+// Admin only - update product
+router.put("/:id", auth, admin, updateProduct);
+
+
+// Admin only - delete product
+router.delete("/:id", auth, admin, deleteProduct);
+
 
 module.exports = router;

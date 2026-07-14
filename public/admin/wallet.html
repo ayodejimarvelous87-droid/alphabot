@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Wallet Management - AlphaBot</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+
+<div class="dashboard">
+
+
+<h1>Wallet Management</h1>
+
+
+
+<div class="card">
+
+
+<h2>Search User Wallet</h2>
+
+
+<input 
+id="searchPhone"
+placeholder="Enter phone number"
+>
+
+
+<button onclick="searchWallet()">
+Search
+</button>
+
+
+</div>
+
+
+
+
+<div class="card" id="walletBox" style="display:none;">
+
+
+<h2>User Wallet</h2>
+
+
+<p>
+Phone:
+<span id="phone"></span>
+</p>
+
+
+<p>
+Balance:
+₦<span id="balance"></span>
+</p>
+
+
+</div>
+
+
+
+
+
+<div class="card">
+
+
+<h2>Add Funds ➕</h2>
+
+
+<input 
+id="addAmount"
+placeholder="Amount"
+>
+
+
+<input 
+id="addReason"
+placeholder="Reason"
+>
+
+
+<button onclick="addFunds()">
+Add Funds
+</button>
+
+
+</div>
+
+
+
+
+
+<div class="card">
+
+
+<h2>Deduct Funds ➖</h2>
+
+
+<input 
+id="deductAmount"
+placeholder="Amount"
+>
+
+
+<input 
+id="deductReason"
+placeholder="Reason"
+>
+
+
+<button onclick="deductFunds()">
+Deduct Funds
+</button>
+
+
+</div>
+
+
+
+
+
+<br>
+
+
+<a href="dashboard.html">
+Back to Dashboard
+</a>
+
+
+
+</div>
+
+
+
+<script src="js/wallet.js"></script>
+
+
+</body>
+
+</html>

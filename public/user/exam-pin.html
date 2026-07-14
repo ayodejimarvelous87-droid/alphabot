@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Exam Pins - AlphaBot</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+<div class="app">
+
+
+<div class="top">
+
+<h2>🎓 Exam Pins</h2>
+
+<a href="services.html">←</a>
+
+</div>
+
+
+
+<div class="card">
+
+<label>Exam Type</label>
+
+<select id="exam">
+<option value="WAEC">WAEC</option>
+<option value="NECO">NECO</option>
+<option value="NABTEB">NABTEB</option>
+</select>
+
+
+<label>Quantity</label>
+
+<input id="quantity" type="number" value="1">
+
+
+<label>Transaction PIN</label>
+
+<input id="pin" type="password" maxlength="4" placeholder="Enter transaction PIN">
+
+
+
+<button id="buy">
+Buy Exam PIN
+</button>
+
+
+<p id="message"></p>
+
+
+</div>
+
+
+</div>
+
+
+
+<script src="js/theme.js"></script>
+<script src="js/exam-pin.js"></script>
+
+
+</body>
+
+</html>
