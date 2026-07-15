@@ -12,7 +12,9 @@ app.use(express.urlencoded({ extended:false }));
 app.use(express.static(path.join(__dirname,"public")));
 
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 5000
+})
 
 .then(()=>{
 
