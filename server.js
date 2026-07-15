@@ -1,10 +1,16 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
 require("dotenv").config();
 const startCron = require("./services/cron");
 const path = require("path");
 
 const app = express();
+
+app.use(cors({
+  origin: "https://alphabot-frontend-chi.vercel.app",
+  credentials: true
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended:false }));
