@@ -75,6 +75,7 @@ app.use("/wallet", walletRoutes);
 app.use("/products", productRoutes);
 app.use("/orders", orderRoutes);
 app.use("/users", userRoutes);
+app.post("/users/test", (req,res)=>{ res.json({message:"users route works"}); });
 app.use("/transactions", transactionRoutes);
 app.use("/admin", adminRoutes);
 app.use("/payment", paymentRoutes);
