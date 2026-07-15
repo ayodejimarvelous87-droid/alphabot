@@ -24,6 +24,8 @@ const fundWallet = async (req, res) => {
       phone: cleanPhone
     });
 
+    const balanceBefore = wallet ? wallet.balance : 0;
+
 
     if (!wallet) {
 
@@ -50,6 +52,10 @@ const fundWallet = async (req, res) => {
       direction:"credit",
 
       amount:Number(amount),
+
+      balanceBefore,
+
+      balanceAfter: wallet.balance,
 
       description:"Wallet funding"
 
@@ -294,6 +300,8 @@ const payWallet = async(req,res)=>{
 
 
 
+    const balanceBefore = wallet.balance;
+
     wallet.balance -= Number(amount);
 
 
@@ -311,6 +319,10 @@ const payWallet = async(req,res)=>{
       direction:"debit",
 
       amount:Number(amount),
+
+      balanceBefore,
+
+      balanceAfter: wallet.balance,
 
       description:description || "VTU purchase"
 
