@@ -18,7 +18,7 @@ router.post("/register", registerUser);
 
 
 // Login
-router.post("/login", loginUser);
+router.post("/login", (req,res,next)=>{ console.log("USER LOGIN ROUTE HIT"); loginUser(req,res,next); });
 
 
 // Forgot password
