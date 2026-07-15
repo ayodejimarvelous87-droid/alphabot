@@ -92,16 +92,11 @@ const registerUser = async (req, res) => {
 
       email,
 
-      password: hashedPassword,
-
-      wallet: wallet._id,
-
       referralCode: userReferralCode,
 
       referredBy: referralCode || null
 
     });
-
 
 
 
@@ -154,11 +149,7 @@ const loginUser = async (req,res)=>{
     console.log("LOGIN ROUTE HIT");
   try{
 
-
-    const {
-      phone,
-      password
-    } = req.body;
+    const { phone, password } = req.body || {};
 
 
 
@@ -408,7 +399,6 @@ const updateProfile = async (req,res)=>{
       name,
       email
     } = req.body;
-
 
     if(name) user.name = name;
 
