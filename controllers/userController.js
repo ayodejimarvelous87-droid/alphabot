@@ -165,6 +165,7 @@ const loginUser = async (req,res)=>{
 
 
 
+    console.log("Login DB state:", require("mongoose").connection.readyState);
     const user = await User.findOne({
 
       phone: cleanPhone
