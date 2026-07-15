@@ -20,6 +20,12 @@ console.log("MongoDB connected successfully");
 
 startCron();
 
+app.listen(PORT,()=>{
+
+console.log(`AlphaBot API running on port ${PORT}`);
+
+});
+
 })
 
 .catch(error=>{
@@ -107,8 +113,4 @@ res.send("AlphaBot API is running...");
 const PORT = process.env.PORT || 5000;
 
 
-app.listen(PORT,()=>{
 
-console.log(`AlphaBot API running on port ${PORT}`);
-
-});
