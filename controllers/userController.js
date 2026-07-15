@@ -230,14 +230,20 @@ const loginUser = async (req,res)=>{
 
 
 
+    const safeUser = {
+      id: user._id,
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      role: user.role,
+      referralCode: user.referralCode,
+      wallet: user.wallet
+    };
+
     res.json({
-
       message:"Login successful",
-
       token,
-
-      user
-
+      user: safeUser
     });
 
 
