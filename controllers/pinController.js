@@ -1,5 +1,5 @@
 const TransactionPin = require("../models/TransactionPin");
-const normalizePhone = require("../utils/normalizePhone");
+const normalizePhone = require("../utils/phone");
 
 
 // Create or update PIN
