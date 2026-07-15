@@ -92,6 +92,8 @@ const registerUser = async (req, res) => {
 
       email,
 
+      password: hashedPassword,
+
       referralCode: userReferralCode,
 
       referredBy: referralCode || null
