@@ -1,8 +1,164 @@
 const User = require("../models/User");
 const Wallet = require("../models/wallet");
+const PasswordReset = require("../models/PasswordReset");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const normalizePhone = require("../utils/phone");
+const sendSMS = require("../services/smsService");
+
+
+
+
+
+// Send reset OTP
+const sendResetOTP = async(req,res)=>{
+
+try{
+
+const {phone}=req.body;
+
+const user=await User.findOne({
+phone:normalizePhone(phone)
+});
+
+
+if(!user){
+
+return res.status(404).json({
+message:"User not found"
+});
+
+}
+
+
+const otp=Math.floor(
+100000 + Math.random()*900000
+).toString();
+
+
+await PasswordReset.deleteMany({
+phone:user.phone
+});
+
+
+await PasswordReset.create({
+
+phone:user.phone,
+
+otp,
+
+expiresAt:new Date(
+Date.now()+10*60*1000
+)
+
+});
+
+
+await sendSMS(
+user.phone,
+`Your AlphaBot password reset OTP is ${otp}`
+);
+
+
+res.json({
+
+message:"OTP sent successfully"
+
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+// Verify reset OTP
+const verifyResetOTP = async(req,res)=>{
+
+try{
+
+const {
+phone,
+otp,
+newPassword
+}=req.body;
+
+
+const reset=await PasswordReset.findOne({
+
+phone:normalizePhone(phone),
+
+otp
+
+});
+
+
+if(!reset){
+
+return res.status(400).json({
+
+message:"Invalid OTP"
+
+});
+
+}
+
+
+if(reset.expiresAt < new Date()){
+
+return res.status(400).json({
+
+message:"OTP expired"
+
+});
+
+}
+
+
+const user=await User.findOne({
+
+phone:normalizePhone(phone)
+
+});
+
+
+user.password=await bcrypt.hash(
+newPassword,
+10
+);
+
+
+await user.save();
+
+
+await PasswordReset.deleteOne({
+_id:reset._id
+});
+
+
+res.json({
+
+message:"Password reset successful"
+
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
 
 
 // Generate referral code
@@ -79,7 +235,23 @@ const registerUser = async (req, res) => {
 
 
 
-    const userReferralCode = generateReferralCode();
+    let validReferralCode = null;
+
+if(referralCode){
+
+const referrer = await User.findOne({
+  referralCode: referralCode
+});
+
+if(referrer){
+
+validReferralCode = referralCode;
+
+}
+
+}
+
+const userReferralCode = generateReferralCode();
 
 
 
@@ -96,7 +268,7 @@ const registerUser = async (req, res) => {
 
       referralCode: userReferralCode,
 
-      referredBy: referralCode || null
+      referredBy: validReferralCode
 
     });
 
@@ -509,6 +681,10 @@ module.exports = {
   loginUser,
 
   forgotPassword,
+
+  sendResetOTP,
+
+  verifyResetOTP,
 
   getProfile,
 

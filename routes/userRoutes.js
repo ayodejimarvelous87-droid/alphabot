@@ -7,6 +7,8 @@ const {
   registerUser,
   loginUser,
   forgotPassword,
+  sendResetOTP,
+  verifyResetOTP,
   getProfile,
   updateProfile,
   changePassword
@@ -23,6 +25,20 @@ router.post("/login", (req,res,next)=>{ console.log("USER LOGIN ROUTE HIT"); log
 
 // Forgot password
 router.post("/forgot-password", forgotPassword);
+
+
+// Send reset OTP
+router.post(
+"/send-reset-otp",
+sendResetOTP
+);
+
+
+// Verify reset OTP
+router.post(
+"/verify-reset-otp",
+verifyResetOTP
+);
 
 
 // User profile

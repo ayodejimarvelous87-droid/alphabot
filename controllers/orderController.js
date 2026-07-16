@@ -176,6 +176,7 @@ const buyProduct = async (req, res) => {
 
       if(
         buyer.referredBy &&
+          !buyer.referralRewardGiven &&
         product.price > 300
       ){
 
@@ -213,6 +214,7 @@ const buyProduct = async (req, res) => {
               referrer.referralEarnings += reward;
 
               await referrer.save();
+                buyer.referralRewardGiven = true;
 
 
               await Transaction.create({

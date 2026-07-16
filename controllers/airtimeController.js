@@ -3,6 +3,7 @@ const Airtime = require("../models/Airtime");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");
+const normalizePhone = require("../utils/phone");
 
 
 // Buy airtime
@@ -11,102 +12,80 @@ const buyAirtime = async(req,res)=>{
 
 try{
 
-
 const { phone, network, amount, pin } = req.body;
-
-
 
 if(!phone || !network || !amount){
 
 return res.status(400).json({
-
 message:"Phone, network and amount are required"
-
 });
 
 }
 
 
-
+const cleanPhone = normalizePhone(phone);
 
 
 const userPin = await TransactionPin.findOne({
-phone
+phone: cleanPhone
 });
 
+
 if(!userPin){
+
 return res.status(400).json({
 message:"Create transaction PIN first"
 });
+
 }
 
+
 if(userPin.pin !== pin){
+
 return res.status(400).json({
 message:"Incorrect transaction PIN"
 });
+
 }
 
+
 const wallet = await Wallet.findOne({
-
-phone
-
+phone: cleanPhone
 });
-
 
 
 if(!wallet){
 
 return res.status(404).json({
-
 message:"Wallet not found"
-
 });
 
 }
-
-
 
 
 if(wallet.balance < Number(amount)){
 
-
 return res.status(400).json({
-
 message:"Insufficient wallet balance"
-
 });
 
-
 }
-
-
 
 
 const balanceBefore = wallet.balance;
 
 
-
 wallet.balance -= Number(amount);
-
-
 
 await wallet.save();
 
 
-
-
-
-const reference =
-
-"AIRTIME-" + Date.now();
-
-
-
+const reference = "AIRTIME-" + Date.now();
 
 
 const airtime = await Airtime.create({
 
-phone,
+phone: cleanPhone,
 
 network,
 
@@ -119,16 +98,13 @@ status:"successful"
 });
 
 
-
-
-
 await Transaction.create({
 
-phone,
+phone:cleanPhone,
 
 type:"airtime",
 
- direction:"debit",
+direction:"debit",
 
 amount:Number(amount),
 
@@ -145,11 +121,6 @@ status:"successful"
 });
 
 
-
-
-
-
-
 const cashback = Math.floor(Number(amount) * 0.005);
 
 
@@ -164,7 +135,7 @@ await wallet.save();
 
 await Transaction.create({
 
-phone,
+phone:cleanPhone,
 
 type:"cashback",
 
@@ -189,7 +160,7 @@ status:"successful"
 
 await createNotification(
 
-phone,
+cleanPhone,
 
 "Airtime Purchase Successful",
 
@@ -198,9 +169,6 @@ phone,
 "success"
 
 );
-
-
-
 
 
 res.json({
@@ -214,30 +182,17 @@ balance:wallet.balance
 });
 
 
-
-
-
 }catch(error){
 
-
 res.status(500).json({
-
 message:error.message
-
 });
 
-
 }
-
 
 };
 
 
-
-
-
-module.exports={
-
+module.exports = {
 buyAirtime
-
 };

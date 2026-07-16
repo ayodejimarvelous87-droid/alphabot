@@ -2,50 +2,29 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
+
 const startCron = require("./services/cron");
 const startOTPCleanup = require("./services/otpCleanup");
 const path = require("path");
 
 const app = express();
 
+
+// CORS
 app.use(cors({
   origin: [
     "https://alphabot-frontend-chi.vercel.app",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://localhost:3001"
   ],
   credentials: true
 }));
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended:false }));
 
 app.use(express.static(path.join(__dirname,"public")));
-
-
-mongoose.connect(process.env.MONGO_URI, {
-  serverSelectionTimeoutMS: 5000
-})
-
-.then(()=>{
-
-console.log("MongoDB connected successfully");
-
-startCron();
-  startOTPCleanup();
-
-app.listen(PORT,()=>{
-
-console.log(`AlphaBot API running on port ${PORT}`);
-
-});
-
-})
-
-.catch(error=>{
-
-console.log("MongoDB connection error:", error);
-
-});
 
 
 // Routes
@@ -78,6 +57,7 @@ const withdrawalRoutes = require("./routes/withdrawalRoutes");
 const adminExamPinRoutes = require("./routes/adminExamPinRoutes");
 const adminAirtimeCashRoutes = require("./routes/adminAirtimeCashRoutes");
 const beneficiaryRoutes = require("./routes/beneficiaryRoutes");
+const vtuRoutes = require("./routes/vtuRoutes");
 
 
 // Use routes
@@ -85,46 +65,87 @@ const beneficiaryRoutes = require("./routes/beneficiaryRoutes");
 app.use("/wallet", walletRoutes);
 app.use("/products", productRoutes);
 app.use("/orders", orderRoutes);
+
 app.use("/users", userRoutes);
-app.post("/users/test", (req,res)=>{ res.json({message:"users route works"}); });
+
+app.post("/users/test",(req,res)=>{
+  res.json({
+    message:"users route works"
+  });
+});
+
 app.use("/transactions", transactionRoutes);
 app.use("/admin", adminRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/funding", fundingRoutes);
 app.use("/bank", bankRoutes);
 app.use("/webhook", whatsappWebhook);
+
 app.use("/receipts", receiptRoutes);
 app.use("/notifications", notificationRoutes);
+
 app.use("/referrals", referralRoutes);
 app.use("/referral-earnings", referralEarningsRoutes);
 app.use("/referral-withdraw", referralWithdrawRoutes);
+
 app.use("/maintenance", maintenanceRoutes);
+
 app.use("/airtime", airtimeRoutes);
 app.use("/betting", bettingRoutes);
 app.use("/electricity", electricityRoutes);
 app.use("/tv", tvRoutes);
+
 app.use("/pin", pinRoutes);
 app.use("/recurring", recurringRoutes);
+
 app.use("/airtime-cash", airtimeCashRoutes);
 app.use("/exam-pin", examPinRoutes);
+
 app.use("/withdrawal", withdrawalRoutes);
+
 app.use("/admin/exam-pin", adminExamPinRoutes);
 app.use("/admin/airtime-cash", adminAirtimeCashRoutes);
+
 app.use("/beneficiaries", beneficiaryRoutes);
+
+app.use("/vtu", vtuRoutes);
 
 
 // Test
 
 app.get("/api",(req,res)=>{
-
-res.send("AlphaBot API is running...");
-
+  res.send("AlphaBot API is running...");
 });
 
 
-// Server
+// Database + Server
 
 const PORT = process.env.PORT || 5000;
 
 
+mongoose.connect(process.env.MONGO_URI,{
+  serverSelectionTimeoutMS:5000
+})
 
+.then(()=>{
+
+  console.log("MongoDB connected successfully");
+
+  startCron();
+  startOTPCleanup();
+
+
+  app.listen(PORT,()=>{
+
+    console.log(`AlphaBot API running on port ${PORT}`);
+
+  });
+
+
+})
+
+.catch(error=>{
+
+  console.log("MongoDB connection error:",error);
+
+});
