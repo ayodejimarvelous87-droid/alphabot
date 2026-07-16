@@ -3,12 +3,16 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 const startCron = require("./services/cron");
+const startOTPCleanup = require("./services/otpCleanup");
 const path = require("path");
 
 const app = express();
 
 app.use(cors({
-  origin: "https://alphabot-frontend-chi.vercel.app",
+  origin: [
+    "https://alphabot-frontend-chi.vercel.app",
+    "http://localhost:3000"
+  ],
   credentials: true
 }));
 
@@ -27,6 +31,7 @@ mongoose.connect(process.env.MONGO_URI, {
 console.log("MongoDB connected successfully");
 
 startCron();
+  startOTPCleanup();
 
 app.listen(PORT,()=>{
 
