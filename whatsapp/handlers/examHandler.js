@@ -33,6 +33,26 @@ const handleExam = async ({
   }
 
 
+
+  if (state.state === "awaiting_exam_type") {
+
+    const examMap = {
+      "1": "WAEC",
+      "2": "NECO",
+      "3": "JAMB",
+      "4": "NABTEB"
+    };
+
+    state.data.exam = examMap[text] || message.toUpperCase();
+    state.state = "awaiting_exam_quantity";
+
+    await state.save();
+
+    await sendMessage(phone, "🎓 Enter quantity:");
+
+    return true;
+  }
+
   if (state.state === "awaiting_exam_quantity") {
 
     const quantity = Number(message);

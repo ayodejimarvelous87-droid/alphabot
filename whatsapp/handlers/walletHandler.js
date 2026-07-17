@@ -9,6 +9,37 @@ const handleWallet = async ({
 }) => {
 
 
+  if (state.state === "wallet_menu") {
+
+    if (text === "check balance") {
+      const wallet = await Wallet.findOne({ phone });
+      await sendMessage(phone, `💰 Wallet Balance: ₦${wallet?.balance || 0}`);
+      return true;
+    }
+
+    if (text === "fund wallet") {
+      state.state = "awaiting_amount";
+      state.data = {};
+      await state.save();
+      await sendMessage(phone, "Enter the amount you want to fund:");
+      return true;
+    }
+
+    if (text === "transaction history") {
+      await sendMessage(phone, "📜 Transaction history feature coming soon.");
+      return true;
+    }
+
+    if (text === "back" || text === "0") {
+      state.state = null;
+      state.data = {};
+      await state.save();
+      await sendMessage(phone, "🔙 Returning to main menu.");
+      return true;
+    }
+
+  }
+
   if (text === "bal" || text === "balance") {
 
     const wallet = await Wallet.findOne({ phone });

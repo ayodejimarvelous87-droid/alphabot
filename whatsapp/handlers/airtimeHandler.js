@@ -27,9 +27,8 @@ const handleAirtime = async ({
     }
 
 
-  if (state.state === "awaiting_airtime_network") {
+  if (state.state === "awaiting_airtime_option") {
 
-    if (state.state === "awaiting_airtime_option") {
 
       if (text === "saved beneficiary") {
 
@@ -99,6 +98,7 @@ const handleAirtime = async ({
     }
 
 
+    if (state.state === "awaiting_airtime_network") {
     state.data.network = message.toUpperCase();
     state.state = "awaiting_airtime_phone";
 

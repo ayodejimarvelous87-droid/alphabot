@@ -8,7 +8,7 @@ const handleAirtimeCash = async ({
 }) => {
 
 
-  if (text === "airtime cash" || text === "airtimecash") {
+  if (text === "airtime cash" || text === "airtimecash" || text.includes("airtime cash")) {
 
     state.state = "awaiting_airtime_cash_network";
     state.data = {};

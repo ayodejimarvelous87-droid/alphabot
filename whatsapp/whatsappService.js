@@ -19,9 +19,7 @@ const sendMessage = async (phone, message) => {
       body: message
     });
 
-
     console.log("WhatsApp sent:", response.sid);
-
 
     return {
       success: true,
@@ -36,7 +34,6 @@ const sendMessage = async (phone, message) => {
       error.message
     );
 
-
     return {
       success:false,
       message:error.message
@@ -47,13 +44,30 @@ const sendMessage = async (phone, message) => {
 };
 
 
-const sendButtons = async (phone, text, buttons) => {
+const formatOptions = (items) => {
 
-  console.log("Buttons:", buttons);
+  return items
+    .map((item,index)=> item === "BACK" ? "0. 🔙 Back" : `${index + 1}. ${item}`)
+    .join("\n");
+
+};
+
+
+const sendButtons = async (phone, text, buttons) => {
 
   return await sendMessage(
     phone,
-    text + "\n\n" + buttons.map((b,i)=>`${i+1}. ${b}`).join("\n")
+    text + "\n\n" + formatOptions(buttons)
+  );
+
+};
+
+
+const sendMenu = async (phone, text, buttons) => {
+
+  return await sendMessage(
+    phone,
+    text + "\n\nChoose an option:\n\n" + formatOptions(buttons)
   );
 
 };
@@ -61,11 +75,9 @@ const sendButtons = async (phone, text, buttons) => {
 
 const sendList = async (phone, title, items) => {
 
-  console.log("List:", items);
-
   return await sendMessage(
     phone,
-    title + "\n\n" + items.map((item,i)=>`${i+1}. ${item}`).join("\n")
+    title + "\n\n" + formatOptions(items)
   );
 
 };
@@ -74,5 +86,6 @@ const sendList = async (phone, title, items) => {
 module.exports = {
   sendMessage,
   sendButtons,
+  sendMenu,
   sendList
 };

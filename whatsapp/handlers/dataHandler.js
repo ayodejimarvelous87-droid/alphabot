@@ -125,17 +125,27 @@ const handleData = async ({
     return true;
   }
 
-  if (state.state === "awaiting_data_plan") {
+    if (state.state === "awaiting_data_plan") {
 
-    state.data.plan = message;
-    state.state = "awaiting_data_option";
+      const planMap = {
+        "1": "1GB",
+        "2": "2GB",
+        "3": "5GB",
+        "4": "10GB"
+      };
 
-    await state.save();
+      state.data.plan = planMap[text] || message;
+      state.state = "awaiting_data_option";
 
-    await sendMessage(phone, "📱 Enter the phone number to buy data for:");
+      await state.save();
 
-    return true;
-  }
+      await sendButtons(phone, "📱 Choose purchase option:", [
+        "New Number",
+        "Saved Beneficiary"
+      ]);
+
+      return true;
+    }
 
   if (state.state === "awaiting_data_network") {
 

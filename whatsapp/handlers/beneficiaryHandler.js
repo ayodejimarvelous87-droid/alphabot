@@ -8,7 +8,7 @@ const handleBeneficiary = async ({
 }) => {
 
 
-  if (text === "beneficiary" || text === "beneficiaries") {
+  if (text === "beneficiary" || text === "beneficiaries" || text === "add beneficiary") {
 
     state.state = "awaiting_beneficiary_service";
     state.data = {};

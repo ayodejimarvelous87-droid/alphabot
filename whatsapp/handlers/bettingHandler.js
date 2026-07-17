@@ -77,7 +77,14 @@ const handleBetting = async ({
 
   if (state.state === "awaiting_betting_provider") {
 
-    state.data.provider = message.toUpperCase();
+    const providerMap = {
+      "1": "BET9JA",
+      "2": "SPORTYBET",
+      "3": "1XBET"
+    };
+
+
+    state.data.provider = providerMap[text] || message.toUpperCase();
 
     state.state = "awaiting_customer_id";
 

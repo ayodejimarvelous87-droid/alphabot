@@ -1,6 +1,6 @@
 const { walletMenu, serviceMenu, referralMenu, rewardMenu, gameMenu } = require("./menus");
 const { getWelcomeMessage } = require("./welcomeService");
-const { sendMessage, sendButtons, sendList } = require("./whatsappService");
+const { sendMessage, sendButtons, sendMenu, sendList } = require("./whatsappService");
 const { helpMessage } = require("./help");
 const User = require("../models/User");
 const Wallet = require("../models/wallet");
@@ -99,9 +99,7 @@ const handleMessage = async (phone, message) => {
 
       const welcome = await getWelcomeMessage(phone);
 
-      await sendMessage(phone, welcome);
-
-      await sendButtons(phone, "Choose an option:", [
+      await sendMenu(phone, welcome, [
         "💰 Wallet",
         "🛒 Services",
         "🎁 Referral",
@@ -122,7 +120,76 @@ const handleMessage = async (phone, message) => {
 
 
 
-  const handledAirtime = await handleAirtime({
+
+
+    if (state.state === "services_menu") {
+
+      if (text === "1" || text.includes("data")) {
+        state.state = "awaiting_data_network";
+        await state.save();
+        await sendMessage(phone, "🌐 Enter network (MTN, Airtel, Glo, 9mobile):");
+        return true;
+      }
+
+      if (text === "2" || text.includes("airtime")) {
+        state.state = "awaiting_airtime_option";
+        await state.save();
+        await sendMessage(phone, "📱 Choose Airtime option:\n\n1. New Number\n2. Saved Beneficiary");
+        return true;
+      }
+
+        if (text === "3" || text.includes("electricity")) {
+          state.state = "awaiting_disco";
+          state.data = {};
+          await state.save();
+
+          await sendButtons(phone, "⚡ Select DISCO:", [
+            "IKEDC",
+            "EKEDC",
+            "AEDC",
+            "PHED",
+            "BACK"
+          ]);
+
+          return true;
+        }
+
+      if (text === "4" || text.includes("tv")) {
+        state.state = "awaiting_tv_provider";
+        await state.save();
+        await sendMessage(phone, "📺 Enter TV provider:");
+        return true;
+      }
+
+      if (text === "5" || text.includes("exam")) {
+        state.state = "awaiting_exam_type";
+        await state.save();
+        await sendMessage(phone, "🎓 Enter exam type:");
+        return true;
+      }
+
+      if (text === "6" || text.includes("betting")) {
+        state.state = "awaiting_betting_provider";
+        await state.save();
+        await sendMessage(phone, "🎮 Enter betting platform:");
+        return true;
+      }
+
+      if (text === "0" || text === "back") {
+        state.state = null;
+        state.data = {};
+        await state.save();
+
+        const welcome = await getWelcomeMessage(phone);
+        await sendMessage(phone, welcome);
+        return true;
+      }
+
+      await sendMessage(phone, "❌ Invalid service option. Choose 1 - 6 or 0 to go back.");
+      return true;
+    }
+    const handledAirtime = await handleAirtime({
+
     phone,
     text,
     message,
@@ -228,6 +295,8 @@ const handleMessage = async (phone, message) => {
   if (handledWithdrawal) return;
 
   const handledAirtimeCash = await handleAirtimeCash({
+
+
     phone,
     text,
     state,
@@ -283,23 +352,26 @@ const handleMessage = async (phone, message) => {
     await state.save();
 
 
-      const welcome = await getWelcomeMessage(phone);
+        const welcome = await getWelcomeMessage(phone);
 
-      await sendMessage(phone, welcome);
+        await sendMessage(
+          phone,
+          welcome + `
 
-        await sendButtons(phone, "Choose an option:", [
-          "💰 Wallet",
-          "🛒 Services",
-          "🎁 Referral",
-          "👥 Beneficiary",
-          "💵 Airtime Cash",
-          "💸 Withdrawal",
-          "🔁 Recurring Payments",
-          "🤖 AI Assistant",
-          "🏆 Rewards",
-          "🎮 Games",
-          "📞 Support"
-        ]);
+1. 💰 Wallet
+2. 🛒 Services
+3. 🎁 Referral
+4. 👥 Beneficiary
+5. 💵 Airtime Cash
+6. 💸 Withdrawal
+7. 🔁 Recurring Payments
+8. 🤖 AI Assistant
+9. 🏆 Rewards
+10. 🎮 Games
+11. 📞 Support
+
+Reply with a number.`
+        );
 
     return;
   }
@@ -307,22 +379,59 @@ const handleMessage = async (phone, message) => {
 
 
 
-      if (command === "1") {
+      if (command === "0") {
 
-        await sendButtons(phone, "💰 Wallet", [
-          "Check Balance",
-          "Fund Wallet",
-          "Transaction History",
-            "⬅️ Back"
-        ]);
+        state.state = null;
+        state.data = {};
+        await state.save();
+
+        const welcome = await getWelcomeMessage(phone);
+
+        await sendMessage(phone, welcome + `
+
+1. 💰 Wallet
+2. 🛒 Services
+3. 🎁 Referral
+4. 👥 Beneficiary
+5. 💵 Airtime Cash
+6. 💸 Withdrawal
+7. 🔁 Recurring Payments
+8. 🤖 AI Assistant
+9. 🏆 Rewards
+10. 🎮 Games
+11. 📞 Support
+
+Reply with a number.`);
 
         return;
 
       }
 
+        if (command === "1") {
+
+          state.state = "wallet_menu";
+          await state.save();
+
+          await sendButtons(phone, "💰 Wallet", [
+            "Check Balance",
+            "Fund Wallet",
+            "Transaction History",
+            "BACK"
+          ]);
+
+          return;
+
+        }
 
 
-    if (command === "2") {
+
+
+
+      if (command === "2") {
+
+        state.state = "services_menu";
+        state.data = {};
+        await state.save();
 
         await sendList(phone, "🛒 Services", [
           "🌐 Data",
@@ -331,20 +440,19 @@ const handleMessage = async (phone, message) => {
           "📺 TV Subscription",
           "🎓 Exam PIN",
           "🎮 Betting",
-            "⬅️ Back"
+          "BACK"
         ]);
 
-      return;
+        return;
 
-    }
-
+      }
 
     if (command === "3") {
 
       await sendButtons(phone, "🎁 Referral", [
         "My Referral Code",
         "Referral Earnings",
-          "⬅️ Back"
+          "BACK"
       ]);
 
       return;
@@ -354,7 +462,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "4") {
 
-        await sendButtons(phone, "👥 Beneficiary Menu", ["Add Beneficiary", "My Beneficiaries", "⬅️ Back"]);
+        await sendButtons(phone, "👥 Beneficiary Menu", ["Add Beneficiary", "My Beneficiaries", "BACK"]);
 
         return;
 
@@ -362,7 +470,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "5") {
 
-        await sendButtons(phone, "💵 Airtime Cash Menu", ["Request Airtime Cash", "⬅️ Back"]);
+        await sendButtons(phone, "💵 Airtime Cash Menu", ["Request Airtime Cash", "BACK"]);
 
         return;
 
@@ -370,7 +478,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "6") {
 
-        await sendButtons(phone, "💸 Withdrawal Menu", ["Withdraw Funds", "⬅️ Back"]);
+        await sendButtons(phone, "💸 Withdrawal Menu", ["Withdraw Funds", "BACK"]);
 
         return;
 
@@ -378,7 +486,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "7") {
 
-        await sendButtons(phone, "🔁 Recurring Payments", ["Manage Recurring", "My Recurring", "Cancel Recurring", "⬅️ Back"]);
+        await sendButtons(phone, "🔁 Recurring Payments", ["Manage Recurring", "My Recurring", "Cancel Recurring", "BACK"]);
 
         return;
 
@@ -397,7 +505,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "9") {
 
-        await sendButtons(phone, "🏆 Rewards", ["My Rewards", "Coming Soon", "⬅️ Back"]);
+        await sendButtons(phone, "🏆 Rewards", ["My Rewards", "Coming Soon", "BACK"]);
 
         return;
 
@@ -405,7 +513,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "10") {
 
-        await sendButtons(phone, "🎮 Games", ["Play Games", "Leaderboard", "⬅️ Back"]);
+        await sendButtons(phone, "🎮 Games", ["Play Games", "Leaderboard", "BACK"]);
 
         return;
 
@@ -413,7 +521,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "11") {
 
-        await sendButtons(phone, "📞 AlphaBot Support", ["Contact Support", "⬅️ Back"]);
+        await sendButtons(phone, "📞 AlphaBot Support", ["Contact Support", "BACK"]);
 
         return;
 

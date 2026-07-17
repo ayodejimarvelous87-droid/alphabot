@@ -99,21 +99,32 @@ const handleElectricity = async ({
   }
 
 
-  if (state.state === "awaiting_disco") {
+    if (state.state === "awaiting_disco") {
 
-    state.data.disco = message.toUpperCase();
-    state.state = "awaiting_meter_number";
+      if (text === "back" || text === "0") {
+        state.state = null;
+        state.data = {};
+        await state.save();
 
-    await state.save();
+        await sendMessage(phone, "🔙 Returning to main menu.");
+        return true;
+      }
 
+      const discoMap = {
+        "1": "IKEDC",
+        "2": "EKEDC",
+        "3": "AEDC",
+        "4": "PHED"
+      };
 
-    await sendMessage(
-      phone,
-      "⚡ Enter meter number:"
-    );
+      state.data.disco = discoMap[text] || message.toUpperCase();
+      state.state = "awaiting_meter_number";
 
-    return true;
-  }
+      await state.save();
+
+      await sendMessage(phone, "⚡ Enter meter number:");
+      return true;
+    }
 
 
   if (text === "electricity" || text === "⚡ electricity") {

@@ -8,7 +8,7 @@ const handleWithdrawal = async ({
   sendMessage
 }) => {
 
-  if (text === "withdraw" || text === "withdrawal") {
+  if (text === "withdraw" || text === "withdrawal" || text.includes("withdrawal")) {
 
     state.state = "awaiting_withdraw_amount";
     state.data = {};

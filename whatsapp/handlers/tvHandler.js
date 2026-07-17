@@ -59,17 +59,20 @@ const handleTV = async ({
 
   if (state.state === "awaiting_tv_package") {
 
-    state.data.package = message;
+    const packageMap = {
+      "1": "DSTV Compact",
+      "2": "DSTV Premium",
+      "3": "GOTV Max",
+      "4": "Startimes Basic"
+    };
+
+    state.data.package = packageMap[text] || message;
 
     state.state = "awaiting_tv_amount";
 
     await state.save();
 
-
-    await sendMessage(
-      phone,
-      "💰 Enter subscription amount:"
-    );
+    await sendMessage(phone, "💰 Enter subscription amount:");
 
     return true;
   }
@@ -101,7 +104,17 @@ const handleTV = async ({
 
   if (state.state === "awaiting_tv_provider") {
 
-    state.data.provider = message.toUpperCase();
+      if (text === "0" || text === "back") {
+        state.state = null;
+        state.data = {};
+        await state.save();
+        await sendMessage(phone, "🔙 Returning to main menu.");
+        return true;
+      }
+
+    const providerMap = { "1": "DSTV", "2": "GOTV", "3": "STARTIMES" };
+
+      state.data.provider = providerMap[text] || message.toUpperCase();
 
     state.state = "awaiting_tv_card";
 

@@ -10,7 +10,7 @@ const handleRecurring = async ({
 }) => {
 
 
-  if (text === "recurring" || text === "schedule") {
+  if (text === "recurring" || text === "schedule" || text.includes("recurring payments")) {
 
     state.state = "awaiting_recurring_service";
     state.data = {};
