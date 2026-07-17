@@ -14,23 +14,28 @@ const beneficiarySchema = new mongoose.Schema(
 
     service:{
         type:String,
-        enum:["data","airtime","betting","electricity","tv"],
+        enum:[
+            "data",
+            "airtime"
+        ],
         required:true
     },
 
-    network:{
+    targetPhone:{
         type:String,
-        default:""
+        required:true
     },
 
     nickname:{
         type:String,
         required:true
     }
+
 },
 {
     timestamps:true
 }
 );
+
 
 module.exports = mongoose.model("Beneficiary", beneficiarySchema);

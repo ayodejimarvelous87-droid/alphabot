@@ -38,8 +38,8 @@ const sendMessage = async (phone, message) => {
 
 
     return {
-      success: false,
-      message: error.message
+      success:false,
+      message:error.message
     };
 
   }
@@ -47,6 +47,32 @@ const sendMessage = async (phone, message) => {
 };
 
 
+const sendButtons = async (phone, text, buttons) => {
+
+  console.log("Buttons:", buttons);
+
+  return await sendMessage(
+    phone,
+    text + "\n\n" + buttons.map((b,i)=>`${i+1}. ${b}`).join("\n")
+  );
+
+};
+
+
+const sendList = async (phone, title, items) => {
+
+  console.log("List:", items);
+
+  return await sendMessage(
+    phone,
+    title + "\n\n" + items.map((item,i)=>`${i+1}. ${item}`).join("\n")
+  );
+
+};
+
+
 module.exports = {
-  sendMessage
+  sendMessage,
+  sendButtons,
+  sendList
 };

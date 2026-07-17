@@ -2,52 +2,53 @@ const mongoose = require("mongoose");
 
 const recurringSchema = new mongoose.Schema(
 {
-    phone:{
-        type:String,
-        required:true
-    },
+  phone:{
+    type:String,
+    required:true
+  },
 
-    service:{
-        type:String,
-        enum:["data","airtime","betting"],
-        required:true
-    },
+  service:{
+    type:String,
+    enum:["data","airtime"],
+    required:true
+  },
 
-    provider:{
-        type:String,
-        default:""
-    },
+  provider:{
+    type:String,
+    default:""
+  },
 
-    productId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Product",
-        default:null
-    },
+  productId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"Product",
+    default:null
+  },
 
-    amount:{
-        type:Number,
-        required:true
-    },
+  amount:{
+    type:Number,
+    required:true
+  },
 
-    frequency:{
-        type:String,
-        enum:["daily","weekly","monthly"],
-        required:true
-    },
+  frequency:{
+    type:String,
+    enum:["daily","weekly","monthly"],
+    required:true
+  },
 
-    status:{
-        type:String,
-        enum:["active","paused","cancelled"],
-        default:"active"
-    },
+  status:{
+    type:String,
+    enum:["active","paused","cancelled"],
+    default:"active"
+  },
 
-    nextRun:{
-        type:Date,
-        required:true
-    }
+  nextRun:{
+    type:Date,
+    required:true
+  }
+
 },
 {
-    timestamps:true
+  timestamps:true
 }
 );
 

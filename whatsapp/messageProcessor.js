@@ -13,7 +13,7 @@ const processIncomingMessage = async (body) => {
     if (body.Body && body.From) {
 
       phone = body.From.replace("whatsapp:", "");
-      text = body.Body;
+      text = body.Body || body.ButtonText || body.ButtonPayload;
 
     }
 

@@ -54,6 +54,7 @@ const pinRoutes = require("./routes/pinRoutes");
 const recurringRoutes = require("./routes/recurringRoutes");
 const airtimeCashRoutes = require("./routes/airtimeCashRoutes");
 const examPinRoutes = require("./routes/examPinRoutes");
+const whatsappExamRoutes = require("./routes/whatsappExamRoutes");
 const withdrawalRoutes = require("./routes/withdrawalRoutes");
 const adminExamPinRoutes = require("./routes/adminExamPinRoutes");
 const adminAirtimeCashRoutes = require("./routes/adminAirtimeCashRoutes");
@@ -110,6 +111,7 @@ app.use("/pin", pinRoutes);
 app.use("/recurring", recurringRoutes);
 
 app.use("/airtime-cash", airtimeCashRoutes);
+app.use("/whatsapp-exam", whatsappExamRoutes);
 app.use("/exam-pin", examPinRoutes);
 
 app.use("/withdrawal", withdrawalRoutes);
