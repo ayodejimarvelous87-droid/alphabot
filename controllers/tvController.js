@@ -21,6 +21,7 @@ provider,
 smartCardNumber,
 
 package,
+pin,
 
 amount
 
@@ -126,6 +127,7 @@ provider,
 smartCardNumber,
 
 package,
+pin,
 
 amount:Number(amount),
 

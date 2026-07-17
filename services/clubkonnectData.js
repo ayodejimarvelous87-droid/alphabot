@@ -16,7 +16,7 @@ const buyData = async (
       {
         params: {
           UserID: vtuConfig.userId,
-          APIKey: vtuConfig.apiKey,
+          APIKey: vtuConfig.dataKey,
           MobileNetwork: network,
           DataPlan: plan,
           MobileNumber: phone,
@@ -25,19 +25,21 @@ const buyData = async (
       }
     );
 
+
     return response.data;
 
 
-  } catch (error) {
+  } catch(error){
 
     console.log(
       "DATA ERROR:",
       error.response?.data || error.message
     );
 
+
     return {
-      success: false,
-      message: error.response?.data || error.message
+      success:false,
+      message:error.response?.data || error.message
     };
 
   }

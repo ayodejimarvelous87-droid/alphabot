@@ -11,10 +11,11 @@ const buyAirtime = async (phone, network, amount) => {
       {
         params: {
           UserID: vtuConfig.userId,
-          APIKey: vtuConfig.apiKey,
+          APIKey: vtuConfig.airtimeKey,
           MobileNetwork: network,
           Amount: amount,
-          MobileNumber: phone
+          MobileNumber: phone,
+          RequestID: Date.now()
         }
       }
     );

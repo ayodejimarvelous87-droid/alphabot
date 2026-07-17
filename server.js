@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const startCron = require("./services/cron");
 const startOTPCleanup = require("./services/otpCleanup");
+require("./services/recurringService");
 const path = require("path");
 
 const app = express();
@@ -58,10 +59,20 @@ const adminExamPinRoutes = require("./routes/adminExamPinRoutes");
 const adminAirtimeCashRoutes = require("./routes/adminAirtimeCashRoutes");
 const beneficiaryRoutes = require("./routes/beneficiaryRoutes");
 const vtuRoutes = require("./routes/vtuRoutes");
+const aiRoutes = require("./routes/aiRoutes");
+const footballRoutes = require("./routes/footballRoutes");
+const footballPredictionRoutes = require("./routes/footballPredictionRoutes");
+const footballRewardRoutes = require("./routes/footballRewardRoutes");
+const footballAdminRoutes = require("./routes/footballAdminRoutes");
 
 
 // Use routes
 
+app.use("/football", footballRoutes);
+app.use("/football", footballPredictionRoutes);
+app.use("/football/rewards", footballRewardRoutes);
+app.use("/football/admin", footballAdminRoutes);
+app.use("/ai", aiRoutes);
 app.use("/wallet", walletRoutes);
 app.use("/products", productRoutes);
 app.use("/orders", orderRoutes);

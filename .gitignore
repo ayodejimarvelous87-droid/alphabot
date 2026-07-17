@@ -5,3 +5,4 @@ node_modules/
 *.backup.js
 *_backup.js
 *.tgz
+config/vtu.js

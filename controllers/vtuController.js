@@ -2,9 +2,10 @@ const TransactionPin = require("../models/TransactionPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 
+const { buyData } = require("../services/clubkonnectData");
 
-// Buy data
-const buyData = async (req,res)=>{
+
+const buyDataController = async (req,res)=>{
 
 try{
 
@@ -26,7 +27,7 @@ message:"Phone, network, plan, amount and PIN are required"
 }
 
 
-// Check transaction PIN
+// Check PIN
 
 const userPin = await TransactionPin.findOne({
 phone
@@ -51,7 +52,7 @@ message:"Incorrect transaction PIN"
 }
 
 
-// Find wallet
+// Wallet
 
 const wallet = await Wallet.findOne({
 phone
@@ -67,23 +68,51 @@ message:"Wallet not found"
 }
 
 
-
 if(wallet.balance < Number(amount)){
 
 return res.status(400).json({
 message:"Insufficient balance",
-balance: wallet.balance
+balance:wallet.balance
 });
 
 }
 
 
+// Call ClubKonnect first
+
+const providerResponse = await buyData(
+phone,
+network,
+plan
+);
+
+
+console.log(
+"ClubKonnect Data Response:",
+providerResponse
+);
+
+
+// Detect failure
+
+if(
+providerResponse.success === false ||
+String(providerResponse).toLowerCase().includes("failed")
+){
+
+return res.status(400).json({
+message:"Data purchase failed",
+providerResponse
+});
+
+}
+
+
+// Deduct wallet after success
 
 const balanceBefore = wallet.balance;
 
-
 wallet.balance -= Number(amount);
-
 
 await wallet.save();
 
@@ -119,26 +148,27 @@ message:"Data purchase successful",
 
 transaction,
 
+providerResponse,
+
 newBalance:wallet.balance
 
 });
 
 
-
 }catch(error){
 
+console.log(error);
+
 res.status(500).json({
-
 message:error.message
-
 });
 
 }
 
-
 };
 
 
+
 module.exports = {
-buyData
+buyData: buyDataController
 };

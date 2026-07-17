@@ -1,3 +1,6 @@
+const { mainMenu, walletMenu, serviceMenu, referralMenu, rewardMenu, gameMenu } = require("./menus");
+const { welcomeMessage } = require("./welcome");
+const { getWelcomeMessage } = require("./welcomeService");
 const { sendMessage } = require("./whatsappService");
 const User = require("../models/User");
 const Wallet = require("../models/wallet");
@@ -55,38 +58,37 @@ const handleMessage = async (phone, message) => {
     await state.save();
 
 
-    await sendMessage(
-      phone,
-      `Welcome to AlphaBot 🚀
+      const welcome = await getWelcomeMessage(phone);
 
-Choose an option:
-
-1. Check Balance
-2. Buy Data
-3. Buy Airtime
-4. Fund Wallet
-5. Transaction History`
-    );
+      await sendMessage(phone, welcome);
 
     return;
   }
 
 
 
-  if (text === "1") {
 
-    const wallet = await Wallet.findOne({ phone });
+    if (text === "1") {
+
+      const wallet = await Wallet.findOne({ phone });
+
+      await sendMessage(
+        phone,
+        `Your wallet balance is ₦${wallet?.balance || 0}`
+      );
+
+      return;
+
+    }
 
 
-    await sendMessage(
-      phone,
-      `Your wallet balance is ₦${wallet?.balance || 0}`
-    );
+    if (text === "2") {
 
-    return;
-  }
+      await sendMessage(phone, serviceMenu);
 
+      return;
 
+    }
 
   if (text === "4") {
 

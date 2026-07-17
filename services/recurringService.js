@@ -1,187 +1,144 @@
 const Recurring = require("../models/Recurring");
 const Wallet = require("../models/wallet");
-const Transaction = require("../models/Transaction");
-const { createNotification } = require("./notificationService");
-const { purchaseProduct } = require("./vtuService");
 const Product = require("../models/Product");
+const Transaction = require("../models/Transaction");
 
+const { purchaseProduct } = require("./vtuService");
 
-const processRecurringPayments = async()=>{
 
-try{
+const processRecurringPayments = async () => {
 
-const payments = await Recurring.find({
+  try {
 
-status:"active",
+    const now = new Date();
 
-nextRun:{
-$lte:new Date()
-}
+    const payments = await Recurring.find({
+      status: "active",
+      nextRun: {
+        $lte: now
+      }
+    });
 
-});
 
+    for (const payment of payments) {
 
-for(const payment of payments){
+      const wallet = await Wallet.findOne({
+        phone: payment.phone
+      });
 
+      if (!wallet) continue;
 
-const wallet = await Wallet.findOne({
 
-phone:payment.phone
+      if (wallet.balance < payment.amount) {
+        console.log(
+          "Insufficient balance:",
+          payment.phone
+        );
+        continue;
+      }
 
-});
 
+      const product = await Product.findById(
+        payment.productId
+      );
 
-if(!wallet){
 
-continue;
+      if (!product) continue;
 
-}
 
+      if(
+        product.type !== "airtime" &&
+        product.type !== "data"
+      ){
+        continue;
+      }
 
 
-if(wallet.balance < payment.amount){
+      const result = await purchaseProduct(
+        payment.phone,
+        product
+      );
 
-await createNotification(
-payment.phone,
-"Recurring Payment Failed",
-"Insufficient wallet balance for recurring payment.",
-"error"
-);
 
-continue;
+      if(!result.success){
+        continue;
+      }
 
-}
 
+      const balanceBefore = wallet.balance;
 
+      wallet.balance -= payment.amount;
 
+      await wallet.save();
 
-let result = {
-success:true
-};
 
+      await Transaction.create({
 
+        phone: payment.phone,
 
-if(payment.service === "data" && payment.productId){
+        type:"recurring",
 
+        direction:"debit",
 
-const product = await Product.findById(
-payment.productId
-);
+        amount:payment.amount,
 
+        balanceBefore,
 
-if(product){
+        balanceAfter:wallet.balance,
 
-result = await purchaseProduct(
-payment.phone,
-product
-);
+        description:`Recurring ${product.name} payment`,
 
-}
+        reference:payment._id.toString(),
 
-}
+        status:"successful"
 
+      });
 
 
-if(!result.success){
+      if(payment.frequency === "daily"){
+        payment.nextRun.setDate(
+          payment.nextRun.getDate()+1
+        );
+      }
 
-continue;
 
-}
+      if(payment.frequency === "weekly"){
+        payment.nextRun.setDate(
+          payment.nextRun.getDate()+7
+        );
+      }
 
 
+      if(payment.frequency === "monthly"){
+        payment.nextRun.setMonth(
+          payment.nextRun.getMonth()+1
+        );
+      }
 
-const before = wallet.balance;
 
+      await payment.save();
 
-wallet.balance -= payment.amount;
 
+      console.log(
+        "Recurring completed:",
+        payment.phone
+      );
 
-await wallet.save();
+    }
 
 
+  } catch(error){
 
-await Transaction.create({
+    console.log(
+      "Recurring error:",
+      error.message
+    );
 
-phone:payment.phone,
-
-type:"recurring",
-
-direction:"debit",
-
-amount:payment.amount,
-
-balanceBefore:before,
-
-balanceAfter:wallet.balance,
-
-description:"Recurring "+payment.service,
-
-status:"successful"
-
-});
-
-
-
-await createNotification(
-
-payment.phone,
-
-"Recurring Payment Successful",
-
-`${payment.service} recurring payment completed.`,
-
-"success"
-
-);
-
-
-
-// update next run
-
-if(payment.frequency==="daily"){
-
-payment.nextRun.setDate(
-payment.nextRun.getDate()+1
-);
-
-}
-
-if(payment.frequency==="weekly"){
-
-payment.nextRun.setDate(
-payment.nextRun.getDate()+7
-);
-
-}
-
-if(payment.frequency==="monthly"){
-
-payment.nextRun.setMonth(
-payment.nextRun.getMonth()+1
-);
-
-}
-
-
-await payment.save();
-
-
-}
-
-
-}catch(error){
-
-console.log(
-"Recurring error:",
-error.message
-);
-
-}
-
+  }
 
 };
 
 
-module.exports={
-processRecurringPayments
+module.exports = {
+  processRecurringPayments
 };
