@@ -1,4 +1,4 @@
-const { mainMenu, walletMenu, serviceMenu, referralMenu, rewardMenu, gameMenu } = require("./menus");
+const { walletMenu, serviceMenu, referralMenu, rewardMenu, gameMenu } = require("./menus");
 const { getWelcomeMessage } = require("./welcomeService");
 const { sendMessage, sendButtons, sendList } = require("./whatsappService");
 const { helpMessage } = require("./help");
@@ -89,6 +89,36 @@ const handleMessage = async (phone, message) => {
       data: {}
     });
   }
+
+    if (text === "⬅️ back" || text === "back") {
+
+      state.state = null;
+      state.data = {};
+
+      await state.save();
+
+      const welcome = await getWelcomeMessage(phone);
+
+      await sendMessage(phone, welcome);
+
+      await sendButtons(phone, "Choose an option:", [
+        "💰 Wallet",
+        "🛒 Services",
+        "🎁 Referral",
+        "👥 Beneficiary",
+        "💵 Airtime Cash",
+        "💸 Withdrawal",
+        "🔁 Recurring Payments",
+        "🤖 AI Assistant",
+        "🏆 Rewards",
+        "🎮 Games",
+        "📞 Support"
+      ]);
+
+      return;
+
+    }
+
 
 
 
@@ -215,14 +245,6 @@ const handleMessage = async (phone, message) => {
 
   if (handledBeneficiary) return;
 
-  const handledAI = await handleAI({
-    phone,
-    message,
-    state,
-    sendMessage
-  });
-
-  if (handledAI) return;
 
 
 
@@ -290,7 +312,8 @@ const handleMessage = async (phone, message) => {
         await sendButtons(phone, "💰 Wallet", [
           "Check Balance",
           "Fund Wallet",
-          "Transaction History"
+          "Transaction History",
+            "⬅️ Back"
         ]);
 
         return;
@@ -307,7 +330,8 @@ const handleMessage = async (phone, message) => {
           "⚡ Electricity",
           "📺 TV Subscription",
           "🎓 Exam PIN",
-          "🎮 Betting"
+          "🎮 Betting",
+            "⬅️ Back"
         ]);
 
       return;
@@ -319,7 +343,8 @@ const handleMessage = async (phone, message) => {
 
       await sendButtons(phone, "🎁 Referral", [
         "My Referral Code",
-        "Referral Earnings"
+        "Referral Earnings",
+          "⬅️ Back"
       ]);
 
       return;
@@ -329,7 +354,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "4") {
 
-        await sendMessage(phone, "👥 Beneficiary Menu\n\nSend beneficiary commands.");
+        await sendButtons(phone, "👥 Beneficiary Menu", ["Add Beneficiary", "My Beneficiaries", "⬅️ Back"]);
 
         return;
 
@@ -337,7 +362,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "5") {
 
-        await sendMessage(phone, "💵 Airtime Cash Menu\n\nSend airtime cash request.");
+        await sendButtons(phone, "💵 Airtime Cash Menu", ["Request Airtime Cash", "⬅️ Back"]);
 
         return;
 
@@ -345,7 +370,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "6") {
 
-        await sendMessage(phone, "💸 Withdrawal Menu\n\nSend withdrawal request.");
+        await sendButtons(phone, "💸 Withdrawal Menu", ["Withdraw Funds", "⬅️ Back"]);
 
         return;
 
@@ -353,7 +378,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "7") {
 
-        await sendMessage(phone, "🔁 Recurring Payments\n\nSend recurring to manage subscriptions.");
+        await sendButtons(phone, "🔁 Recurring Payments", ["Manage Recurring", "My Recurring", "Cancel Recurring", "⬅️ Back"]);
 
         return;
 
@@ -372,7 +397,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "9") {
 
-        await sendMessage(phone, "🏆 Rewards\n\nReward features coming soon.");
+        await sendButtons(phone, "🏆 Rewards", ["My Rewards", "Coming Soon", "⬅️ Back"]);
 
         return;
 
@@ -380,7 +405,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "10") {
 
-        await sendMessage(phone, "🎮 Games\n\nGames are coming soon.");
+        await sendButtons(phone, "🎮 Games", ["Play Games", "Leaderboard", "⬅️ Back"]);
 
         return;
 
@@ -388,7 +413,7 @@ const handleMessage = async (phone, message) => {
 
       if (command === "11") {
 
-        await sendMessage(phone, "📞 AlphaBot Support: Contact support team.");
+        await sendButtons(phone, "📞 AlphaBot Support", ["Contact Support", "⬅️ Back"]);
 
         return;
 
@@ -454,6 +479,15 @@ const handleMessage = async (phone, message) => {
 
 
 
+
+    const handledAI = await handleAI({
+      phone,
+      message,
+      state,
+      sendMessage
+    });
+
+    if (handledAI) return;
 
   await sendMessage(
     phone,

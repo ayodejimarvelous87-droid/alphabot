@@ -3,6 +3,7 @@ const Wallet = require("../models/wallet");
 const Order = require("../models/Order");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
+const SystemSetting = require("../models/SystemSetting");
 
 
 // Get all users
@@ -98,10 +99,63 @@ const getNotifications = async (req, res) => {
   }
 };
 
+
+// Update AI daily limit
+const updateAILimit = async (req, res) => {
+
+  try {
+
+    const { limit } = req.body;
+
+
+    if (!limit || Number(limit) < 0) {
+
+      return res.status(400).json({
+        message:"Valid AI limit is required"
+      });
+
+    }
+
+
+    let setting = await SystemSetting.findOne();
+
+
+    if (!setting) {
+
+      setting = await SystemSetting.create({
+        aiDailyLimit: Number(limit)
+      });
+
+    } else {
+
+      setting.aiDailyLimit = Number(limit);
+      await setting.save();
+
+    }
+
+
+    res.json({
+      message:`AI daily limit updated to ${limit}`,
+      aiDailyLimit: setting.aiDailyLimit
+    });
+
+
+  } catch(error) {
+
+    res.status(500).json({
+      message:error.message
+    });
+
+  }
+
+};
+
+
 module.exports = {
   getUsers,
   getWallets,
   getOrders,
   getTransactions,
-  getNotifications
+  getNotifications,
+  updateAILimit
 };

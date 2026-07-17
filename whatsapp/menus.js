@@ -1,20 +1,3 @@
-const mainMenu = `
-Welcome to AlphaBot 🚀🤖
-
-Choose an option:
-
-1. Wallet 💰
-2. Services 🛒
-3. Referral 🎁
-4. Beneficiary 👥
-5. Airtime Cash 💵
-6. Withdrawal 💸
-7. Recurring Payments 🔁
-8. AI Assistant 🤖
-9. Rewards 🏆
-10. Games 🎮
-11. Support 📞
-`;
 
 const walletMenu = `
 Wallet 💰
@@ -76,7 +59,7 @@ More games coming soon.
 `;
 
 module.exports = {
-  mainMenu,
+
   walletMenu,
   serviceMenu,
   referralMenu,

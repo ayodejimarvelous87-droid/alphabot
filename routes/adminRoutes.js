@@ -9,7 +9,8 @@ const {
   getWallets,
   getOrders,
   getTransactions,
-  getNotifications
+  getNotifications,
+  updateAILimit
 } = require("../controllers/adminController");
 
 
@@ -25,14 +26,11 @@ const {
 } = require("../controllers/adminWalletController");
 
 
-
 // Admin login
 router.post("/login", adminLogin);
 
 
-
 // Protected admin routes
-
 router.get("/users", auth, admin, getUsers);
 
 router.get("/wallets", auth, admin, getWallets);
@@ -42,7 +40,6 @@ router.get("/orders", auth, admin, getOrders);
 router.get("/transactions", auth, admin, getTransactions);
 
 router.get("/notifications", auth, admin, getNotifications);
-
 
 
 // Wallet management
@@ -70,6 +67,15 @@ router.post(
   deductFunds
 );
 
+
+// AI management
+
+router.put(
+  "/ai-limit",
+  auth,
+  admin,
+  updateAILimit
+);
 
 
 module.exports = router;

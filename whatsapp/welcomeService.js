@@ -20,18 +20,6 @@ Welcome back, ${user?.name || "ALPHA"} 👋
 🎁 Referral Earnings: ₦${user?.referralEarnings || 0}
 
 🎖️ Status: ${user ? "Active" : "New User"}
-
-Choose an option:
-
-1️⃣ Wallet 💰
-2️⃣ Services 🛒
-3️⃣ Referral 🎁
-4️⃣ Rewards 🏆
-5️⃣ Games 🎮
-6️⃣ AI Assistant 🧠
-7️⃣ Support 📞
-
-Reply with a number.
 `;
 
 };
