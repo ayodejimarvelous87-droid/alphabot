@@ -1,5 +1,4 @@
 const axios = require("axios");
-const vtuConfig = require("../config/vtu");
 
 
 // Cable TV purchase
