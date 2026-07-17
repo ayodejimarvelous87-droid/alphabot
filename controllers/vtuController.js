@@ -2,7 +2,6 @@ const TransactionPin = require("../models/TransactionPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 
-const { buyData } = require("../services/clubkonnectData");
 
 
 const buyDataController = async (req,res)=>{
@@ -80,11 +79,10 @@ balance:wallet.balance
 
 // Call ClubKonnect first
 
-const providerResponse = await buyData(
-phone,
-network,
-plan
-);
+const providerResponse = {
+  success: false,
+  message: "Data provider not connected yet"
+};
 
 
 console.log(
