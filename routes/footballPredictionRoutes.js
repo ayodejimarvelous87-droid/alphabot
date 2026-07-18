@@ -12,7 +12,10 @@ router.get("/matches", async(req,res)=>{
 try{
 
 const matches = await FootballMatch.find({
-status:"Not Started"
+status:"Not Started",
+matchDate:{
+$gt:new Date()
+}
 })
 .sort({matchDate:1});
 
@@ -29,6 +32,7 @@ message:error.message
 });
 
 
+
 // Submit prediction
 router.post("/predict", async(req,res)=>{
 
@@ -40,45 +44,43 @@ matchId,
 choice
 }=req.body;
 
-
 const match = await FootballMatch.findById(matchId);
 
-
 if(!match){
-
 return res.status(404).json({
 message:"Match not found"
 });
-
 }
 
-
 if(new Date(match.matchDate) <= new Date()){
-
 return res.status(400).json({
 message:"Prediction closed"
 });
-
 }
 
+const existingPrediction = await Prediction.findOne({
+userId,
+matchId
+});
+
+if(existingPrediction){
+return res.status(400).json({
+message:"You already predicted this match"
+});
+}
 
 const prediction = await Prediction.create({
-
 userId,
 matchId,
 choice,
+status:"pending",
 week:getCurrentWeek()
-
 });
-
 
 res.json({
-
 message:"Prediction submitted",
 prediction
-
 });
-
 
 }catch(error){
 
@@ -89,7 +91,6 @@ message:error.message
 }
 
 });
-
 
 // My predictions
 router.get("/my-predictions/:userId", async(req,res)=>{

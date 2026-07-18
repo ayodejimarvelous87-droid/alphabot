@@ -29,6 +29,12 @@ type:Number,
 default:0
 },
 
+status:{
+type:String,
+enum:["pending","locked","won","lost"],
+default:"pending"
+},
+
 week:{
 type:String,
 default:()=>{

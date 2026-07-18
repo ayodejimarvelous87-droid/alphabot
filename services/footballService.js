@@ -1,3 +1,4 @@
+require("dotenv").config();
 const axios = require("axios");
 const FootballMatch = require("../models/FootballMatch");
 
@@ -21,12 +22,15 @@ try{
 const today = new Date();
 
 
-const dates = [
-today.toISOString().split("T")[0],
-new Date(today.getTime()+86400000)
+const dates = [];
+
+for(let i=0;i<3;i++){
+dates.push(
+new Date(today.getTime()+86400000*i)
 .toISOString()
 .split("T")[0]
-];
+);
+}
 
 
 let total = 0;

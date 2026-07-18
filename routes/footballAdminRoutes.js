@@ -91,9 +91,10 @@ try{
 const {
 userId,
 position,
-reward
+rewardType,
+amount,
+dataAmount
 }=req.body;
-
 
 const newReward = await FootballReward.create({
 
@@ -101,7 +102,11 @@ userId,
 
 position,
 
-reward,
+rewardType,
+
+amount,
+
+dataAmount,
 
 week:getCurrentWeek()
 

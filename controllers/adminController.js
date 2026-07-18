@@ -151,11 +151,54 @@ const updateAILimit = async (req, res) => {
 };
 
 
+const updateFootballSettings = async (req,res)=>{
+
+try{
+
+const{
+firstPrize,
+secondPrize,
+firstMinimumPoints,
+secondMinimumPoints
+}=req.body;
+
+let setting=await SystemSetting.findOne();
+
+if(!setting){
+setting=await SystemSetting.create({});
+}
+
+if(firstPrize!==undefined) setting.footballFirstPrize=Number(firstPrize);
+if(secondPrize!==undefined) setting.footballSecondPrize=Number(secondPrize);
+if(firstMinimumPoints!==undefined) setting.footballFirstMinimumPoints=Number(firstMinimumPoints);
+if(secondMinimumPoints!==undefined) setting.footballSecondMinimumPoints=Number(secondMinimumPoints);
+
+await setting.save();
+
+res.json({
+message:"Football settings updated",
+setting
+});
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
 module.exports = {
   getUsers,
   getWallets,
   getOrders,
   getTransactions,
   getNotifications,
-  updateAILimit
+  updateAILimit,
+  updateFootballSettings
 };
+
+

@@ -28,7 +28,8 @@ enum:[
 "admin_credit",
 "admin_debit",
 "referral_reward",
-"cashback"
+"cashback",
+"football_reward"
 ],
 
 required:true

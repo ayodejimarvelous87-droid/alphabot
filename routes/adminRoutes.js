@@ -10,7 +10,8 @@ const {
   getOrders,
   getTransactions,
   getNotifications,
-  updateAILimit
+  updateAILimit,
+  updateFootballSettings
 } = require("../controllers/adminController");
 
 
@@ -75,6 +76,14 @@ router.put(
   auth,
   admin,
   updateAILimit
+);
+
+
+router.put(
+  "/football-settings",
+  auth,
+  admin,
+  updateFootballSettings
 );
 
 

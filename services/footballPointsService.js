@@ -55,7 +55,8 @@ await Prediction.findByIdAndUpdate(
 prediction._id,
 
 {
-points:points
+points:points,
+status: points > 0 ? "won" : "lost"
 }
 
 );

@@ -1,38 +1,54 @@
 require("dotenv").config();
 
-const twilio = require("twilio");
+const axios = require("axios");
 
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+const META_URL =
+`https://graph.facebook.com/v22.0/${process.env.PHONE_NUMBER_ID}/messages`;
 
 
 const sendMessage = async (phone, message) => {
 
   try {
 
-    const response = await client.messages.create({
-      from: process.env.TWILIO_WHATSAPP_FROM,
-      to: `whatsapp:${phone}`,
-      body: message
-    });
+    const response = await axios.post(
+      META_URL,
+      {
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "text",
+        text: {
+          body: message
+        }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
 
-    console.log("WhatsApp sent:", response.sid);
+
+    console.log(
+      "WhatsApp sent:",
+      response.data.messages?.[0]?.id
+    );
+
 
     return {
-      success: true,
-      data: response
+      success:true,
+      data:response.data
     };
 
 
-  } catch (error) {
+  } catch(error){
 
     console.log(
       "WhatsApp send error:",
-      error.message
+      error.response?.data || error.message
     );
+
 
     return {
       success:false,
@@ -44,16 +60,23 @@ const sendMessage = async (phone, message) => {
 };
 
 
-const formatOptions = (items) => {
+
+const formatOptions = (items)=>{
 
   return items
-    .map((item,index)=> item === "BACK" ? "0. 🔙 Back" : `${index + 1}. ${item}`)
+    .map(
+      (item,index)=>
+        item === "BACK"
+        ? "0. 🔙 Back"
+        : `${index + 1}. ${item}`
+    )
     .join("\n");
 
 };
 
 
-const sendButtons = async (phone, text, buttons) => {
+
+const sendButtons = async(phone,text,buttons)=>{
 
   return await sendMessage(
     phone,
@@ -63,7 +86,8 @@ const sendButtons = async (phone, text, buttons) => {
 };
 
 
-const sendMenu = async (phone, text, buttons) => {
+
+const sendMenu = async(phone,text,buttons)=>{
 
   return await sendMessage(
     phone,
@@ -73,7 +97,8 @@ const sendMenu = async (phone, text, buttons) => {
 };
 
 
-const sendList = async (phone, title, items) => {
+
+const sendList = async(phone,title,items)=>{
 
   return await sendMessage(
     phone,
@@ -81,6 +106,7 @@ const sendList = async (phone, title, items) => {
   );
 
 };
+
 
 
 module.exports = {

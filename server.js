@@ -47,6 +47,8 @@ const referralWithdrawRoutes = require("./routes/referralWithdrawRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const receiptRoutes = require("./routes/receiptRoutes");
 const airtimeRoutes = require("./routes/airtimeRoutes");
+const dataRoutes = require("./routes/dataRoutes");
+const dataPlanRoutes = require("./routes/dataPlanRoutes");
 const bettingRoutes = require("./routes/bettingRoutes");
 const electricityRoutes = require("./routes/electricityRoutes");
 const tvRoutes = require("./routes/tvRoutes");
@@ -57,6 +59,7 @@ const examPinRoutes = require("./routes/examPinRoutes");
 const whatsappExamRoutes = require("./routes/whatsappExamRoutes");
 const withdrawalRoutes = require("./routes/withdrawalRoutes");
 const adminExamPinRoutes = require("./routes/adminExamPinRoutes");
+const adminWithdrawalRoutes = require("./routes/adminWithdrawalRoutes");
 const adminAirtimeCashRoutes = require("./routes/adminAirtimeCashRoutes");
 const beneficiaryRoutes = require("./routes/beneficiaryRoutes");
 const vtuRoutes = require("./routes/vtuRoutes");
@@ -87,6 +90,7 @@ app.post("/users/test",(req,res)=>{
 });
 
 app.use("/transactions", transactionRoutes);
+app.use("/admin/withdrawal", adminWithdrawalRoutes);
 app.use("/admin", adminRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/funding", fundingRoutes);
@@ -103,6 +107,8 @@ app.use("/referral-withdraw", referralWithdrawRoutes);
 app.use("/maintenance", maintenanceRoutes);
 
 app.use("/airtime", airtimeRoutes);
+app.use("/data", dataRoutes);
+app.use("/data", dataPlanRoutes);
 app.use("/betting", bettingRoutes);
 app.use("/electricity", electricityRoutes);
 app.use("/tv", tvRoutes);

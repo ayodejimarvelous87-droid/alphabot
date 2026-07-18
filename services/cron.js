@@ -12,6 +12,32 @@ const createFootballRewards = require("./footballRewardService");
 
 
 
+
+
+function getPreviousWeek(){
+
+const date=new Date();
+
+date.setDate(
+date.getDate()-7
+);
+
+return (
+date.getFullYear()
++
+"-"
++
+Math.ceil(
+(
+(date-new Date(date.getFullYear(),0,1))
+/86400000+1
+)/7
+)
+);
+
+}
+
+
 function startCron(){
 
 
@@ -101,7 +127,7 @@ cron.schedule("0 0 * * 0", async ()=>{
 
 try{
 
-await createFootballRewards();
+await createFootballRewards(getPreviousWeek());
 
 }catch(error){
 

@@ -1,14 +1,17 @@
 const Prediction = require("../models/Prediction");
 const FootballReward = require("../models/FootballReward");
+const User = require("../models/User");
+const Wallet = require("../models/wallet");
+const Transaction = require("../models/Transaction");
 const getCurrentWeek = require("../utils/getCurrentWeek");
+const SystemSetting = require("../models/SystemSetting");
 
 
-async function createFootballRewards(){
+async function createFootballRewards(targetWeek=null){
 
 try{
 
-const week = getCurrentWeek();
-
+const week = targetWeek || getCurrentWeek();
 
 
 const leaderboard = await Prediction.aggregate([
@@ -41,41 +44,117 @@ $limit:2
 ]);
 
 
+let settings = await SystemSetting.findOne();
+
+if(!settings){
+
+settings = await SystemSetting.create({});
+
+}
+
 
 const rewards=[
-"1GB",
-"500MB"
-];
 
+{
+position:1,
+requiredPoints:settings.footballFirstMinimumPoints,
+amount:settings.footballFirstPrize
+},
+
+{
+position:2,
+requiredPoints:settings.footballSecondMinimumPoints,
+amount:settings.footballSecondPrize
+}
+
+];
 
 
 for(let i=0;i<leaderboard.length;i++){
 
-
-const existingReward = await FootballReward.findOne({
-
-userId:leaderboard[i]._id,
-
-week
-
-});
+const player=leaderboard[i];
+const reward=rewards[i];
 
 
-if(existingReward){
+if(player.points < reward.requiredPoints){
 
 continue;
 
 }
 
 
+const exists=await FootballReward.findOne({
+userId:player._id,
+week
+});
+
+
+if(exists){
+
+continue;
+
+}
+
+
+const user=await User.findById(player._id);
+
+if(!user){
+
+continue;
+
+}
+
+
+const wallet=await Wallet.findOne({
+phone:user.phone
+});
+
+
+if(!wallet){
+
+continue;
+
+}
+
+
+const balanceBefore=wallet.balance;
+
+
+wallet.balance += reward.amount;
+
+await wallet.save();
+
+
+await Transaction.create({
+
+phone:user.phone,
+
+type:"football_reward",
+
+direction:"credit",
+
+amount:reward.amount,
+
+balanceBefore,
+
+balanceAfter:wallet.balance,
+
+description:"Football prediction weekly reward"
+
+});
+
 
 await FootballReward.create({
 
-userId:leaderboard[i]._id,
+userId:player._id,
 
-position:i+1,
+position:reward.position,
 
-reward:rewards[i],
+rewardType:"wallet",
+
+amount:reward.amount,
+
+status:"paid",
 
 week
 
@@ -85,8 +164,7 @@ week
 }
 
 
-
-console.log("Football rewards created");
+console.log("Football rewards paid");
 
 
 }catch(error){

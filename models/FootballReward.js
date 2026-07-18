@@ -13,9 +13,20 @@ type:Number,
 required:true
 },
 
-reward:{
+rewardType:{
 type:String,
+enum:["wallet","data"],
 required:true
+},
+
+amount:{
+type:Number,
+default:0
+},
+
+dataAmount:{
+type:String,
+default:null
 },
 
 status:{

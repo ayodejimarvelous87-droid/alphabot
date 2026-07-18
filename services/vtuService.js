@@ -1,67 +1,139 @@
+require("dotenv").config();
+
+const axios = require("axios");
+
+let token = null;
 
 
+const getToken = async () => {
+
+  if(token){
+    return token;
+  }
 
 
+  try {
 
-const {
-  purchaseCable,
-  purchaseElectricity
-} = require("./billService");
+    const response = await axios.post(
+      `${process.env.VTU_BASE_URL}/jwt-auth/v1/token`,
+      {
+        username: process.env.VTU_USERNAME,
+        password: process.env.VTU_PASSWORD
+      },
+      {
+        headers:{
+          "Content-Type":"application/json"
+        }
+      }
+    );
 
 
-// Temporary data purchase
-const purchaseData = async (phone, product) => {
+    token = response.data.token;
 
-  return {
-    success: false,
-    message: "Data provider not connected yet"
-  };
+    console.log("VTU token generated successfully");
+
+    return token;
+
+
+  } catch(error){
+
+    console.log(
+      "VTU authentication error:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+
+  }
 
 };
 
 
-// Temporary airtime purchase
-const purchaseAirtime = async (phone, product) => {
 
-  return {
-    success: false,
-    message: "Airtime provider not connected yet"
-  };
+const vtuRequest = async(endpoint,data={})=>{
+
+  const accessToken = await getToken();
+
+
+  const response = await axios.post(
+    `${process.env.VTU_BASE_URL}${endpoint}`,
+    data,
+    {
+      headers:{
+        Authorization:`Bearer ${accessToken}`,
+        "Content-Type":"application/json"
+      }
+    }
+  );
+
+
+  return response.data;
+
+};
+
+
+
+// GET request helper
+
+const vtuGet = async(endpoint)=>{
+
+  const accessToken = await getToken();
+
+
+  const response = await axios.get(
+    `${process.env.VTU_BASE_URL}${endpoint}`,
+    {
+      headers:{
+        Authorization:`Bearer ${accessToken}`,
+        "Content-Type":"application/json"
+      }
+    }
+  );
+
+
+  return response.data;
 
 };
 
 
 
-const purchaseProduct = async (phone, product) => {
-
-  if(product.type === "data" || product.type === "mifi"){
-    return await purchaseData(phone, product);
-  }
-
-
-  if(product.type === "airtime"){
-    return await purchaseAirtime(phone, product);
-  }
+const purchaseAirtime = async({
+  phone,
+  network,
+  amount,
+  request_id
+})=>{
 
 
-  if(product.type === "cable"){
-    return await purchaseCable(phone, product);
-  }
+  return await vtuRequest(
+    "/api/v2/airtime",
+    {
+      request_id,
+      phone,
+      service_id: network.toLowerCase(),
+      amount:Number(amount)
+    }
+  );
 
-
-  if(product.type === "electricity"){
-    return await purchaseElectricity(phone, product);
-  }
-
-
-  return {
-    success:false,
-    message:"Unsupported product type"
-  };
 
 };
 
+
+
+const vtuPublicGet = async(endpoint)=>{
+
+  const response = await axios.get(
+    `${process.env.VTU_BASE_URL}${endpoint}`
+  );
+
+  return response.data;
+
+};
 
 module.exports = {
-  purchaseProduct
+  getToken,
+  vtuRequest,
+  vtuGet,
+    vtuPublicGet,
+  purchaseAirtime
 };
