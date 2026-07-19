@@ -11,7 +11,13 @@ const allowedLeagues = [
 61,
 2,
 3,
-253
+253,
+255,
+262,
+292,
+389,
+113,
+114
 ];
 
 
@@ -25,7 +31,7 @@ const today = new Date();
 
 const dates = [];
 
-for(let i=0;i<3;i++){
+for(let i=0;i<14;i++){
 dates.push(
 new Date(today.getTime()+86400000*i)
 .toISOString()
