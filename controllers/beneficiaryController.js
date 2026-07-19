@@ -23,6 +23,7 @@ message:"Unauthorized"
 
 const beneficiary = await Beneficiary.create({
 phone:cleanPhone,
+targetPhone:cleanPhone,
 owner,
 service,
 network,

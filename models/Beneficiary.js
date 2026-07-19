@@ -26,6 +26,10 @@ const beneficiarySchema = new mongoose.Schema(
         required:true
     },
 
+    network:{
+        type:String
+    },
+
     nickname:{
         type:String,
         required:true
@@ -36,6 +40,5 @@ const beneficiarySchema = new mongoose.Schema(
     timestamps:true
 }
 );
-
 
 module.exports = mongoose.model("Beneficiary", beneficiarySchema);

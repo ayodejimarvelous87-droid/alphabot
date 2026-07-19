@@ -3,22 +3,7 @@ const axios = require("axios");
 const FootballMatch = require("../models/FootballMatch");
 
 
-const allowedLeagues = [
-39,
-140,
-135,
-78,
-61,
-2,
-3,
-253,
-255,
-262,
-292,
-389,
-113,
-114
-];
+const allowedLeagues = null;
 
 
 async function updateFootballMatches(){
@@ -66,7 +51,7 @@ for(const item of response.data.response){
 const leagueId = item.league.id;
 
 
-if(!allowedLeagues.includes(leagueId)){
+if(false){
 continue;
 }
 
