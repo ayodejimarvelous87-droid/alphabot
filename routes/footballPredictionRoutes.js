@@ -11,12 +11,7 @@ router.get("/matches", async(req,res)=>{
 
 try{
 
-const matches = await FootballMatch.find({
-status:"Not Started",
-matchDate:{
-$gt:new Date()
-}
-})
+const matches = await FootballMatch.find({status:"Not Started"})
 .sort({matchDate:1});
 
 res.json(matches);
