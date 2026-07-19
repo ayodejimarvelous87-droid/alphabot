@@ -19,6 +19,7 @@ async function updateFootballMatches(){
 
 try{
 
+await FootballMatch.deleteMany({matchDate:{$lt:new Date()}});
 const today = new Date();
 
 
