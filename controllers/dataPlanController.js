@@ -1,4 +1,5 @@
 const { vtuPublicGet } = require("../services/vtuService");
+const SystemSetting = require("../models/SystemSetting");
 
 
 const categoriesList = [
@@ -22,6 +23,17 @@ const response = await vtuPublicGet(
 
 
 const plans = response.data || [];
+
+const setting = await SystemSetting.findOne();
+
+const profit = setting?.dataProfit || 0;
+
+plans.forEach(plan=>{
+
+plan.reseller_price =
+Number(plan.reseller_price) + Number(profit);
+
+});
 
 
 const grouped = {};

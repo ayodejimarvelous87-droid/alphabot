@@ -11,7 +11,8 @@ const {
   getTransactions,
   getNotifications,
   updateAILimit,
-  updateFootballSettings
+  updateFootballSettings,
+  updatePricingSettings
 } = require("../controllers/adminController");
 
 
@@ -86,5 +87,12 @@ router.put(
   updateFootballSettings
 );
 
+
+router.put(
+  "/pricing-settings",
+  auth,
+  admin,
+  updatePricingSettings
+);
 
 module.exports = router;

@@ -38,6 +38,36 @@ const systemSettingSchema = new mongoose.Schema({
   footballSecondMinimumPoints:{
     type:Number,
     default:80
+  },
+
+  airtimeProfit:{
+    type:Number,
+    default:20
+  },
+
+  dataProfit:{
+    type:Number,
+    default:50
+  },
+
+  electricityProfit:{
+    type:Number,
+    default:50
+  },
+
+  tvProfit:{
+    type:Number,
+    default:50
+  },
+
+  examPinProfit:{
+    type:Number,
+    default:50
+  },
+
+  bettingProfit:{
+    type:Number,
+    default:20
   }
 
 

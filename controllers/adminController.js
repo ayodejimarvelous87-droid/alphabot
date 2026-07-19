@@ -191,6 +191,42 @@ message:error.message
 };
 
 
+const updatePricingSettings = async(req,res)=>{
+
+try{
+
+const pricing=req.body;
+
+let setting=await SystemSetting.findOne();
+
+if(!setting){
+setting=await SystemSetting.create({});
+}
+
+Object.keys(pricing).forEach(key=>{
+if(setting[key]!==undefined){
+setting[key]=Number(pricing[key]);
+}
+});
+
+await setting.save();
+
+res.json({
+message:"Pricing settings updated",
+setting
+});
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
 module.exports = {
   getUsers,
   getWallets,
@@ -198,7 +234,8 @@ module.exports = {
   getTransactions,
   getNotifications,
   updateAILimit,
-  updateFootballSettings
+  updateFootballSettings,
+  updatePricingSettings
 };
 
 
