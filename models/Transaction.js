@@ -22,6 +22,7 @@ enum:[
 "tv",
 "betting",
 "exam_pin",
+"epin",
 "withdrawal",
 "recurring",
 "refund",
