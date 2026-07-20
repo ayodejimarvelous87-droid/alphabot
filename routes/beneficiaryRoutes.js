@@ -1,18 +1,27 @@
-const express = require("express");
-const router = express.Router();
+const express=require("express");
 
-const auth = require("../middleware/auth");
+const router=express.Router();
+
+const auth=require("../middleware/auth");
 
 const {
-saveBeneficiary,
-getBeneficiaries,
-deleteBeneficiary
-} = require("../controllers/beneficiaryController");
+addBeneficiary,
+getBeneficiaries
+}=require("../controllers/beneficiaryController");
 
-router.post("/", auth, saveBeneficiary);
 
-router.get("/:phone", auth, getBeneficiaries);
+router.post(
+"/add",
+auth,
+addBeneficiary
+);
 
-router.delete("/:id", auth, deleteBeneficiary);
 
-module.exports = router;
+router.get(
+"/all",
+auth,
+getBeneficiaries
+);
+
+
+module.exports=router;

@@ -5,17 +5,15 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 
 const {
-fundBetting
-} = require("../controllers/bettingController");
-
+buyEPin
+} = require("../controllers/ePinController");
 
 
 router.post(
-"/fund",
+"/buy",
 auth,
-fundBetting
+buyEPin
 );
-
 
 
 module.exports = router;

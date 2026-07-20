@@ -43,6 +43,11 @@ const productSchema = new mongoose.Schema(
       default: ""
     },
 
+    variation_id: {
+      type: String,
+      default: ""
+    },
+
     status: {
       type: String,
       enum: ["active", "inactive"],

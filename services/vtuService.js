@@ -97,13 +97,12 @@ const vtuGet = async(endpoint)=>{
 
 
 
-const purchaseAirtime = async({
+const purchaseAirtime = async ({
   phone,
   network,
   amount,
   request_id
-})=>{
-
+}) => {
 
   return await vtuRequest(
     "/api/v2/airtime",
@@ -111,13 +110,11 @@ const purchaseAirtime = async({
       request_id,
       phone,
       service_id: network.toLowerCase(),
-      amount:Number(amount)
+      amount: Number(amount)
     }
   );
 
-
 };
-
 
 
 const vtuPublicGet = async(endpoint)=>{
@@ -130,10 +127,119 @@ const vtuPublicGet = async(endpoint)=>{
 
 };
 
+const purchaseProduct = async(phone, product)=>{
+
+try{
+
+return await vtuRequest("/api/v2/data",{
+request_id:"PRODUCT-"+Date.now(),
+phone,
+service_id:product.network.toLowerCase(),
+variation_id:product.variation_id
+});
+
+}catch(error){
+
+return {
+success:false,
+message:error.response?.data || error.message
+};
+
+}
+
+};
+
+
+
+const getTVVariations = async()=>{
+
+return await vtuPublicGet("/api/v2/variations/tv");
+
+};
+
+
+const verifyCustomer = async({customer_id,service_id,variation_id})=>{
+
+return await vtuRequest("/api/v2/verify-customer",{
+customer_id,
+service_id,
+variation_id
+});
+
+};
+
+
+const purchaseTV = async({customer_id,service_id,variation_id,request_id})=>{
+
+return await vtuRequest("/api/v2/tv",{
+request_id,
+customer_id,
+service_id,
+variation_id
+});
+
+};
+
+
+
+
+const purchaseElectricity = async({customer_id,service_id,variation_id,amount,request_id})=>{
+
+return await vtuRequest("/api/v2/electricity",{
+request_id,
+customer_id,
+service_id,
+variation_id,
+amount:Number(amount)
+});
+
+};
+
+const purchaseBetting = async({customer_id,service_id,amount,request_id})=>{
+
+return await vtuRequest("/api/v2/betting",{
+request_id,
+customer_id,
+service_id,
+amount:Number(amount)
+});
+
+};
+
+const purchaseEPins = async({network,amount,quantity,request_id})=>{
+
+return await vtuRequest("/api/v2/epins",{
+request_id,
+service_id:network.toLowerCase(),
+amount:Number(amount),
+quantity:Number(quantity)
+});
+
+};
+
+
+const requeryOrder = async(order_id)=>{
+
+return await vtuRequest("/api/v2/requery",{
+order_id
+});
+
+};
+
+
 module.exports = {
   getToken,
   vtuRequest,
   vtuGet,
     vtuPublicGet,
-  purchaseAirtime
+  purchaseAirtime,
+    purchaseProduct,
+    getTVVariations,
+    verifyCustomer,
+    purchaseTV,
+    purchaseElectricity,
+    purchaseBetting,
+    purchaseEPins,
+    requeryOrder,
 };
+

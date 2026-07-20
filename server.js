@@ -67,6 +67,7 @@ const aiRoutes = require("./routes/aiRoutes");
 const footballRoutes = require("./routes/footballRoutes");
 const footballPredictionRoutes = require("./routes/footballPredictionRoutes");
 const footballRewardRoutes = require("./routes/footballRewardRoutes");
+const ePinRoutes = require("./routes/ePinRoutes");
 const footballAdminRoutes = require("./routes/footballAdminRoutes");
 
 
@@ -125,8 +126,8 @@ app.use("/withdrawal", withdrawalRoutes);
 app.use("/admin/exam-pin", adminExamPinRoutes);
 app.use("/admin/airtime-cash", adminAirtimeCashRoutes);
 
-app.use("/beneficiaries", beneficiaryRoutes);
-
+app.use("/epin", ePinRoutes);
+app.use("/beneficiary", beneficiaryRoutes);
 app.use("/vtu", vtuRoutes);
 
 

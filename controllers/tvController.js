@@ -2,45 +2,41 @@ const TransactionPin = require("../models/TransactionPin");
 const TVSubscription = require("../models/TVSubscription");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
+
+const {
+verifyCustomer,
+purchaseTV
+} = require("../services/vtuService");
 
 
 
 const subscribeTV = async(req,res)=>{
 
-
 try{
 
 
 const {
-
-phone,
-
 provider,
-
 smartCardNumber,
-
-package,
-pin,
-
-amount
-
-} = req.body;
+variation_id,
+amount,
+pin
+}=req.body;
 
 
+const phone = normalizePhone(req.user.phone);
 
 
-if(!phone || !provider || !smartCardNumber || !package || !amount){
 
+if(!provider || !smartCardNumber || !variation_id || !amount || !pin){
 
 return res.status(400).json({
-
-message:"Phone, provider, smart card number, package and amount are required"
-
+message:"Provider, smart card, package, amount and PIN required"
 });
 
 }
-
 
 
 
@@ -48,73 +44,114 @@ const userPin = await TransactionPin.findOne({
 phone
 });
 
+
 if(!userPin){
+
 return res.status(400).json({
 message:"Create transaction PIN first"
 });
+
 }
 
+
 if(userPin.pin !== pin){
+
 return res.status(400).json({
 message:"Incorrect transaction PIN"
 });
+
 }
 
+
+
 const wallet = await Wallet.findOne({
-
 phone
-
 });
-
-
 
 
 if(!wallet){
 
 return res.status(404).json({
-
 message:"Wallet not found"
-
 });
 
 }
-
 
 
 
 if(wallet.balance < Number(amount)){
 
+return res.status(400).json({
+message:"Insufficient wallet balance"
+});
+
+}
+
+
+
+const verify = await verifyCustomer({
+
+customer_id:smartCardNumber,
+
+service_id:provider
+
+});
+
+
+
+if(!verify || verify.code !== "success"){
 
 return res.status(400).json({
 
-message:"Insufficient wallet balance"
+message:"Smart card verification failed",
+
+verify
 
 });
 
 }
 
+
+
+const reference = "TV-" + Date.now();
+
+
+
+const providerResponse = await purchaseTV({
+
+customer_id:smartCardNumber,
+
+service_id:provider,
+
+variation_id,
+
+request_id:reference
+
+});
+
+
+
+if(!providerResponse || providerResponse.code !== "success"){
+
+return res.status(400).json({
+
+message:"TV subscription failed",
+
+providerResponse
+
+});
+
+}
 
 
 
 const balanceBefore = wallet.balance;
 
 
-
 wallet.balance -= Number(amount);
 
 
-
 await wallet.save();
-
-
-
-
-
-const reference =
-
-"TV-" + Date.now();
-
-
 
 
 
@@ -126,19 +163,15 @@ provider,
 
 smartCardNumber,
 
-package,
-pin,
+package:variation_id,
 
 amount:Number(amount),
 
 reference,
 
-status:"pending"
+status:"successful"
 
 });
-
-
-
 
 
 
@@ -158,14 +191,11 @@ balanceBefore,
 
 balanceAfter:wallet.balance,
 
-description:`${provider} ${package} subscription`,
+description:`${provider} TV subscription`,
 
-status:"pending"
+status:"successful"
 
 });
-
-
-
 
 
 
@@ -173,52 +203,50 @@ await createNotification(
 
 phone,
 
-"TV Subscription",
+"TV Subscription Successful",
 
-`${provider} subscription request created.`,
+`${provider} subscription completed.`,
 
-"info"
+"success"
 
 );
 
 
 
-
-
-
 res.json({
 
-message:"TV subscription request created",
+message:"TV subscription successful",
 
 subscription,
 
-balance:wallet.balance
+balance:wallet.balance,
+
+providerResponse
 
 });
-
-
 
 
 
 }catch(error){
 
+console.log(
+"TV error:",
+error.response?.data || error.message
+);
+
 
 res.status(500).json({
 
-message:error.message
+message:error.response?.data || error.message
 
 });
 
-
 }
-
 
 };
 
 
 
-module.exports = {
-
+module.exports={
 subscribeTV
-
 };

@@ -2,38 +2,40 @@ const TransactionPin = require("../models/TransactionPin");
 const Electricity = require("../models/Electricity");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 
+const {
+verifyCustomer,
+purchaseElectricity
+} = require("../services/vtuService");
 
 
 const payElectricity = async(req,res)=>{
-
 
 try{
 
 
 const {
-    phone,
-    disco,
-    meterNumber,
-    meterType,
-    amount, pin
-} = req.body;
+disco,
+meterNumber,
+meterType,
+amount,
+pin
+}=req.body;
+
+
+const phone = normalizePhone(req.user.phone);
 
 
 
-
-if(!phone || !disco || !meterNumber || !amount){
+if(!disco || !meterNumber || !amount || !pin){
 
 return res.status(400).json({
-
-message:"Phone, disco, meter number and amount are required"
-
+message:"Disco, meter number, amount and PIN required"
 });
 
 }
-
-
 
 
 
@@ -41,72 +43,118 @@ const userPin = await TransactionPin.findOne({
 phone
 });
 
+
 if(!userPin){
+
 return res.status(400).json({
 message:"Create transaction PIN first"
 });
+
 }
 
+
 if(userPin.pin !== pin){
+
 return res.status(400).json({
 message:"Incorrect transaction PIN"
 });
+
 }
 
+
+
 const wallet = await Wallet.findOne({
-
 phone
-
 });
-
 
 
 if(!wallet){
 
 return res.status(404).json({
-
 message:"Wallet not found"
-
 });
 
 }
-
 
 
 
 if(wallet.balance < Number(amount)){
 
+return res.status(400).json({
+message:"Insufficient wallet balance"
+});
+
+}
+
+
+
+const verify = await verifyCustomer({
+
+customer_id:meterNumber,
+
+service_id:disco,
+
+variation_id:meterType || "prepaid"
+
+});
+
+
+
+if(!verify || verify.code !== "success"){
 
 return res.status(400).json({
 
-message:"Insufficient wallet balance"
+message:"Meter verification failed",
+
+verify
 
 });
 
 }
 
+
+
+const reference = "ELECTRIC-" + Date.now();
+
+
+
+const providerResponse = await purchaseElectricity({
+
+customer_id:meterNumber,
+
+service_id:disco,
+
+variation_id:meterType || "prepaid",
+
+amount,
+
+request_id:reference
+
+});
+
+
+
+if(!providerResponse || providerResponse.code !== "success"){
+
+return res.status(400).json({
+
+message:"Electricity payment failed",
+
+providerResponse
+
+});
+
+}
 
 
 
 const balanceBefore = wallet.balance;
 
 
-
 wallet.balance -= Number(amount);
 
 
-
 await wallet.save();
-
-
-
-
-
-const reference =
-
-"ELECTRIC-" + Date.now();
-
-
 
 
 
@@ -118,17 +166,15 @@ disco,
 
 meterNumber,
 
-meterType: meterType || "prepaid",
+meterType:meterType || "prepaid",
 
 amount:Number(amount),
 
 reference,
 
-status:"pending"
+status:"successful"
 
 });
-
-
 
 
 
@@ -150,11 +196,9 @@ balanceAfter:wallet.balance,
 
 description:`${disco} electricity payment`,
 
-status:"pending"
+status:"successful"
 
 });
-
-
 
 
 
@@ -162,50 +206,48 @@ await createNotification(
 
 phone,
 
-"Electricity Payment",
+"Electricity Payment Successful",
 
-`₦${Number(amount).toLocaleString()} electricity payment request created.`,
+`${disco} electricity payment completed.`,
 
-"info"
+"success"
 
 );
 
 
 
-
-
 res.json({
 
-message:"Electricity payment request created",
+message:"Electricity payment successful",
 
 electricity,
 
-balance:wallet.balance
+balance:wallet.balance,
+
+providerResponse
 
 });
-
-
 
 
 }catch(error){
 
+console.log(
+"Electricity error:",
+error.response?.data || error.message
+);
+
 
 res.status(500).json({
 
-message:error.message
+message:error.response?.data || error.message
 
 });
 
-
 }
-
 
 };
 
 
-
-module.exports = {
-
+module.exports={
 payElectricity
-
 };
