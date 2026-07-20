@@ -89,6 +89,7 @@ quantity:Number(quantity),
 request_id:reference
 
 });
+console.log("EPIN VTU RESPONSE:", JSON.stringify(apiResponse,null,2));
 
 
 
