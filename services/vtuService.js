@@ -211,7 +211,7 @@ const purchaseEPins = async({network,amount,quantity,request_id})=>{
 return await vtuRequest("/api/v2/epins",{
 request_id,
 service_id:network.toLowerCase(),
-amount:Number(amount),
+value:Number(amount),
 quantity:Number(quantity)
 });
 
