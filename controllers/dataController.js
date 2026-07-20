@@ -8,224 +8,224 @@ const { vtuRequest } = require("../services/vtuService");
 
 
 // Buy Data
+const buyData = async (req, res) => {
 
-const buyData = async(req,res)=>{
+  try {
 
-try{
+    const {
+      network,
+      plan,
+      amount,
+      phone,
+      pin,
+      variation_id
+    } = req.body;
 
 
-const {
-network,
-plan,
-amount,
-phone,
-pin,
-variation_id
-}=req.body;
+    if (!network || !plan || !amount) {
+      return res.status(400).json({
+        message: "Network, plan and amount are required"
+      });
+    }
 
 
+    const userPhone = normalizePhone(req.user.phone);
 
-if(!network || !plan || !amount){
+    const dataPhone = normalizePhone(phone || req.user.phone);
 
-return res.status(400).json({
-message:"Network, plan and amount are required"
-});
 
-}
+    const userPin = await TransactionPin.findOne({
+      phone: userPhone
+    });
 
 
-// Use logged in user's phone for wallet
+    if (!userPin) {
+      return res.status(400).json({
+        message: "Create transaction PIN first"
+      });
+    }
 
-const userPhone = normalizePhone(req.user.phone);
 
+    if (userPin.pin !== pin) {
+      return res.status(400).json({
+        message: "Incorrect transaction PIN"
+      });
+    }
 
-// Data recipient can be different
-const dataPhone = normalizePhone(phone || req.user.phone);
 
+    const wallet = await Wallet.findOne({
+      phone: userPhone
+    });
 
 
-const userPin = await TransactionPin.findOne({
-phone:userPhone
-});
+    if (!wallet) {
+      return res.status(404).json({
+        message: "Wallet not found"
+      });
+    }
 
 
-if(!userPin){
+    if (wallet.balance < Number(amount)) {
+      return res.status(400).json({
+        message: "Insufficient wallet balance"
+      });
+    }
 
-return res.status(400).json({
-message:"Create transaction PIN first"
-});
 
-}
+    const reference = "DATA-" + Date.now();
 
+    const balanceBefore = wallet.balance;
 
-if(userPin.pin !== pin){
 
-return res.status(400).json({
-message:"Incorrect transaction PIN"
-});
+    // Debit wallet first
+    wallet.balance -= Number(amount);
 
-}
+    await wallet.save();
 
 
+    let providerResponse;
 
-const wallet = await Wallet.findOne({
-phone:userPhone
-});
 
+    try {
 
-if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+      providerResponse = await vtuRequest(
+        "/api/v2/data",
+        {
+          request_id: reference,
+          phone: dataPhone,
+          service_id: network.toLowerCase(),
+          variation_id
+        }
+      );
 
-}
 
+      if (
+        !providerResponse ||
+        providerResponse.code !== "success"
+      ) {
+        throw new Error("Provider failed");
+      }
 
 
-if(wallet.balance < Number(amount)){
+    } catch (err) {
 
-return res.status(400).json({
-message:"Insufficient wallet balance"
-});
 
-}
+      // Refund wallet if VTU fails
+      wallet.balance += Number(amount);
 
+      await wallet.save();
 
 
-const reference = "DATA-" + Date.now();
+      await Transaction.create({
+        phone: userPhone,
+        type: "refund",
+        direction: "credit",
+        amount: Number(amount),
+        reference,
+        balanceBefore: wallet.balance - Number(amount),
+        balanceAfter: wallet.balance,
+        description: "Automatic refund - Data failed",
+        status: "successful"
+      });
 
 
+      return res.status(400).json({
+        message: "Data purchase failed",
+        providerResponse: err.response?.data || err.message
+      });
 
-// Send to VTU.ng
+    }
 
-const providerResponse = await vtuRequest(
-"/api/v2/data",
-{
-request_id:reference,
-phone:dataPhone,
-service_id:network.toLowerCase(),
-variation_id
-}
-);
 
 
+    const data = await Data.create({
 
-if(
-!providerResponse ||
-providerResponse.code !== "success"
-){
+      phone: dataPhone,
+      network,
+      plan,
+      amount: Number(amount),
+      reference,
+      status: "successful"
 
-return res.status(400).json({
-message:"Data purchase failed",
-providerResponse
-});
+    });
 
-}
 
 
+    await Transaction.create({
 
-const balanceBefore = wallet.balance;
+      phone: userPhone,
 
+      type: "data",
 
-wallet.balance -= Number(amount);
+      direction: "debit",
 
+      amount: Number(amount),
 
-await wallet.save();
+      reference,
 
+      balanceBefore,
 
+      balanceAfter: wallet.balance,
 
-const data = await Data.create({
+      description: `${network} data purchase`,
 
-phone:dataPhone,
+      status: "successful"
 
-network,
+    });
 
-plan,
 
-amount:Number(amount),
 
-reference,
+    await createNotification(
 
-status:"successful"
+      userPhone,
 
-});
+      "Data Purchase Successful",
 
+      `${network} data plan purchased.`,
 
+      "success"
 
-await Transaction.create({
+    );
 
-phone:userPhone,
 
-type:"data",
 
-direction:"debit",
+    res.json({
 
-amount:Number(amount),
+      message: "Data purchase successful",
 
-reference,
+      data,
 
-balanceBefore,
+      balance: wallet.balance,
 
-balanceAfter:wallet.balance,
+      providerResponse
 
-description:`${network} data purchase`,
+    });
 
-status:"successful"
 
-});
 
+  } catch(error) {
 
 
-await createNotification(
+    console.log(
+      "Data error:",
+      error.response?.data || error.message
+    );
 
-userPhone,
 
-"Data Purchase Successful",
+    res.status(500).json({
 
-`${network} data plan purchased.`,
+      message: error.response?.data || error.message
 
-"success"
+    });
 
-);
 
-
-
-res.json({
-
-message:"Data purchase successful",
-
-data,
-
-balance:wallet.balance,
-
-providerResponse
-
-});
-
-
-
-}catch(error){
-
-console.log(
-"Data error:",
-error.response?.data || error.message
-);
-
-
-res.status(500).json({
-
-message:error.response?.data || error.message
-
-});
-
-}
-
+  }
 
 };
 
 
 
-module.exports={
-buyData
+module.exports = {
+  buyData
 };
