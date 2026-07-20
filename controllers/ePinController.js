@@ -44,8 +44,10 @@ message:"Phone, network, amount and quantity are required"
 }
 
 
+const buyerPhone = normalizePhone(req.user.phone);
+
 const wallet = await Wallet.findOne({
-phone:cleanPhone
+phone:buyerPhone
 });
 
 
