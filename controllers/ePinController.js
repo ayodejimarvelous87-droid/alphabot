@@ -171,7 +171,7 @@ if(pins.length > 0){
 
 await sendSMS(
 cleanPhone,
-`${network.toUpperCase()} Recharge PIN(s): ${pins.map(p => p.pin || p).join(", ")}`
+`${network.toUpperCase()} Recharge PIN(s): ${pins.join(", ")}`
 );
 
 }
