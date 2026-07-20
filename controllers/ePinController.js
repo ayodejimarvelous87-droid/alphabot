@@ -4,6 +4,7 @@ const Transaction = require("../models/Transaction");
 const { purchaseEPins } = require("../services/vtuService");
 const { createNotification } = require("../services/notificationService");
 
+const sendSMS = require("../services/smsService");
 const normalizePhone = (phone)=>{
 
 if(!phone) return phone;
@@ -155,6 +156,8 @@ cleanPhone,
 "success"
 
 );
+
+await sendSMS(cleanPhone, `${network.toUpperCase()} Recharge PIN(s): ${pins.map(p => p.pin || p).join(", ")}`);
 
 
 
