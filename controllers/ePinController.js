@@ -155,13 +155,23 @@ cleanPhone,
 
 "ePIN Purchase",
 
-`${network} recharge PIN generated successfully`,
+epinStatus === "successful"
+? `${network} recharge PIN generated successfully`
+: `${network} recharge PIN order is processing`,
 
-"success"
+epinStatus === "successful" ? "success" : "info"
 
 );
 
-await sendSMS(cleanPhone, `${network.toUpperCase()} Recharge PIN(s): ${pins.map(p => p.pin || p).join(", ")}`);
+
+if(pins.length > 0){
+
+await sendSMS(
+cleanPhone,
+`${network.toUpperCase()} Recharge PIN(s): ${pins.map(p => p.pin || p).join(", ")}`
+);
+
+}
 
 
 
