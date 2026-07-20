@@ -5,12 +5,12 @@ const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 
 const {
-verifyCustomer,
-purchaseBetting
+  verifyCustomer,
+  purchaseBetting
 } = require("../services/vtuService");
 
 
-const fundBetting = async(req,res)=>{
+const fundBetting = async (req,res)=>{
 
 try{
 
@@ -33,6 +33,14 @@ message:"Customer ID, service, amount and PIN required"
 
 }
 
+
+if(isNaN(Number(amount)) || Number(amount) <= 0){
+
+return res.status(400).json({
+message:"Invalid amount"
+});
+
+}
 
 
 const userPin = await TransactionPin.findOne({
@@ -58,7 +66,6 @@ message:"Incorrect transaction PIN"
 }
 
 
-
 const wallet = await Wallet.findOne({
 phone
 });
@@ -73,7 +80,6 @@ message:"Wallet not found"
 }
 
 
-
 if(wallet.balance < Number(amount)){
 
 return res.status(400).json({
@@ -85,18 +91,12 @@ message:"Insufficient wallet balance"
 
 
 const verifyResponse = await verifyCustomer({
-
 customer_id,
 service_id
-
 });
 
 
-
-if(
-!verifyResponse ||
-verifyResponse.code !== "success"
-){
+if(!verifyResponse || verifyResponse.code !== "success"){
 
 return res.status(400).json({
 message:"Bet account verification failed",
@@ -104,7 +104,6 @@ verifyResponse
 });
 
 }
-
 
 
 
@@ -116,17 +115,13 @@ const providerResponse = await purchaseBetting({
 
 customer_id,
 service_id,
-amount,
+amount:Number(amount),
 request_id:reference
 
 });
 
 
-
-if(
-!providerResponse ||
-providerResponse.code !== "success"
-){
+if(!providerResponse || providerResponse.code !== "success"){
 
 return res.status(400).json({
 message:"Bet funding failed",
@@ -150,21 +145,13 @@ await wallet.save();
 await Transaction.create({
 
 phone,
-
 type:"betting",
-
 direction:"debit",
-
 amount:Number(amount),
-
 reference,
-
 balanceBefore,
-
 balanceAfter:wallet.balance,
-
-description:`${service_id} betting funding`,
-
+description:`Betting wallet funding for ${service_id}`,
 status:"successful"
 
 });
@@ -177,7 +164,7 @@ phone,
 
 "Betting Account Funded",
 
-`₦${Number(amount).toLocaleString()} added to ${service_id}.`,
+`₦${Number(amount).toLocaleString()} sent to ${service_id} betting account.`,
 
 "success"
 
@@ -188,9 +175,7 @@ phone,
 res.json({
 
 message:"Betting funding successful",
-
 balance:wallet.balance,
-
 providerResponse
 
 });
@@ -205,7 +190,9 @@ error.response?.data || error.message
 
 
 res.status(500).json({
-message:error.response?.data || error.message
+
+message:"Betting service error"
+
 });
 
 }
@@ -214,6 +201,6 @@ message:error.response?.data || error.message
 
 
 
-module.exports={
+module.exports = {
 fundBetting
 };

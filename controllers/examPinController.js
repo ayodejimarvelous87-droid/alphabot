@@ -1,29 +1,61 @@
 const ExamPin = require("../models/ExamPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const TransactionPin = require("../models/TransactionPin");
 const { createNotification } = require("../services/notificationService");
 
-
-// Buy Exam PIN
 
 const buyExamPin = async(req,res)=>{
 
 try{
 
-
 const {
-phone,
 exam,
 quantity,
 pin
 }=req.body;
 
 
+const phone = req.user.phone;
 
-if(!phone || !exam || !quantity){
+
+if(!exam || !quantity || !pin){
 
 return res.status(400).json({
-message:"Exam type and quantity are required"
+message:"Exam type, quantity and transaction PIN are required"
+});
+
+}
+
+
+if(Number(quantity) <= 0 || isNaN(Number(quantity))){
+
+return res.status(400).json({
+message:"Invalid quantity"
+});
+
+}
+
+
+
+const userPin = await TransactionPin.findOne({
+phone
+});
+
+
+if(!userPin){
+
+return res.status(400).json({
+message:"Create transaction PIN first"
+});
+
+}
+
+
+if(userPin.pin !== pin){
+
+return res.status(400).json({
+message:"Incorrect transaction PIN"
 });
 
 }
@@ -43,17 +75,17 @@ status:"available"
 if(pins.length < Number(quantity)){
 
 return res.status(400).json({
-
 message:"Insufficient PIN stock"
-
 });
 
 }
 
 
 
-const total =
-pins.reduce((sum,item)=>sum + item.price,0);
+const total = pins.reduce(
+(sum,item)=>sum + item.price,
+0
+);
 
 
 
@@ -75,9 +107,7 @@ message:"Wallet not found"
 if(wallet.balance < total){
 
 return res.status(400).json({
-
 message:"Insufficient wallet balance"
-
 });
 
 }
@@ -99,27 +129,19 @@ let purchasedPins=[];
 
 for(const item of pins){
 
-
 item.status="used";
-
 item.usedBy=phone;
-
 item.usedAt=new Date();
-
 
 await item.save();
 
-
 purchasedPins.push(item.pin);
-
 
 }
 
 
 
-
-const reference =
-"EXAM-" + Date.now();
+const reference = "EXAM-" + Date.now();
 
 
 
@@ -147,7 +169,6 @@ status:"successful"
 
 
 
-
 await createNotification(
 
 phone,
@@ -162,7 +183,6 @@ phone,
 
 
 
-
 res.json({
 
 message:"Exam PIN purchase successful",
@@ -174,8 +194,12 @@ balance:wallet.balance
 });
 
 
-
 }catch(error){
+
+console.log(
+"Exam PIN error:",
+error.message
+);
 
 
 res.status(500).json({
@@ -184,11 +208,9 @@ message:error.message
 
 });
 
-
 }
 
 };
-
 
 
 module.exports={

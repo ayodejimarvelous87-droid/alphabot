@@ -43,7 +43,7 @@ const addProduct = async (req, res) => {
 const getProducts = async (req, res) => {
   try {
 
-    const products = await Product.find();
+    const products = await Product.find({ type: { $nin: ["cable", "tv"] } });
 
     res.json(products);
 

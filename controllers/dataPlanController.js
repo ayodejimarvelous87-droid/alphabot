@@ -1,4 +1,5 @@
 const { vtuPublicGet } = require("../services/vtuService");
+const { getPlans } = require("../services/blitzPayService");
 const SystemSetting = require("../models/SystemSetting");
 
 
@@ -12,38 +13,151 @@ const categoriesList = [
 ];
 
 
+const formatCategory = (plan)=>{
+
+const name = (
+plan.data_plan ||
+plan.name ||
+""
+).toLowerCase();
+
+
+if(name.includes("sme 2")){
+return "SME 2";
+}
+
+if(name.includes("sme")){
+return "SME";
+}
+
+if(name.includes("gift")){
+return "Gifting";
+}
+
+if(name.includes("corporate")){
+return "Corporate";
+}
+
+if(
+name.includes("awoof") ||
+name.includes("weekend") ||
+name.includes("sunday") ||
+name.includes("1 day") ||
+Number(plan.reseller_price || plan.price) <= 500
+){
+
+return "Awoof";
+
+}
+
+return "Standard";
+
+};
+
+
+
 const getDataPlans = async(req,res)=>{
 
 try{
 
 
-const response = await vtuPublicGet(
-"/api/v2/variations/data"
-);
-
-
-const plans = response.data || [];
-
 const setting = await SystemSetting.findOne();
 
 const profit = setting?.dataProfit || 0;
 
-plans.forEach(plan=>{
 
-plan.reseller_price =
-Number(plan.reseller_price) + Number(profit);
+
+let allPlans = [];
+
+
+// VTU.ng plans
+
+try{
+
+const vtuResponse = await vtuPublicGet(
+"/api/v2/variations/data"
+);
+
+
+const vtuPlans = vtuResponse.data || [];
+
+
+vtuPlans.forEach(plan=>{
+
+allPlans.push({
+
+...plan,
+
+provider:"vtu",
+
+display_price:
+Number(plan.reseller_price) + Number(profit)
 
 });
+
+});
+
+
+}catch(error){
+
+console.log(
+"VTU plans error:",
+error.message
+);
+
+}
+
+
+
+// BlitzPay plans
+
+try{
+
+const blitzResponse = await getPlans();
+
+
+const blitzPlans = blitzResponse.plans || [];
+
+
+blitzPlans.forEach(plan=>{
+
+allPlans.push({
+
+...plan,
+
+provider:"blitzpay",
+
+display_price:
+Number(plan.price) + Number(profit)
+
+});
+
+});
+
+
+}catch(error){
+
+console.log(
+"BlitzPay plans error:",
+error.message
+);
+
+}
+
 
 
 const grouped = {};
 
 
 
-plans.forEach(plan=>{
+allPlans.forEach(plan=>{
 
 
-const network = plan.service_name || "Other";
+const network =
+plan.service_name ||
+plan.network ||
+"Other";
+
 
 
 if(!grouped[network]){
@@ -61,43 +175,7 @@ grouped[network][category] = [];
 
 
 
-const name = (plan.data_plan || "").toLowerCase();
-
-
-let category = "Standard";
-
-
-if(name.includes("sme 2")){
-
-category="SME 2";
-
-}
-else if(name.includes("sme")){
-
-category="SME";
-
-}
-else if(name.includes("gift")){
-
-category="Gifting";
-
-}
-else if(name.includes("corporate")){
-
-category="Corporate";
-
-}
-else if(
-name.includes("awoof") ||
-name.includes("weekend") ||
-name.includes("sunday") ||
-name.includes("1 day") ||
-Number(plan.reseller_price)<=500
-){
-
-category="Awoof";
-
-}
+const category = formatCategory(plan);
 
 
 grouped[network][category].push(plan);
@@ -126,7 +204,9 @@ error.message
 
 
 res.status(500).json({
+
 message:error.message
+
 });
 
 
@@ -136,6 +216,6 @@ message:error.message
 
 
 
-module.exports={
+module.exports = {
 getDataPlans
 };

@@ -7,13 +7,18 @@ const admin = require("../middleware/admin");
 
 const {
 addExamPin,
+bulkAddExamPins,
 getExamStock
 } = require("../controllers/adminExamPinController");
 
 
 
-// Add PIN stock
+// Add single PIN
 router.post("/", auth, admin, addExamPin);
+
+
+// Bulk upload PINs
+router.post("/bulk", auth, admin, bulkAddExamPins);
 
 
 // Check stock

@@ -6,174 +6,263 @@ const { createNotification } = require("../services/notificationService");
 const normalizePhone = require("../utils/phone");
 const { purchaseAirtime } = require("../services/vtuService");
 
-const buyAirtime = async (req, res) => {
-  try {
-    const { network, amount, pin } = req.body;
 
-    if (!network || !amount) {
-      return res.status(400).json({
-        message: "Network and amount are required"
-      });
-    }
+// Buy airtime
 
-    const cleanPhone = normalizePhone(req.user.phone);
+const buyAirtime = async(req,res)=>{
 
-    const userPin = await TransactionPin.findOne({
-      phone: cleanPhone
-    });
+try{
 
-    if (!userPin) {
-      return res.status(400).json({
-        message: "Create transaction PIN first"
-      });
-    }
+const { network, amount, pin, phone } = req.body;
 
-    if (userPin.pin !== pin) {
-      return res.status(400).json({
-        message: "Incorrect transaction PIN"
-      });
-    }
 
-    const wallet = await Wallet.findOne({
-      phone: cleanPhone
-    });
+if(!network || !amount){
 
-    if (!wallet) {
-      return res.status(404).json({
-        message: "Wallet not found"
-      });
-    }
+return res.status(400).json({
+message:"Network and amount are required"
+});
 
-    if (wallet.balance < Number(amount)) {
-      return res.status(400).json({
-        message: "Insufficient wallet balance"
-      });
-    }
+}
 
-    const reference = "AIRTIME-" + Date.now();
 
-    const balanceBefore = wallet.balance;
+// Use authenticated user's phone
 
-    wallet.balance -= Number(amount);
-    await wallet.save();
+console.log("AUTH USER:", req.user);
 
-    let providerResponse;
+const cleanPhone = normalizePhone(phone || req.user.phone);
 
-    try {
 
-      providerResponse = await purchaseAirtime({
-        phone: cleanPhone,
-        network,
-        amount: Number(amount),
-        request_id: reference
-      });
 
-      if (!providerResponse || providerResponse.code !== "success") {
-        throw new Error("Provider failed");
-      }
+const userPin = await TransactionPin.findOne({
+phone: cleanPhone
+});
 
-    } catch (err) {
 
-      wallet.balance += Number(amount);
-      await wallet.save();
+if(!userPin){
 
-      await Transaction.create({
-        phone: cleanPhone,
-        type: "refund",
-        direction: "credit",
-        amount: Number(amount),
-        reference,
-        balanceBefore: wallet.balance - Number(amount),
-        balanceAfter: wallet.balance,
-        description: "Automatic refund - Airtime failed",
-        status: "successful"
-      });
+return res.status(400).json({
+message:"Create transaction PIN first"
+});
 
-      return res.status(400).json({
-        message: "Airtime purchase failed",
-        providerResponse: err.response?.data || err.message
-      });
+}
 
-    }
 
-    const charged = Number(providerResponse.data?.amount_charged || amount);
+if(userPin.pin !== pin){
 
-    if (charged < Number(amount)) {
-      wallet.balance += Number(amount) - charged;
-      await wallet.save();
-    }
+return res.status(400).json({
+message:"Incorrect transaction PIN"
+});
 
-    const airtime = await Airtime.create({
-      phone: cleanPhone,
-      network,
-      amount: charged,
-      reference,
-      status: "successful"
-    });
+}
 
-    await Transaction.create({
-      phone: cleanPhone,
-      type: "airtime",
-      direction: "debit",
-      amount: charged,
-      reference,
-      balanceBefore,
-      balanceAfter: wallet.balance,
-      description: `${network} airtime purchase`,
-      status: "successful"
-    });
 
-    const cashback = Math.floor(charged * 0.005);
 
-    if (cashback > 0) {
+const wallet = await Wallet.findOne({
+phone: cleanPhone
+});
 
-      const cashbackBefore = wallet.balance;
 
-      wallet.balance += cashback;
-      await wallet.save();
+if(!wallet){
 
-      await Transaction.create({
-        phone: cleanPhone,
-        type: "cashback",
-        direction: "credit",
-        amount: cashback,
-        reference,
-        balanceBefore: cashbackBefore,
-        balanceAfter: wallet.balance,
-        description: "Airtime cashback reward",
-        status: "successful"
-      });
+return res.status(404).json({
+message:"Wallet not found"
+});
 
-    }
+}
 
-    await createNotification(
-      cleanPhone,
-      "Airtime Purchase Successful",
-      `₦${charged.toLocaleString()} ${network} airtime purchased.`,
-      "success"
-    );
 
-    res.json({
-      message: "Airtime purchase successful",
-      airtime,
-      balance: wallet.balance,
-      providerResponse
-    });
+if(wallet.balance < Number(amount)){
 
-  } catch (error) {
+return res.status(400).json({
+message:"Insufficient wallet balance"
+});
 
-    console.log(
-      "Airtime error:",
-      error.response?.data || error.message
-    );
+}
 
-    res.status(500).json({
-      message: error.response?.data || error.message
-    });
 
-  }
+// Create unique VTU request ID
+
+const reference = "AIRTIME-" + Date.now();
+
+
+
+const providerResponse = await purchaseAirtime({
+
+phone: cleanPhone,
+
+network,
+
+amount:Number(amount),
+
+request_id:reference
+
+});
+
+
+
+// Check provider result
+
+if(
+!providerResponse ||
+providerResponse.code !== "success"
+){
+
+return res.status(400).json({
+message:"Airtime purchase failed",
+providerResponse
+});
+
+}
+
+
+
+
+const balanceBefore = wallet.balance;
+
+
+
+wallet.balance -= Number(
+providerResponse.data.amount_charged || amount
+);
+
+
+await wallet.save();
+
+
+
+const airtime = await Airtime.create({
+
+phone:cleanPhone,
+
+network,
+
+amount:Number(amount),
+
+reference,
+
+status:"successful"
+
+});
+
+
+
+await Transaction.create({
+
+phone:cleanPhone,
+
+type:"airtime",
+
+direction:"debit",
+
+amount:Number(amount),
+
+reference,
+
+balanceBefore,
+
+balanceAfter:wallet.balance,
+
+description:`${network} airtime purchase`,
+
+status:"successful"
+
+});
+
+
+
+const cashback = Math.floor(
+Number(amount) * 0.005
+);
+
+
+
+if(cashback > 0){
+
+const cashbackBefore = wallet.balance;
+
+
+wallet.balance += cashback;
+
+
+await wallet.save();
+
+
+
+await Transaction.create({
+
+phone:cleanPhone,
+
+type:"cashback",
+
+direction:"credit",
+
+amount:cashback,
+
+reference,
+
+balanceBefore:cashbackBefore,
+
+balanceAfter:wallet.balance,
+
+description:"Airtime cashback reward",
+
+status:"successful"
+
+});
+
+}
+
+
+
+await createNotification(
+
+cleanPhone,
+
+"Airtime Purchase Successful",
+
+`₦${Number(amount).toLocaleString()} ${network} airtime purchased.`,
+
+"success"
+
+);
+
+
+
+res.json({
+
+message:"Airtime purchase successful",
+
+airtime,
+
+balance:wallet.balance,
+
+providerResponse
+
+});
+
+
+
+}catch(error){
+
+console.log(
+"Airtime error:",
+error.response?.data || error.message
+);
+
+
+res.status(500).json({
+
+message:error.response?.data || error.message
+
+});
+
+}
+
+
 };
 
+
+
 module.exports = {
-  buyAirtime
+buyAirtime
 };
