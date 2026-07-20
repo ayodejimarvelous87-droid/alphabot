@@ -51,24 +51,37 @@ const getToken = async () => {
 
 
 const vtuRequest = async(endpoint,data={})=>{
-
-  const accessToken = await getToken();
-
-
-  const response = await axios.post(
-    `${process.env.VTU_BASE_URL}${endpoint}`,
-    data,
-    {
-      headers:{
-        Authorization:`Bearer ${accessToken}`,
-        "Content-Type":"application/json"
-      }
-    }
-  );
-
-
-  return response.data;
-
+try{
+const accessToken = await getToken();
+const response = await axios.post(
+`${process.env.VTU_BASE_URL}${endpoint}`,
+data,
+{
+headers:{
+Authorization:`Bearer ${accessToken}`,
+"Content-Type":"application/json"
+}
+}
+);
+return response.data;
+}catch(error){
+if(error.response && error.response.status===401){
+token=null;
+const newToken=await getToken();
+const retry=await axios.post(
+`${process.env.VTU_BASE_URL}${endpoint}`,
+data,
+{
+headers:{
+Authorization:`Bearer ${newToken}`,
+"Content-Type":"application/json"
+}
+}
+);
+return retry.data;
+}
+throw error;
+}
 };
 
 
