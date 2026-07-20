@@ -29,10 +29,16 @@ type:String,
 unique:true
 },
 
+order_id:{
+type:String,
+default:null
+},
+
 status:{
 type:String,
 enum:[
 "pending",
+"processing",
 "successful",
 "failed"
 ],

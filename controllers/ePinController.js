@@ -92,16 +92,15 @@ request_id:reference
 
 
 
-const pins =
-apiResponse.data?.pins || apiResponse.pins || [];
+const pins = apiResponse.data?.epins || apiResponse.data?.pins || apiResponse.epins || apiResponse.pins || [];
 
+const orderId = apiResponse.data?.order_id || null;
 
+const epinStatus = pins.length > 0 ? "successful" : "processing";
 
 wallet.balance -= total;
 
 await wallet.save();
-
-
 
 const epin = await EPin.create({
 
@@ -117,9 +116,12 @@ pins,
 
 reference,
 
-status:"successful"
+order_id:orderId,
+
+status:epinStatus
 
 });
+
 
 
 
