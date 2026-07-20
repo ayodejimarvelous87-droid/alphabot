@@ -93,7 +93,9 @@ console.log("EPIN VTU RESPONSE:", JSON.stringify(apiResponse,null,2));
 
 
 
-const pins = apiResponse.data?.epins || apiResponse.data?.pins || apiResponse.epins || apiResponse.pins || [];
+const epinList = apiResponse.data?.epins || apiResponse.data?.pins || apiResponse.epins || apiResponse.pins || [];
+
+const pins = epinList.map(p => typeof p === "string" ? p : p.pin);
 
 const orderId = apiResponse.data?.order_id || null;
 
