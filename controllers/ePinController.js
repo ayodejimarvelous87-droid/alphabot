@@ -4,6 +4,21 @@ const Transaction = require("../models/Transaction");
 const { purchaseEPins } = require("../services/vtuService");
 const { createNotification } = require("../services/notificationService");
 
+const normalizePhone = (phone)=>{
+
+if(!phone) return phone;
+
+phone = phone.replace(/\s+/g,"");
+
+if(phone.startsWith("0")){
+return "+234" + phone.slice(1);
+}
+
+return phone;
+
+};
+
+
 const buyEPin = async(req,res)=>{
 
 try{
@@ -16,7 +31,10 @@ quantity
 }=req.body;
 
 
-if(!phone || !network || !amount || !quantity){
+const cleanPhone = normalizePhone(phone);
+
+
+if(!cleanPhone || !network || !amount || !quantity){
 
 return res.status(400).json({
 message:"Phone, network, amount and quantity are required"
@@ -25,7 +43,9 @@ message:"Phone, network, amount and quantity are required"
 }
 
 
-const wallet = await Wallet.findOne({phone});
+const wallet = await Wallet.findOne({
+phone:cleanPhone
+});
 
 
 if(!wallet){
@@ -74,8 +94,6 @@ apiResponse.data?.pins || apiResponse.pins || [];
 
 
 
-// Deduct only after successful VTU response
-
 wallet.balance -= total;
 
 await wallet.save();
@@ -84,7 +102,7 @@ await wallet.save();
 
 const epin = await EPin.create({
 
-phone,
+phone:cleanPhone,
 
 network,
 
@@ -104,7 +122,7 @@ status:"successful"
 
 await Transaction.create({
 
-phone,
+phone:cleanPhone,
 
 type:"epin",
 
@@ -128,7 +146,7 @@ status:"successful"
 
 await createNotification(
 
-phone,
+cleanPhone,
 
 "ePIN Purchase",
 
@@ -153,7 +171,11 @@ balance:wallet.balance
 
 }catch(error){
 
-console.log("EPIN ERROR:",error.response?.data || error.message);
+console.log(
+"EPIN ERROR:",
+error.response?.data || error.message
+);
+
 
 res.status(500).json({
 
