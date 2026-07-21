@@ -13,6 +13,8 @@ const {
   updateProfile,
     changePassword,
     sendProfileOTP,
+      sendRegistrationOTP,
+      verifyRegistrationOTP,
     verifyProfileOTP
 } = require("../controllers/userController");
 
@@ -45,6 +47,11 @@ verifyResetOTP
 
 
 // Profile verification OTP
+// Registration OTP
+router.post("/send-registration-otp", sendRegistrationOTP);
+
+router.post("/verify-registration-otp", verifyRegistrationOTP);
+
 router.post("/send-profile-otp", sendProfileOTP);
 
 router.post("/verify-profile-otp", verifyProfileOTP);

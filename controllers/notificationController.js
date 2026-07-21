@@ -78,7 +78,37 @@ const markRead = async (req,res)=>{
 
 
 
+// Mark all notifications as read
+const markAllRead = async (req,res)=>{
+
+try{
+
+await Notification.updateMany(
+{
+phone:req.params.phone,
+read:false
+},
+{
+$set:{read:true}
+}
+);
+
+res.json({
+message:"All notifications marked as read"
+});
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
 module.exports = {
   getNotifications,
-  markRead
+  markRead,
+  markAllRead
 };

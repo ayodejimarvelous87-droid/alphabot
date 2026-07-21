@@ -9,7 +9,11 @@ router.get("/matches", async(req,res)=>{
 
 try{
 
-const matches = await FootballMatch.find({status:"Not Started"})
+const matches = await FootballMatch.find({
+status:{
+$in:["upcoming","live"]
+}
+})
 .sort({matchDate:1});
 
 

@@ -8,11 +8,20 @@ const auth = require("../middleware/auth");
 
 const {
 
+sendPinOTP,
+checkPinStatus,
 setPin,
 
 verifyPin
 
 } = require("../controllers/pinController");
+
+// Send Transaction PIN OTP
+router.post(
+"/send-pin-otp",
+auth,
+sendPinOTP
+);
 
 
 
@@ -35,5 +44,13 @@ verifyPin
 );
 
 
+
+
+// Check Transaction PIN status
+router.get(
+"/status",
+auth,
+checkPinStatus
+);
 
 module.exports = router;

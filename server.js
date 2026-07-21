@@ -64,6 +64,7 @@ const adminWithdrawalRoutes = require("./routes/adminWithdrawalRoutes");
 const adminAirtimeCashRoutes = require("./routes/adminAirtimeCashRoutes");
 const beneficiaryRoutes = require("./routes/beneficiaryRoutes");
 const vtuRoutes = require("./routes/vtuRoutes");
+const transferRoutes = require("./routes/transferRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const footballRoutes = require("./routes/footballRoutes");
 const footballPredictionRoutes = require("./routes/footballPredictionRoutes");
@@ -129,8 +130,8 @@ app.use("/admin/exam-pin", adminExamPinRoutes);
 app.use("/admin/airtime-cash", adminAirtimeCashRoutes);
 
 app.use("/epin", ePinRoutes);
+app.use("/transfer", transferRoutes);
 app.use("/beneficiary", beneficiaryRoutes);
-app.use("/vtu", vtuRoutes);
 
 
 // Test

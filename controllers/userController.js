@@ -3,6 +3,7 @@ const Wallet = require("../models/wallet");
 const PasswordReset = require("../models/PasswordReset");
 const bcrypt = require("bcryptjs");
 const ProfileOTP = require("../models/ProfileOTP");
+const RegistrationOTP = require("../models/RegistrationOTP");
 const jwt = require("jsonwebtoken");
 const normalizePhone = require("../utils/phone");
 const sendEmail = require("../services/emailService");
@@ -171,6 +172,127 @@ const generateReferralCode = () => {
     .toUpperCase();
 };
 
+
+
+// Registration OTP
+const sendRegistrationOTP = async(req,res)=>{
+try{
+
+const {name,phone,email,password,referralCode}=req.body;
+
+if(!name || !phone || !email || !password){
+return res.status(400).json({message:"All fields are required"});
+}
+
+const cleanPhone = normalizePhone(phone);
+
+const existingUser = await User.findOne({phone:cleanPhone});
+
+if(existingUser){
+return res.status(400).json({message:"User already exists"});
+}
+
+const hashedPassword = await bcrypt.hash(password,10);
+
+const otp=Math.floor(100000 + Math.random()*900000).toString();
+
+await RegistrationOTP.deleteMany({phone:cleanPhone});
+
+await RegistrationOTP.create({
+name,
+phone:cleanPhone,
+email,
+password:hashedPassword,
+referralCode,
+otp,
+expiresAt:new Date(Date.now()+10*60*1000)
+});
+
+await sendEmail(
+email,
+"AlphaBot Registration OTP",
+`Your AlphaBot registration OTP is ${otp}`
+);
+
+res.json({message:"Registration OTP sent successfully"});
+
+}catch(error){
+res.status(500).json({message:error.message});
+}
+};
+
+
+const verifyRegistrationOTP = async(req,res)=>{
+try{
+
+const {phone,otp}=req.body;
+
+const cleanPhone=normalizePhone(phone);
+
+const verify = await RegistrationOTP.findOne({
+phone:cleanPhone,
+otp
+});
+
+if(!verify){
+return res.status(400).json({message:"Invalid OTP"});
+}
+
+if(verify.expiresAt < new Date()){
+return res.status(400).json({message:"OTP expired"});
+}
+
+let wallet = await Wallet.findOne({phone:cleanPhone});
+
+if(!wallet){
+wallet = await Wallet.create({
+phone:cleanPhone,
+balance:0
+});
+}
+
+const userReferralCode = generateReferralCode();
+
+let validReferralCode=null;
+
+if(verify.referralCode){
+const referrer=await User.findOne({
+referralCode:verify.referralCode
+});
+
+if(referrer){
+validReferralCode=verify.referralCode;
+}
+}
+
+const user = await User.create({
+name:verify.name,
+phone:cleanPhone,
+email:verify.email,
+password:verify.password,
+emailVerified:true,
+referralCode:userReferralCode,
+referredBy:validReferralCode
+});
+
+await RegistrationOTP.deleteOne({_id:verify._id});
+
+res.json({
+message:"Registration successful",
+user:{
+id:user._id,
+name:user.name,
+phone:user.phone,
+email:user.email,
+referralCode:user.referralCode,
+role:user.role
+}
+});
+
+}catch(error){
+res.status(500).json({message:error.message});
+}
+};
 
 
 // Register
@@ -590,15 +712,30 @@ const updateProfile = async (req,res)=>{
     }
 
 
-    const {
-      name,
-      email
-    } = req.body;
+      const {
+        name,
+        email,
+        otp
+      } = req.body;
 
-    if(name) user.name = name;
+      if(email && email !== user.email){
 
-    if(email) user.email = email;
+        const verify = await ProfileOTP.findOne({
+          phone,
+          otp
+        });
 
+        if(!verify){
+          return res.status(400).json({
+            message:"Invalid or missing OTP"
+          });
+        }
+
+        await ProfileOTP.deleteOne({_id:verify._id});
+        user.email = email;
+      }
+
+      if(name) user.name = name;
 
     await user.save();
 
@@ -774,6 +911,8 @@ module.exports = {
 
   sendProfileOTP,
 
-  verifyProfileOTP
+  verifyProfileOTP,
+    sendRegistrationOTP,
+    verifyRegistrationOTP
 
 };

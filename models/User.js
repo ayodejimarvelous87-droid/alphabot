@@ -47,6 +47,12 @@ const userSchema = new mongoose.Schema(
   },
 
 
+    emailVerified:{
+      type:Boolean,
+      default:false
+    },
+
+
   referralCode:{
     type:String,
     unique:true

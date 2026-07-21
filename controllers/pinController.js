@@ -1,6 +1,48 @@
 const TransactionPin = require("../models/TransactionPin");
+const ProfileOTP = require("../models/ProfileOTP");
+const User = require("../models/User");
+const sendEmail = require("../services/emailService");
 const normalizePhone = require("../utils/phone");
 
+
+
+const sendPinOTP = async(req,res)=>{
+try{
+
+const {phone}=req.body;
+
+const cleanPhone = normalizePhone(phone);
+
+const user = await User.findOne({
+phone:cleanPhone
+});
+
+if(!user){
+return res.status(404).json({message:"User not found"});
+}
+
+const otp=Math.floor(100000 + Math.random()*900000).toString();
+
+await ProfileOTP.deleteMany({phone:cleanPhone});
+
+await ProfileOTP.create({
+phone:cleanPhone,
+otp,
+expiresAt:new Date(Date.now()+10*60*1000)
+});
+
+await sendEmail(
+user.email,
+"AlphaBot Transaction PIN OTP",
+`Your AlphaBot transaction PIN OTP is ${otp}`
+);
+
+res.json({message:"Transaction PIN OTP sent successfully"});
+
+}catch(error){
+res.status(500).json({message:error.message});
+}
+};
 
 // Create or update PIN
 const setPin = async(req,res)=>{
@@ -8,15 +50,16 @@ const setPin = async(req,res)=>{
   try{
 
     const {
-      phone,
-      pin
-    } = req.body;
+        phone,
+        pin,
+        otp
+      } = req.body;
 
 
-    if(!phone || !pin){
+    if(!phone || !pin || !otp){
 
       return res.status(400).json({
-        message:"Phone and PIN are required"
+        message:"Phone, PIN and OTP are required"
       });
 
     }
@@ -32,6 +75,22 @@ const setPin = async(req,res)=>{
 
 
     const cleanPhone = normalizePhone(phone);
+
+
+      const otpRecord = await ProfileOTP.findOne({
+        phone: cleanPhone,
+        otp
+      });
+
+      if(!otpRecord || otpRecord.expiresAt < new Date()){
+        return res.status(400).json({
+          message:"Invalid or expired OTP"
+        });
+      }
+
+      await ProfileOTP.deleteOne({
+        _id: otpRecord._id
+      });
 
 
     let userPin = await TransactionPin.findOne({
@@ -81,9 +140,10 @@ const verifyPin = async(req,res)=>{
   try{
 
     const {
-      phone,
-      pin
-    } = req.body;
+        phone,
+        pin,
+        otp
+      } = req.body;
 
 
     const cleanPhone = normalizePhone(phone);
@@ -129,7 +189,31 @@ const verifyPin = async(req,res)=>{
 };
 
 
+
+const checkPinStatus = async(req,res)=>{
+try{
+
+const cleanPhone = normalizePhone(req.user.phone);
+
+const userPin = await TransactionPin.findOne({
+phone:cleanPhone
+});
+
+res.json({
+hasPin:!!userPin
+});
+
+}catch(error){
+res.status(500).json({
+message:error.message
+});
+}
+};
+
 module.exports = {
+    sendPinOTP,
   setPin,
-  verifyPin
+  verifyPin,
+  checkPinStatus,
+  checkPinStatus
 };

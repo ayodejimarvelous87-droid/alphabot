@@ -11,7 +11,7 @@ router.get("/matches", async(req,res)=>{
 
 try{
 
-const matches = await FootballMatch.find({status:"Not Started"})
+const matches = await FootballMatch.find({status:{$in:["SCHEDULED","TIMED"]}})
 .sort({matchDate:1});
 
 res.json(matches);
@@ -38,6 +38,20 @@ userId,
 matchId,
 choice
 }=req.body;
+
+const todayStart = new Date();
+todayStart.setHours(0,0,0,0);
+
+const todayPredictions = await Prediction.countDocuments({
+userId,
+createdAt:{$gte:todayStart}
+});
+
+if(todayPredictions >= 20){
+return res.status(400).json({
+message:"Daily prediction limit reached (10 per day)"
+});
+}
 
 const match = await FootballMatch.findById(matchId);
 
@@ -131,6 +145,34 @@ $group:{
 _id:"$userId",
 points:{
 $sum:"$points"
+},
+totalPredictions:{
+$count:{}
+},
+wins:{
+$sum:{
+$cond:[
+{$eq:["$status","won"]},
+1,
+0
+]
+}
+}
+}
+},
+
+{
+$addFields:{
+accuracy:{
+$multiply:[
+{
+$divide:[
+"$wins",
+"$totalPredictions"
+]
+},
+100
+]
 }
 }
 },
@@ -164,6 +206,9 @@ res.json({
 
 rank:index+1,
 points:leaderboard[index].points,
+totalPredictions:leaderboard[index].totalPredictions,
+wins:leaderboard[index].wins,
+accuracy:leaderboard[index].accuracy,
 totalPlayers:leaderboard.length
 
 });
@@ -198,6 +243,34 @@ $group:{
 _id:"$userId",
 points:{
 $sum:"$points"
+},
+totalPredictions:{
+$count:{}
+},
+wins:{
+$sum:{
+$cond:[
+{$eq:["$status","won"]},
+1,
+0
+]
+}
+}
+}
+},
+
+{
+$addFields:{
+accuracy:{
+$multiply:[
+{
+$divide:[
+"$wins",
+"$totalPredictions"
+]
+},
+100
+]
 }
 }
 },
@@ -232,7 +305,10 @@ preserveNullAndEmptyArrays:true
 $project:{
 _id:1,
 userName:"$user.name",
-points:1
+points:1,
+totalPredictions:1,
+wins:1,
+accuracy:1
 }
 }
 

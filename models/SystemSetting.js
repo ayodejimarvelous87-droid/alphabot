@@ -5,7 +5,7 @@ const systemSettingSchema = new mongoose.Schema({
 
   airtimeCashRate:{
     type:Number,
-    default:80
+    default:180
   },
 
 
@@ -32,12 +32,22 @@ const systemSettingSchema = new mongoose.Schema({
 
   footballFirstMinimumPoints:{
     type:Number,
-    default:100
+    default:200
   },
 
   footballSecondMinimumPoints:{
     type:Number,
-    default:80
+    default:180
+  },
+
+  footballMinimumPredictions:{
+    type:Number,
+    default:20
+  },
+
+  footballMinimumWins:{
+    type:Number,
+    default:10
   },
 
   airtimeProfit:{

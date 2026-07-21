@@ -13,6 +13,12 @@ try{
 
 const week = targetWeek || getCurrentWeek();
 
+let settings = await SystemSetting.findOne();
+
+if(!settings){
+settings = await SystemSetting.create({});
+}
+
 
 const leaderboard = await Prediction.aggregate([
 
@@ -27,6 +33,18 @@ $group:{
 _id:"$userId",
 points:{
 $sum:"$points"
+},
+totalPredictions:{
+$count:{}
+},
+wins:{
+$sum:{
+$cond:[
+{$eq:["$status","won"]},
+1,
+0
+]
+}
 }
 }
 },
@@ -37,21 +55,19 @@ points:-1
 }
 },
 
-{
-$limit:2
-}
+
 
 ]);
 
 
-let settings = await SystemSetting.findOne();
+const qualifiedPlayers = leaderboard.filter(player=>
+player.totalPredictions >= settings.footballMinimumPredictions &&
+player.wins >= settings.footballMinimumWins
+);
 
-if(!settings){
+leaderboard.splice(0, leaderboard.length, ...qualifiedPlayers);
 
-settings = await SystemSetting.create({});
-
-}
-
+leaderboard.splice(2);
 
 const rewards=[
 

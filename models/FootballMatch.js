@@ -12,7 +12,7 @@ required:true
 
 
 leagueId:{
-type:Number
+type:String
 },
 
 
@@ -62,13 +62,13 @@ default:null
 
 
 homeGoals:{
-type:Number,
+type:String,
 default:null
 },
 
 
 awayGoals:{
-type:Number,
+type:String,
 default:null
 }
 

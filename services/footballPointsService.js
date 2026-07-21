@@ -38,11 +38,11 @@ prediction.choice === match.result
 
 if(match.result === "draw"){
 
-points = 1;
+points = 2;
 
 }else{
 
-points = 3;
+points = 2;
 
 }
 

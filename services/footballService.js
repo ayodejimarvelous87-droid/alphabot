@@ -1,120 +1,104 @@
 require("dotenv").config();
 const axios = require("axios");
 const FootballMatch = require("../models/FootballMatch");
+const Prediction = require("../models/Prediction");
 
 
-const allowedLeagues = null;
+const competitions = [
+"PL",
+"BL1",
+"SA",
+"FL1",
+"DED",
+"PPL",
+"PD",
+"CL",
+"CLI",
+"BSA",
+"ELC",
+"WC"
+];
 
 
 async function updateFootballMatches(){
 
 try{
 
-await FootballMatch.deleteMany({matchDate:{$lt:new Date()}});
-const today = new Date();
-
-
-const dates = [];
-
-for(let i=0;i<14;i++){
-dates.push(
-new Date(today.getTime()+86400000*i)
-.toISOString()
-.split("T")[0]
-);
-}
-
-
 let total = 0;
 
 
-for(const date of dates){
-
+for(const competition of competitions){
 
 const response = await axios.get(
-"https://v3.football.api-sports.io/fixtures",
+`https://api.football-data.org/v4/competitions/${competition}/matches`,
 {
 headers:{
-"x-apisports-key":process.env.FOOTBALL_API_KEY
-},
-params:{
-date:date
+"X-Auth-Token":process.env.FOOTBALL_API_KEY
 }
 }
 );
 
 
-
-for(const item of response.data.response){
-
-
-const leagueId = item.league.id;
+const matches = response.data.matches || [];
 
 
-if(false){
-continue;
-}
+for(const match of matches){
 
 
-
-const fixture = item.fixture;
-const teams = item.teams;
-const goals = item.goals;
-
+const score = match.score.fullTime;
 
 
 let result = null;
 
 
-if(goals.home !== null && goals.away !== null){
+if(score.home !== null && score.away !== null){
 
-if(goals.home > goals.away){
-result = "home";
+if(score.home > score.away){
+result="home";
 }
 
-else if(goals.home < goals.away){
-result = "away";
+else if(score.home < score.away){
+result="away";
 }
 
 else{
-result = "draw";
+result="draw";
 }
 
 }
-
 
 
 await FootballMatch.findOneAndUpdate(
 
 {
-externalId:String(fixture.id)
+externalId:String(match.id)
 },
 
 {
 
-externalId:String(fixture.id),
+externalId:String(match.id),
 
-leagueId:leagueId,
+leagueId:String(match.competition.code),
 
-league:item.league.name,
+league:match.competition.name,
 
-homeTeam:teams.home.name,
+homeTeam:match.homeTeam.name,
 
-awayTeam:teams.away.name,
+awayTeam:match.awayTeam.name,
 
-homeLogo:teams.home.logo,
+homeLogo:match.homeTeam.crest,
 
-awayLogo:teams.away.logo,
+awayLogo:match.awayTeam.crest,
 
-matchDate:fixture.date,
+matchDate:match.utcDate,
 
-status:fixture.status.long,
+status:match.status,
 
-result:result,
+result,
 
-homeGoals:goals.home,
+homeGoals:score.home,
 
-awayGoals:goals.away
+awayGoals:score.away
 
 },
 
@@ -128,7 +112,6 @@ upsert:true
 total++;
 
 }
-
 
 }
 
