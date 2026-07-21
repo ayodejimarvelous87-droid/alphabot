@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Wallet = require("../models/wallet");
 const PasswordReset = require("../models/PasswordReset");
 const bcrypt = require("bcryptjs");
+const ProfileOTP = require("../models/ProfileOTP");
 const jwt = require("jsonwebtoken");
 const normalizePhone = require("../utils/phone");
 const sendEmail = require("../services/emailService");
@@ -688,6 +689,71 @@ const changePassword = async (req,res)=>{
 
 
 
+const sendProfileOTP = async(req,res)=>{
+try{
+
+const {phone}=req.body;
+
+const user = await User.findOne({
+phone:normalizePhone(phone)
+});
+
+if(!user){
+return res.status(404).json({message:"User not found"});
+}
+
+const otp=Math.floor(100000 + Math.random()*900000).toString();
+
+await ProfileOTP.deleteMany({phone:user.phone});
+
+await ProfileOTP.create({
+phone:user.phone,
+otp,
+expiresAt:new Date(Date.now()+10*60*1000)
+});
+
+await sendEmail(
+user.email,
+"AlphaBot Profile Verification OTP",
+`Your AlphaBot profile verification OTP is ${otp}`
+);
+
+res.json({message:"Profile OTP sent successfully"});
+
+}catch(error){
+res.status(500).json({message:error.message});
+}
+};
+
+
+const verifyProfileOTP = async(req,res)=>{
+try{
+
+const {phone,otp}=req.body;
+
+const verify = await ProfileOTP.findOne({
+phone:normalizePhone(phone),
+otp
+});
+
+if(!verify){
+return res.status(400).json({message:"Invalid OTP"});
+}
+
+if(verify.expiresAt < new Date()){
+return res.status(400).json({message:"OTP expired"});
+}
+
+await ProfileOTP.deleteOne({_id:verify._id});
+
+res.json({message:"Profile verified successfully"});
+
+}catch(error){
+res.status(500).json({message:error.message});
+}
+};
+
+
 module.exports = {
 
   registerUser,
@@ -704,6 +770,10 @@ module.exports = {
 
   updateProfile,
 
-  changePassword
+  changePassword,
+
+  sendProfileOTP,
+
+  verifyProfileOTP
 
 };

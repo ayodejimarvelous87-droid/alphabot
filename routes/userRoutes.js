@@ -11,7 +11,9 @@ const {
   verifyResetOTP,
   getProfile,
   updateProfile,
-  changePassword
+    changePassword,
+    sendProfileOTP,
+    verifyProfileOTP
 } = require("../controllers/userController");
 
 
@@ -39,6 +41,13 @@ router.post(
 "/verify-reset-otp",
 verifyResetOTP
 );
+
+
+
+// Profile verification OTP
+router.post("/send-profile-otp", sendProfileOTP);
+
+router.post("/verify-profile-otp", verifyProfileOTP);
 
 
 // User profile
