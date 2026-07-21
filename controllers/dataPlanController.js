@@ -85,14 +85,10 @@ const vtuPlans = vtuResponse.data || [];
 vtuPlans.forEach(plan=>{
 
 allPlans.push({
-
 ...plan,
-
-provider:"vtu",
-
-display_price:
-Number(plan.reseller_price) + Number(profit)
-
+service_name: plan.network,
+provider:"blitzpay",
+display_price:Number(plan.price) + Number(profit)
 });
 
 });
@@ -122,14 +118,10 @@ const blitzPlans = blitzResponse.plans || [];
 blitzPlans.forEach(plan=>{
 
 allPlans.push({
-
 ...plan,
-
+service_name: plan.network,
 provider:"blitzpay",
-
-display_price:
-Number(plan.price) + Number(profit)
-
+display_price:Number(plan.price) + Number(profit)
 });
 
 });
@@ -153,10 +145,28 @@ const grouped = {};
 allPlans.forEach(plan=>{
 
 
-const network =
+let network =
 plan.service_name ||
 plan.network ||
 "Other";
+
+network = network.toString().trim().toLowerCase();
+
+if(network.includes("mtn")){
+network = "MTN";
+}
+else if(network.includes("airtel")){
+network = "Airtel";
+}
+else if(network.includes("glo")){
+network = "Glo";
+}
+else if(network.includes("9mobile") || network.includes("etisalat")){
+network = "9mobile";
+}
+else{
+network = "Other";
+}
 
 
 
