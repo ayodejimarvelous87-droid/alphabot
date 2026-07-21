@@ -84,11 +84,22 @@ const vtuPlans = vtuResponse.data || [];
 
 vtuPlans.forEach(plan=>{
 
+if(
+!plan.data_plan ||
+!plan.service_name ||
+plan.availability === "Unavailable"
+){
+return;
+}
+
 allPlans.push({
 ...plan,
-service_name: plan.network,
-provider:"blitzpay",
-display_price:Number(plan.price) + Number(profit)
+network: plan.service_name,
+service_name: plan.service_name,
+name: plan.data_plan,
+price: Number(plan.reseller_price),
+provider:"vtu",
+display_price:Number(plan.reseller_price) + Number(profit)
 });
 
 });
@@ -116,6 +127,20 @@ const blitzPlans = blitzResponse.plans || [];
 
 
 blitzPlans.forEach(plan=>{
+
+if(
+!plan.name &&
+!plan.data_plan
+){
+return;
+}
+
+if(
+!plan.network ||
+Number(plan.price) <= 0
+){
+return;
+}
 
 allPlans.push({
 ...plan,
