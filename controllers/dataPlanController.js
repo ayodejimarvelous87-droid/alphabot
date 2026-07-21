@@ -195,6 +195,17 @@ grouped[network][category].push(plan);
 
 
 
+Object.keys(grouped).forEach(network=>{
+Object.keys(grouped[network]).forEach(category=>{
+if(grouped[network][category].length===0){
+delete grouped[network][category];
+}
+});
+if(Object.keys(grouped[network]).length===0 || network==="Other"){
+delete grouped[network];
+}
+});
+
 res.json({
 
 success:true,
