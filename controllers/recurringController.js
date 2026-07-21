@@ -8,6 +8,7 @@ try{
 
 const {
     phone,
+    targetPhone,
     service,
     provider,
     productId,
@@ -17,6 +18,8 @@ const {
 
 
 const cleanPhone = normalizePhone(phone);
+
+const cleanTargetPhone = normalizePhone(targetPhone);
 
 
 if(req.user.role !== "admin" && req.user.phone !== cleanPhone){
@@ -46,6 +49,7 @@ nextRun.setMonth(nextRun.getMonth()+1);
 const recurring = await Recurring.create({
 
 phone:cleanPhone,
+targetPhone:cleanTargetPhone,
 service,
 provider,
 productId,

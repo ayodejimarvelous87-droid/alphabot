@@ -7,6 +7,11 @@ const recurringSchema = new mongoose.Schema(
     required:true
   },
 
+  targetPhone:{
+    type:String,
+    required:true
+  },
+
   service:{
     type:String,
     enum:["data","airtime"],

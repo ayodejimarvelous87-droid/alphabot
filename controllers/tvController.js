@@ -319,6 +319,7 @@ const getTVPlans = async (req, res) => {
 
   } catch (error) {
 
+    console.log("TV Plans error:", error.response?.data || error.message);
     res.status(500).json({
       success: false,
       message: "Failed to fetch TV plans"

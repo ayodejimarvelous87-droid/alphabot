@@ -58,6 +58,7 @@ const airtimeCashRoutes = require("./routes/airtimeCashRoutes");
 const examPinRoutes = require("./routes/examPinRoutes");
 const whatsappExamRoutes = require("./routes/whatsappExamRoutes");
 const withdrawalRoutes = require("./routes/withdrawalRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 const adminExamPinRoutes = require("./routes/adminExamPinRoutes");
 const adminWithdrawalRoutes = require("./routes/adminWithdrawalRoutes");
 const adminAirtimeCashRoutes = require("./routes/adminAirtimeCashRoutes");
@@ -122,6 +123,7 @@ app.use("/whatsapp-exam", whatsappExamRoutes);
 app.use("/exam-pin", examPinRoutes);
 
 app.use("/withdrawal", withdrawalRoutes);
+app.use("/settings", settingsRoutes);
 
 app.use("/admin/exam-pin", adminExamPinRoutes);
 app.use("/admin/airtime-cash", adminAirtimeCashRoutes);
