@@ -4,7 +4,7 @@ const PasswordReset = require("../models/PasswordReset");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const normalizePhone = require("../utils/phone");
-const sendSMS = require("../services/smsService");
+const sendEmail = require("../services/emailService");
 
 
 
@@ -54,10 +54,11 @@ Date.now()+10*60*1000
 });
 
 
-await sendSMS(
-user.phone,
-`Your AlphaBot password reset OTP is ${otp}`
-);
+  await sendEmail(
+  user.email,
+  "AlphaBot Password Reset OTP",
+  `Your AlphaBot password reset OTP is ${otp}`
+  );
 
 
 res.json({
@@ -188,6 +189,12 @@ const registerUser = async (req, res) => {
 
 
     const cleanPhone = normalizePhone(phone);
+
+      if(!email){
+        return res.status(400).json({
+          message:"Email is required"
+        });
+      }
 
 
 
@@ -329,6 +336,12 @@ const loginUser = async (req,res)=>{
 
     const cleanPhone = normalizePhone(phone);
 
+      if(!email){
+        return res.status(400).json({
+          message:"Email is required"
+        });
+      }
+
 
 
     console.log("Login DB state:", require("mongoose").connection.readyState);
@@ -452,6 +465,12 @@ const forgotPassword = async(req,res)=>{
 
 
     const cleanPhone = normalizePhone(phone);
+
+      if(!email){
+        return res.status(400).json({
+          message:"Email is required"
+        });
+      }
 
 
 
