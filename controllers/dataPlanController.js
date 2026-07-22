@@ -174,7 +174,6 @@ for(const network of oplugNetworks){
 
 const oplugPlans = await getOplugPlans(network);
 
-console.log("ADDING OPLUG NETWORK:", network, "COUNT:", oplugPlans.length);
 oplugPlans.forEach(plan=>{
 
 allPlans.push({
@@ -196,8 +195,6 @@ console.log("OPLUG plans error:", error.message);
 }
 
 
-console.log("TOTAL BEFORE GROUPING:", allPlans.length);
-console.log("PROVIDER TOTAL BEFORE GROUP:", { total: allPlans.length, oplug: allPlans.filter(p=>p.provider==="oplug").length, vtu: allPlans.filter(p=>p.provider==="vtu").length, blitz: allPlans.filter(p=>p.provider==="blitzpay").length });
 
 // Add missing Oplug plans from saved cache
 try {
@@ -218,7 +215,6 @@ allPlans.push(plan);
 }
 });
 
-console.log("AFTER OPLUG CACHE MERGE:", allPlans.filter(p=>p.provider==="oplug").length);
 
 }catch(e){
 console.log("Saved Oplug merge error:",e.message);
