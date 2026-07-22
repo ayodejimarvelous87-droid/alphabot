@@ -2,6 +2,7 @@ const { vtuPublicGet } = require("../services/vtuService");
 const { getPlans } = require("../services/blitzPayService");
 const { getDataPlans: getOplugPlans } = require("../services/oplugService");
 const SystemSetting = require("../models/SystemSetting");
+const savedPlans = require("../plans.json");
 
 
 const categoriesList = [
@@ -173,6 +174,7 @@ for(const network of oplugNetworks){
 
 const oplugPlans = await getOplugPlans(network);
 
+console.log("ADDING OPLUG NETWORK:", network, "COUNT:", oplugPlans.length);
 oplugPlans.forEach(plan=>{
 
 allPlans.push({
@@ -193,6 +195,34 @@ display_price:Number(plan.price) + Number(profit)
 console.log("OPLUG plans error:", error.message);
 }
 
+
+console.log("TOTAL BEFORE GROUPING:", allPlans.length);
+console.log("PROVIDER TOTAL BEFORE GROUP:", { total: allPlans.length, oplug: allPlans.filter(p=>p.provider==="oplug").length, vtu: allPlans.filter(p=>p.provider==="vtu").length, blitz: allPlans.filter(p=>p.provider==="blitzpay").length });
+
+// Add missing Oplug plans from saved cache
+try {
+const savedOplug = [];
+for(const network in savedPlans.networks){
+for(const category in savedPlans.networks[network]){
+savedPlans.networks[network][category].forEach(plan=>{
+if(plan.provider==="oplug") savedOplug.push(plan);
+});
+}
+}
+
+const existingIds = new Set(allPlans.filter(p=>p.provider==="oplug").map(p=>p.variation_id));
+
+savedOplug.forEach(plan=>{
+if(!existingIds.has(plan.variation_id)){
+allPlans.push(plan);
+}
+});
+
+console.log("AFTER OPLUG CACHE MERGE:", allPlans.filter(p=>p.provider==="oplug").length);
+
+}catch(e){
+console.log("Saved Oplug merge error:",e.message);
+}
 
 const grouped = {};
 
