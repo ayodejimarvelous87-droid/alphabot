@@ -11,7 +11,15 @@ try{
 
 const matches = await FootballMatch.find({
 status:{
-$in:["SCHEDULED","TIMED","Not Started","IN_PLAY"]
+$in:[
+"SCHEDULED",
+"TIMED",
+"Not Started",
+"IN_PLAY"
+]
+},
+matchDate:{
+$gt:new Date()
 }
 })
 .sort({matchDate:1});
