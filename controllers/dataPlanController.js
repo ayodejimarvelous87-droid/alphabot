@@ -183,7 +183,8 @@ name: `${plan.network} ${plan.datasize}`,
 price:Number(plan.price),
 provider:"oplug",
 variation_id:plan.plan_id,
-display_price:Number(plan.price) + Number(profit)
+display_price:Number(plan.price) + Number(profit),
+validity:`${plan.day} Days`
 });
 
 });
