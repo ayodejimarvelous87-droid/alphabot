@@ -11,7 +11,7 @@ router.get("/matches", async(req,res)=>{
 
 try{
 
-const matches = await FootballMatch.find({status:{$in:["SCHEDULED","TIMED"]}})
+const matches = await FootballMatch.find({status:{$in:["SCHEDULED","TIMED","Not Started","IN_PLAY"]}})
 .sort({matchDate:1});
 
 res.json(matches);
