@@ -69,7 +69,8 @@ message:"Prediction closed"
 
 const existingPrediction = await Prediction.findOne({
 userId,
-matchId
+matchId,
+week:getCurrentWeek()
 });
 
 if(existingPrediction){
