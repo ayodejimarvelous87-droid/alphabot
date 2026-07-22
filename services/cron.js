@@ -71,7 +71,7 @@ Football updates
 Runs every 6 hours
 */
 
-cron.schedule("0 */6 * * *", async ()=>{
+cron.schedule("*/5 * * * *", async ()=>{
 
 try{
 
