@@ -7,6 +7,7 @@ const normalizePhone = require("../utils/phone");
 
 const { vtuRequest } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
+const { purchaseData } = require("../services/oplugService");
 
 
 
@@ -150,6 +151,21 @@ throw new Error("BlitzPay data purchase failed");
 
 
 
+}else if(provider === "oplug"){
+
+providerResponse = await purchaseData({
+network,
+plan: variation_id,
+phone:dataPhone
+});
+
+if(
+!providerResponse ||
+providerResponse.status === "fail" ||
+providerResponse.Status === "failed"
+){
+throw new Error("OPLUG data purchase failed");
+}
 }else{
 
 

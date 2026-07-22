@@ -17,6 +17,7 @@ enum:[
 "fund",
 "purchase",
 "airtime",
+    "data",
 "airtime_cash",
 "electricity",
 "tv",

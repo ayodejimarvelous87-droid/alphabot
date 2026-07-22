@@ -1,5 +1,6 @@
 const { vtuPublicGet } = require("../services/vtuService");
 const { getPlans } = require("../services/blitzPayService");
+const { getDataPlans: getOplugPlans } = require("../services/oplugService");
 const SystemSetting = require("../models/SystemSetting");
 
 
@@ -16,13 +17,13 @@ const categoriesList = [
 const formatCategory = (plan)=>{
 
 const name = (
-plan.data_plan ||
+plan.data_plan || plan.type ||
 plan.name ||
 ""
 ).toLowerCase();
 
 
-if(name.includes("sme 2")){
+if(name.includes("sme 2") || name.includes("sme2")){
 return "SME 2";
 }
 
@@ -85,7 +86,7 @@ const vtuPlans = vtuResponse.data || [];
 vtuPlans.forEach(plan=>{
 
 if(
-!plan.data_plan ||
+!plan.data_plan || plan.type ||
 !plan.service_name ||
 plan.availability === "Unavailable"
 ){
@@ -161,6 +162,36 @@ error.message
 
 }
 
+
+
+// OPLUG plans
+try{
+
+const oplugNetworks = ["MTN","AIRTEL","GLO","9MOBILE"];
+
+for(const network of oplugNetworks){
+
+const oplugPlans = await getOplugPlans(network);
+
+oplugPlans.forEach(plan=>{
+
+allPlans.push({
+...plan,
+service_name: plan.network,
+name: `${plan.network} ${plan.datasize}`,
+price:Number(plan.price),
+provider:"oplug",
+variation_id:plan.plan_id,
+display_price:Number(plan.price) + Number(profit)
+});
+
+});
+
+}
+
+}catch(error){
+console.log("OPLUG plans error:", error.message);
+}
 
 
 const grouped = {};
