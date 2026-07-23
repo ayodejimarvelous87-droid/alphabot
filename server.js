@@ -8,6 +8,7 @@ const startOTPCleanup = require("./services/otpCleanup");
 require("./services/recurringService");
 const path = require("path");
 
+const emailTestRoutes = require("./routes/emailTestRoutes");
 const app = express();
 
 
@@ -80,6 +81,7 @@ app.use("/football", footballPredictionRoutes);
 app.use("/football/rewards", footballRewardRoutes);
 app.use("/football/admin", footballAdminRoutes);
 app.use("/ai", aiRoutes);
+app.use("/test-email", emailTestRoutes);
 app.use("/wallet", walletRoutes);
 app.use("/products", productRoutes);
 app.use("/orders", orderRoutes);
