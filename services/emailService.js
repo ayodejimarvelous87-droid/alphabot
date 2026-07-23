@@ -16,6 +16,10 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 30000
 });
 
+transporter.verify()
+.then(()=>console.log("BREVO SMTP CONNECTED"))
+.catch(err=>console.log("BREVO SMTP FAILED:", err.message));
+
 const sendEmail = async(to, subject, text)=>{
 
   try{
