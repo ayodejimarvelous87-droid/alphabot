@@ -20,6 +20,10 @@ const sendEmail = async(to, subject, text)=>{
 
   try{
 
+  console.log("SMTP_LOGIN:", process.env.SMTP_LOGIN);
+  console.log("SMTP_FROM:", process.env.SMTP_FROM);
+  console.log("SMTP_PASSWORD:", process.env.SMTP_PASSWORD ? "EXISTS" : "MISSING");
+
     await transporter.verify();
 
     await transporter.sendMail({
