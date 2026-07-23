@@ -124,14 +124,13 @@ if(provider === "blitzpay"){
 
 
 
-providerResponse = await purchase({
-
-type:"data",
-
-network,
-
-phone:dataPhone,
-});
+  providerResponse = await purchase({
+  type:"data",
+  network,
+  phone:dataPhone,
+  package_id: variation_id || plan,
+  amount:Number(amount)
+  });
 
 if(
 providerResponse?.details?.network &&
