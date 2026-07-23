@@ -7,6 +7,7 @@ const normalizePhone = require("../utils/phone");
 
 
 const sendPinOTP = async(req,res)=>{
+console.log("SEND PIN OTP REQUEST:", req.body, req.user);
 try{
 
 const {phone}=req.body;
