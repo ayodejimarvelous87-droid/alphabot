@@ -11,7 +11,7 @@ try{
 
 const {phone}=req.body;
 
-const cleanPhone = normalizePhone(phone);
+const cleanPhone = normalizePhone(req.user.phone);
 
 const user = await User.findOne({
 phone:cleanPhone
@@ -50,16 +50,15 @@ const setPin = async(req,res)=>{
   try{
 
     const {
-        phone,
         pin,
         otp
       } = req.body;
 
 
-    if(!phone || !pin || !otp){
+    if(!pin || !otp){
 
       return res.status(400).json({
-        message:"Phone, PIN and OTP are required"
+        message:"PIN and OTP are required"
       });
 
     }
@@ -74,7 +73,7 @@ const setPin = async(req,res)=>{
     }
 
 
-    const cleanPhone = normalizePhone(phone);
+    const cleanPhone = normalizePhone(req.user.phone);
 
 
       const otpRecord = await ProfileOTP.findOne({
@@ -146,7 +145,7 @@ const verifyPin = async(req,res)=>{
       } = req.body;
 
 
-    const cleanPhone = normalizePhone(phone);
+    const cleanPhone = normalizePhone(req.user.phone);
 
 
     const userPin = await TransactionPin.findOne({
