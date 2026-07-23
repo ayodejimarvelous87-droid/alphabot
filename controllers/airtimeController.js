@@ -4,6 +4,7 @@ const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");
 const normalizePhone = require("../utils/phone");
+const getErrorMessage = require("../utils/errorHandler");
 const { purchaseAirtime } = require("../services/vtuService");
 
 
@@ -251,9 +252,8 @@ error.response?.data || error.message
 
 
 res.status(500).json({
-
-message:error.response?.data || error.message
-
+success:false,
+message:getErrorMessage(error)
 });
 
 }

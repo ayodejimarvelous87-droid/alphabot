@@ -4,6 +4,7 @@ const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");
 const normalizePhone = require("../utils/phone");
+const getErrorMessage = require("../utils/errorHandler");
 
 const { vtuRequest } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
@@ -23,7 +24,6 @@ amount,
 phone,
 pin,
 variation_id,
-package_id,
 provider
 }=req.body;
 
@@ -131,12 +131,16 @@ type:"data",
 network,
 
 phone:dataPhone,
-
-package_id,
-
-amount:Number(amount)
-
 });
+
+if(
+providerResponse?.details?.network &&
+providerResponse.details.network.toUpperCase() !== network.toUpperCase()
+){
+throw new Error(`OPLUG network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
+}
+
+
 
 
 
@@ -153,19 +157,33 @@ throw new Error("BlitzPay data purchase failed");
 
 }else if(provider === "oplug"){
 
+console.log("DATA OPLUG BUY:", {network, variation_id, provider});
+console.log("OPLUG REQUEST BEFORE PURCHASE:", {network, variation_id, dataPhone});
 providerResponse = await purchaseData({
 network,
-plan: variation_id,
+planId: variation_id,
 phone:dataPhone
 });
 
+if(
+providerResponse?.details?.network &&
+providerResponse.details.network.toUpperCase() !== network.toUpperCase()
+){
+throw new Error(`OPLUG network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
+}
 if(
 !providerResponse ||
 providerResponse.status === "fail" ||
 providerResponse.Status === "failed"
 ){
-throw new Error("OPLUG data purchase failed");
+throw new Error(
+providerResponse.message ||
+providerResponse.error ||
+providerResponse.msg ||
+"OPLUG data purchase failed"
+);
 }
+
 }else{
 
 
@@ -175,10 +193,14 @@ providerResponse = await vtuRequest(
 {
 request_id:reference,
 phone:dataPhone,
-service_id:network.toLowerCase(),
-variation_id
+});
+
+if(
+providerResponse?.details?.network &&
+providerResponse.details.network.toUpperCase() !== network.toUpperCase()
+){
+throw new Error(`OPLUG network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
 }
-);
 
 
 
@@ -247,18 +269,8 @@ error:error.message
 const data = await Data.create({
 
 phone:dataPhone,
-
-network,
-
-plan,
-
-amount:Number(amount),
-
-reference,
-
-status:"successful"
-
 });
+
 
 
 
@@ -327,9 +339,8 @@ error.response?.data || error.message
 
 
 res.status(500).json({
-
-message:error.message
-
+success:false,
+message:getErrorMessage(error)
 });
 
 
