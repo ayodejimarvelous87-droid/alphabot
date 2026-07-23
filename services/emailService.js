@@ -7,18 +7,37 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.SMTP_LOGIN,
     pass: process.env.SMTP_PASSWORD
-  }
+  },
+  tls: {
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000
 });
 
-const sendEmail = async (to, subject, text) => {
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM,
-    to,
-    subject,
-    text
-  });
+const sendEmail = async(to, subject, text)=>{
 
-  console.log("Email sent successfully to:", to);
+  try{
+
+    await transporter.verify();
+
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM,
+      to,
+      subject,
+      text
+    });
+
+    console.log("Email sent successfully to:", to);
+
+  }catch(error){
+
+    console.log("EMAIL ERROR:", error.message);
+    throw error;
+
+  }
+
 };
 
 module.exports = sendEmail;
