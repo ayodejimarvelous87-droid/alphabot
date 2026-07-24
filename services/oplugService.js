@@ -56,14 +56,7 @@ throw error;
 
 
 const getBalance = async()=>{
-
-console.log("FINAL OPLUG PURCHASE:", {
-network:data.network,
-planId:data.planId || data.plan,
-phoneNumber:phone
-});
-return await oplugRequest("/vtu/balance");
-
+  return await oplugRequest("/vtu/balance");
 };
 
 

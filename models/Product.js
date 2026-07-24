@@ -18,10 +18,13 @@ const productSchema = new mongoose.Schema(
         "data",
         "airtime",
         "cable",
+        "tv",
         "electricity",
         "mifi",
         "betting",
         "exam-pin",
+        "epin",
+        "recharge-pin",
         "airtime-cash",
         "bank"
       ],
