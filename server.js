@@ -72,6 +72,7 @@ const footballPredictionRoutes = require("./routes/footballPredictionRoutes");
 const footballRewardRoutes = require("./routes/footballRewardRoutes");
 const ePinRoutes = require("./routes/ePinRoutes");
 const footballAdminRoutes = require("./routes/footballAdminRoutes");
+const adminDataPriceRoutes = require("./routes/adminDataPriceRoutes");
 
 
 // Use routes
@@ -97,6 +98,7 @@ app.post("/users/test",(req,res)=>{
 app.use("/transactions", transactionRoutes);
 app.use("/admin/withdrawal", adminWithdrawalRoutes);
 app.use("/admin", adminRoutes);
+app.use("/admin/data-prices", adminDataPriceRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/funding", fundingRoutes);
 app.use("/bank", bankRoutes);
