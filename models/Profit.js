@@ -7,9 +7,19 @@ service:{
  required:true
 },
 
-amount:{
+customerAmount:{
  type:Number,
- required:true
+ default:0
+},
+
+providerCost:{
+ type:Number,
+ default:0
+},
+
+profit:{
+ type:Number,
+ default:0
 },
 
 reference:{

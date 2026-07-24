@@ -192,7 +192,11 @@ await Profit.create({
 
 service:"airtime",
 
-amount:profit,
+customerAmount:Number(amount),
+
+providerCost,
+
+profit,
 
 reference,
 

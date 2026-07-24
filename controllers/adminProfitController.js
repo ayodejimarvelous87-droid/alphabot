@@ -1,13 +1,27 @@
 const Profit = require("../models/Profit");
 
+
 const getProfits = async(req,res)=>{
 
 try{
 
 const profits = await Profit.find();
 
+
+const totalSales = profits.reduce(
+(sum,item)=>sum + Number(item.customerAmount || 0),
+0
+);
+
+
+const totalCost = profits.reduce(
+(sum,item)=>sum + Number(item.providerCost || 0),
+0
+);
+
+
 const totalProfit = profits.reduce(
-(sum,item)=>sum + Number(item.amount || 0),
+(sum,item)=>sum + Number(item.profit || 0),
 0
 );
 
@@ -15,15 +29,23 @@ const totalProfit = profits.reduce(
 const airtimeProfit = profits
 .filter(item=>item.service==="airtime")
 .reduce(
-(sum,item)=>sum + Number(item.amount || 0),
+(sum,item)=>sum + Number(item.profit || 0),
 0
 );
 
 
 res.json({
+
+totalSales,
+
+totalCost,
+
 totalProfit,
+
 airtimeProfit,
+
 records:profits
+
 });
 
 
