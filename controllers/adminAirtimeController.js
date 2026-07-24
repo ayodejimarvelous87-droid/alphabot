@@ -31,15 +31,31 @@ try{
 const {network}=req.params;
 
 
+const providerPrice = Number(
+req.body.providerPrice || 0
+);
+
+
+const sellingPrice = Number(
+req.body.sellingPrice || 0
+);
+
+
+const profit = sellingPrice - providerPrice;
+
+
 const airtime = await AirtimeOverride.findOneAndUpdate(
 
 {
-network
+network:network.toUpperCase()
 },
 
 {
-network,
-...req.body
+network:network.toUpperCase(),
+providerPrice,
+sellingPrice,
+profit,
+active:req.body.active !== false
 },
 
 {

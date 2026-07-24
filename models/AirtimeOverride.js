@@ -8,7 +8,17 @@ const airtimeOverrideSchema = new mongoose.Schema(
   unique:true
  },
 
- discount:{
+ providerPrice:{
+  type:Number,
+  default:0
+ },
+
+ sellingPrice:{
+  type:Number,
+  default:100
+ },
+
+ profit:{
   type:Number,
   default:0
  },
