@@ -1,6 +1,7 @@
 const AirtimeOverride = require("../models/AirtimeOverride");
 const TransactionPin = require("../models/TransactionPin");
 const Airtime = require("../models/Airtime");
+const Profit = require("../models/Profit");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");
@@ -130,19 +131,15 @@ providerResponse
 const balanceBefore = wallet.balance;
 
 
-
-wallet.balance -= Number(
-providerResponse.data.amount_charged || amount
-);
-
-
-await wallet.save();
-
-
-
 const providerCost = Number(
 providerResponse.data.amount_charged || amount
 );
+
+
+wallet.balance -= providerCost;
+
+
+await wallet.save();
 
 const profit = Number(amount) - providerCost;
 
@@ -186,6 +183,20 @@ balanceAfter:wallet.balance,
 description:`${network} airtime purchase`,
 
 status:"successful"
+
+});
+
+
+
+await Profit.create({
+
+service:"airtime",
+
+amount:profit,
+
+reference,
+
+phone:cleanPhone
 
 });
 

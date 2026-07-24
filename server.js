@@ -74,6 +74,7 @@ const ePinRoutes = require("./routes/ePinRoutes");
 const footballAdminRoutes = require("./routes/footballAdminRoutes");
 const adminDataPriceRoutes = require("./routes/adminDataPriceRoutes");
 const adminAirtimeRoutes = require("./routes/adminAirtimeRoutes");
+const adminProfitRoutes = require("./routes/adminProfitRoutes");
 
 
 // Use routes
@@ -101,6 +102,7 @@ app.use("/admin/withdrawal", adminWithdrawalRoutes);
 app.use("/admin", adminRoutes);
 app.use("/admin/data-prices", adminDataPriceRoutes);
 app.use("/admin/airtime-prices", adminAirtimeRoutes);
+app.use("/admin/profits", adminProfitRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/funding", fundingRoutes);
 app.use("/bank", bankRoutes);
