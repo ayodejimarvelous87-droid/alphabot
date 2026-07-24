@@ -1,3 +1,4 @@
+const AirtimeOverride = require("../models/AirtimeOverride");
 const TransactionPin = require("../models/TransactionPin");
 const Airtime = require("../models/Airtime");
 const Wallet = require("../models/wallet");
@@ -87,6 +88,14 @@ const reference = "AIRTIME-" + Date.now();
 
 
 
+const airtimeSetting = await AirtimeOverride.findOne({network: network.toUpperCase()});
+
+if(airtimeSetting && airtimeSetting.active === false){
+return res.status(400).json({
+message:"This airtime network is currently unavailable"
+});
+}
+
 const providerResponse = await purchaseAirtime({
 
 phone: cleanPhone,
@@ -131,6 +140,13 @@ await wallet.save();
 
 
 
+const providerCost = Number(
+providerResponse.data.amount_charged || amount
+);
+
+const profit = Number(amount) - providerCost;
+
+
 const airtime = await Airtime.create({
 
 phone:cleanPhone,
@@ -138,6 +154,10 @@ phone:cleanPhone,
 network,
 
 amount:Number(amount),
+
+providerCost,
+
+profit,
 
 reference,
 
