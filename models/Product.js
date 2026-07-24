@@ -31,9 +31,19 @@ const productSchema = new mongoose.Schema(
       required: true
     },
 
+    providerPrice: {
+      type: Number,
+      default: 0
+    },
+
     price: {
       type: Number,
       required: true
+    },
+
+    providerPrice: {
+      type: Number,
+      default: 0
     },
 
     validity: {
