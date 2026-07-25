@@ -3,6 +3,8 @@ const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");
 const normalizePhone = require("../utils/phone");
+const { sendPushNotification } = require("../services/firebaseService");
+const DeviceToken = require("../models/DeviceToken");
 
 
 // Customer submits funding request
@@ -29,7 +31,29 @@ const createFundingRequest = async (req, res) => {
 
       reference: reference || null
 
+
     });
+
+      await createNotification(
+        "admin",
+        "New Wallet Funding Request 🔔",
+        `₦${Number(request.amount).toLocaleString()} manual funding request received.`,
+        "info"
+      );
+
+
+      const devices = await DeviceToken.find();
+
+      for(const device of devices){
+
+        await sendPushNotification(
+          device.token,
+          "New Wallet Funding Request 🔔",
+          `₦${Number(request.amount).toLocaleString()} manual funding request received`
+        );
+
+      }
+
 
 
     res.json({

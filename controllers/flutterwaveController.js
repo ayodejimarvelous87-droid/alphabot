@@ -2,6 +2,7 @@ const Flutterwave = require("flutterwave-node-v3");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
+const axios = require("axios");
 
 const flw = new Flutterwave(
   process.env.FLW_PUBLIC_KEY,
@@ -50,9 +51,18 @@ const createPayment = async (req, res) => {
     };
 
     const response =
-      await flw.PaymentInitiation.initialize(payload);
+      await axios.post(
+        "https://api.flutterwave.com/v3/payments",
+        payload,
+        {
+          headers:{
+            Authorization:`Bearer ${process.env.FLW_SECRET_KEY}`,
+            "Content-Type":"application/json"
+          }
+        }
+      )
 
-    res.json(response);
+    res.json(response.data);
 
 
   } catch(error) {
