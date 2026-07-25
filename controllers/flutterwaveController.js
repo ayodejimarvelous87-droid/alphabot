@@ -1,5 +1,6 @@
 const Flutterwave = require("flutterwave-node-v3");
 const Wallet = require("../models/wallet");
+const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
 const axios = require("axios");
@@ -17,7 +18,15 @@ const createPayment = async (req, res) => {
 
     const { amount } = req.body;
 
-    const phone = normalizePhone(req.user.phone);
+    const user = await User.findById(req.user.id);
+
+    if(!user){
+      return res.status(404).json({
+        message:"User not found"
+      });
+    }
+
+    const phone = normalizePhone(user.phone);
 
     if (!amount || Number(amount) <= 0) {
       return res.status(400).json({
@@ -37,9 +46,9 @@ const createPayment = async (req, res) => {
       "https://alphabot-frontend-chi.vercel.app/dashboard/wallet",
 
       customer: {
-        email: req.user.email,
+        email: user.email,
         phonenumber: phone,
-        name: req.user.name || "AlphaBot User"
+        name: user.name || "AlphaBot User"
       },
 
       meta: {
@@ -109,7 +118,15 @@ const verifyPayment = async (req,res)=>{
     }
 
 
-    const phone = normalizePhone(req.user.phone);
+    const user = await User.findById(req.user.id);
+
+    if(!user){
+      return res.status(404).json({
+        message:"User not found"
+      });
+    }
+
+    const phone = normalizePhone(user.phone);
 
     const amount = Number(response.data.amount);
 
