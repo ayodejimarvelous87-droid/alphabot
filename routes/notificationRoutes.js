@@ -18,6 +18,7 @@ router.post("/register-token", async (req,res)=>{
       });
     }
 
+
     await DeviceToken.findOneAndUpdate(
       { token },
       {
@@ -29,6 +30,7 @@ router.post("/register-token", async (req,res)=>{
         new:true
       }
     );
+
 
     res.json({
       success:true,
@@ -54,6 +56,34 @@ router.get("/admin", async(req,res)=>{
 
     const notifications = await Notification.find({
       phone:"admin"
+    })
+    .sort({
+      createdAt:-1
+    })
+    .limit(50);
+
+
+    res.json(notifications);
+
+
+  }catch(error){
+
+    res.status(500).json({
+      message:error.message
+    });
+
+  }
+
+});
+
+
+// Get user notifications
+router.get("/:phone", async(req,res)=>{
+
+  try{
+
+    const notifications = await Notification.find({
+      phone:req.params.phone
     })
     .sort({
       createdAt:-1
