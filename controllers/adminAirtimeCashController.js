@@ -1,7 +1,9 @@
 const AirtimeCash = require("../models/AirtimeCash");
+const AirtimeInventory = require("../models/AirtimeInventory");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");
+const { approveAirtimeCash: approveRequest } = require("../services/airtimeCashApprovalService");
 
 
 // Get pending requests
@@ -39,97 +41,7 @@ const approveAirtimeCash = async(req,res)=>{
 
 try{
 
-const request = await AirtimeCash.findById(
-req.params.id
-);
-
-
-if(!request){
-
-return res.status(404).json({
-message:"Request not found"
-});
-
-}
-
-
-if(request.status !== "pending"){
-
-return res.status(400).json({
-message:"Already processed"
-});
-
-}
-
-
-
-const wallet = await Wallet.findOne({
-phone:request.phone
-});
-
-
-if(!wallet){
-
-return res.status(404).json({
-message:"Wallet not found"
-});
-
-}
-
-
-
-const balanceBefore = wallet.balance;
-
-
-wallet.balance += request.cashAmount;
-
-
-await wallet.save();
-
-
-
-await Transaction.create({
-
-phone:request.phone,
-
-type:"airtime_cash",
-
-direction:"credit",
-
-amount:request.cashAmount,
-
-balanceBefore,
-
-balanceAfter:wallet.balance,
-
-description:"Airtime To Cash Conversion",
-
-status:"successful",
-
-reference:request.reference
-
-});
-
-
-
-request.status="approved";
-
-await request.save();
-
-
-
-await createNotification(
-
-request.phone,
-
-"Airtime To Cash Approved",
-
-`₦${request.cashAmount.toLocaleString()} has been added to your AlphaBot wallet.`,
-
-"success"
-
-);
-
+const wallet = await approveRequest(req.params.id);
 
 
 res.json({
@@ -143,15 +55,17 @@ wallet
 
 }catch(error){
 
-res.status(500).json({
+
+res.status(400).json({
+
 message:error.message
+
 });
+
 
 }
 
 };
-
-
 
 
 module.exports={

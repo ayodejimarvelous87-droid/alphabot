@@ -1,3 +1,4 @@
+const axios = require("axios");
 const Withdrawal = require("../models/Withdrawal");
 const TransactionPin = require("../models/TransactionPin");
 const Wallet = require("../models/wallet");
@@ -52,6 +53,54 @@ if(userPin.pin !== pin){
 
 return res.status(400).json({
 message:"Incorrect transaction PIN"
+});
+
+}
+
+
+// Verify bank account with Flutterwave
+
+try {
+
+const verifyResponse = await axios.post(
+
+"https://api.flutterwave.com/v3/accounts/resolve",
+
+{
+account_number: accountNumber,
+account_bank: req.body.bankCode
+},
+
+{
+headers:{
+Authorization:`Bearer ${process.env.FLW_SECRET_KEY}`,
+"Content-Type":"application/json"
+}
+}
+
+);
+
+
+if(
+!verifyResponse.data ||
+verifyResponse.data.status !== "success"
+){
+
+return res.status(400).json({
+message:"Bank account verification failed"
+});
+
+}
+
+
+// Use Flutterwave verified account name
+accountName = verifyResponse.data.data.account_name;
+
+
+}catch(error){
+
+return res.status(400).json({
+message:"Unable to verify bank account"
 });
 
 }

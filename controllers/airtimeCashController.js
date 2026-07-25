@@ -1,6 +1,9 @@
 const AirtimeCash = require("../models/AirtimeCash");
 const SystemSetting = require("../models/SystemSetting");
+const AirtimeInventory = require("../models/AirtimeInventory");
 const normalizePhone = require("../utils/phone");
+const { createNotification } = require("../services/notificationService");
+const { approveAirtimeCash } = require("../services/airtimeCashApprovalService");
 
 
 // Submit airtime cash request
@@ -26,6 +29,46 @@ message:"Phone, network and amount are required"
 
 
 const cleanPhone = normalizePhone(phone);
+
+const selectedNetwork = network.toUpperCase();
+
+if(
+selectedNetwork !== "MTN" &&
+selectedNetwork !== "AIRTEL"
+){
+
+return res.status(400).json({
+message:"Only MTN and Airtel are supported for Airtime to Cash"
+});
+
+}
+
+
+const inventory = await AirtimeInventory.findOne({
+network:selectedNetwork
+});
+
+
+if(!inventory){
+
+return res.status(400).json({
+message:"Airtime inventory not available"
+});
+
+}
+
+
+const availableAmount =
+inventory.limit - inventory.storedAmount;
+
+
+if(Number(amount) > availableAmount){
+
+return res.status(400).json({
+message:`Only ₦${availableAmount.toLocaleString()} airtime is currently available for ${selectedNetwork}. Please try again with the available amount.`
+});
+
+}
 
 
 // Get Airtime To Cash conversion rate
@@ -58,6 +101,23 @@ cashAmount,
 reference:"ATC-" + Date.now()
 
 });
+
+
+// Automatic Airtime To Cash approval
+
+if(setting.airtimeCashMode === "automatic"){
+
+await approveAirtimeCash(request._id);
+
+}
+
+
+await createNotification(
+"system",
+"New Airtime To Cash Request",
+`${request.phone} submitted ${request.network} airtime worth ₦${request.amount.toLocaleString()}.`,
+"info"
+);
 
 
 res.json({

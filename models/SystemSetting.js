@@ -5,7 +5,7 @@ const systemSettingSchema = new mongoose.Schema({
 
   airtimeCashRate:{
     type:Number,
-    default:180
+    default:80
   },
 
 
@@ -79,6 +79,13 @@ const systemSettingSchema = new mongoose.Schema({
     type:Number,
     default:20
   },
+
+  airtimeCashMode:{
+    type:String,
+    enum:["manual","automatic"],
+    default:"manual"
+  },
+
 
   maintenanceMode:{
     type:Boolean,

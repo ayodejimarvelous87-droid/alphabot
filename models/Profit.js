@@ -22,6 +22,16 @@ profit:{
  default:0
 },
 
+
+source:{
+ type:String,
+ enum:[
+  "provider",
+  "inventory"
+ ],
+ default:"provider"
+},
+
 reference:{
  type:String
 },

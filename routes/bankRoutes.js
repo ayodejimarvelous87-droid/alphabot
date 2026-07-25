@@ -1,21 +1,23 @@
 const express = require("express");
 const router = express.Router();
 
+const auth = require("../middleware/auth");
+
 const {
-  getBankDetails,
-  updateBankDetails
+  getBanks,
+  verifyAccount
 } = require("../controllers/bankController");
 
-const auth = require("../middleware/auth");
-const admin = require("../middleware/admin");
+router.get(
+  "/",
+  auth,
+  getBanks
+);
 
-
-// Customer views bank details
-router.get("/", getBankDetails);
-
-
-// Admin updates bank details
-router.put("/", auth, admin, updateBankDetails);
-
+router.post(
+  "/verify",
+  auth,
+  verifyAccount
+);
 
 module.exports = router;

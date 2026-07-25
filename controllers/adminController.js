@@ -617,7 +617,8 @@ try{
 const {
 maintenanceMode,
 announcement,
-referralPercentage
+referralPercentage,
+airtimeCashMode
 }=req.body;
 
 
@@ -641,6 +642,10 @@ setting.announcement = announcement;
 
 if(referralPercentage !== undefined)
 setting.referralPercentage = Number(referralPercentage);
+
+
+if(airtimeCashMode !== undefined)
+setting.airtimeCashMode = airtimeCashMode;
 
 
 await setting.save();

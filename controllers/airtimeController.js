@@ -1,6 +1,7 @@
 const AirtimeOverride = require("../models/AirtimeOverride");
 const TransactionPin = require("../models/TransactionPin");
 const Airtime = require("../models/Airtime");
+const AirtimeInventory = require("../models/AirtimeInventory");
 const Profit = require("../models/Profit");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
@@ -101,6 +102,8 @@ message:"This airtime network is currently unavailable"
 
 
 
+let providerResponse;
+
 // Check provider result
 
 if(
@@ -129,10 +132,36 @@ wallet.balance -= Number(amount);
 await wallet.save();
 
 
-let providerResponse;
 
 
 try{
+
+
+const inventory = await AirtimeInventory.findOne({
+network: network.toUpperCase()
+});
+
+
+if(
+inventory &&
+inventory.storedAmount >= Number(amount)
+){
+
+inventory.storedAmount -= Number(amount);
+
+await inventory.save();
+
+
+providerResponse = {
+code:"success",
+source:"inventory",
+data:{
+amount_charged:Number(amount)
+}
+};
+
+
+}else{
 
 
 providerResponse = await purchaseAirtime({
@@ -154,6 +183,8 @@ providerResponse.code !== "success"
 ){
 
 throw new Error("Airtime provider failed");
+
+}
 
 }
 
@@ -223,6 +254,8 @@ providerCost,
 
 profit,
 
+source: providerResponse.source || "provider",
+
 reference,
 
 status:"successful"
@@ -264,6 +297,8 @@ customerAmount:Number(amount),
 providerCost,
 
 profit,
+
+source: providerResponse.source || "provider",
 
 reference,
 

@@ -33,6 +33,16 @@ profit:{
 },
 
 
+source:{
+ type:String,
+ enum:[
+  "provider",
+  "inventory"
+ ],
+ default:"provider"
+},
+
+
 status:{
  type:String,
  enum:[

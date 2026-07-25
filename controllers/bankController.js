@@ -1,88 +1,78 @@
-const BankSettings = require("../models/BankSettings");
+const axios = require("axios");
 
-
-// Get bank details
-const getBankDetails = async (req, res) => {
+const getBanks = async (req, res) => {
   try {
 
-    const bank = await BankSettings.findOne();
+    const response = await axios.get(
+      "https://api.flutterwave.com/v3/banks/NG",
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`
+        }
+      }
+    );
 
-    if (!bank) {
-      return res.status(404).json({
-        message: "Bank details not found"
-      });
-    }
-
-
-    res.json(bank);
-
+    res.json(response.data);
 
   } catch (error) {
 
     res.status(500).json({
-      message: error.message
+      message:
+        error.response?.data || error.message
     });
 
   }
 };
 
+const verifyAccount = async (req, res) => {
 
-
-// Add or update bank details
-const updateBankDetails = async (req, res) => {
   try {
 
     const {
-      bankName,
       accountNumber,
-      accountName,
-      instructions
+      bankCode
     } = req.body;
 
+    if (!accountNumber || !bankCode) {
 
-    let bank = await BankSettings.findOne();
-
-
-    if (bank) {
-
-      bank.bankName = bankName;
-      bank.accountNumber = accountNumber;
-      bank.accountName = accountName;
-      bank.instructions = instructions;
-
-    } else {
-
-      bank = await BankSettings.create({
-        bankName,
-        accountNumber,
-        accountName,
-        instructions
+      return res.status(400).json({
+        message: "Bank code and account number are required"
       });
 
     }
 
+    const response = await axios.post(
 
-    await bank.save();
+      "https://api.flutterwave.com/v3/accounts/resolve",
 
+      {
+        account_number: accountNumber,
+        account_bank: bankCode
+      },
 
-    res.json({
-      message: "Bank details updated",
-      bank
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
 
+    );
+
+    res.json(response.data);
 
   } catch (error) {
 
     res.status(500).json({
-      message: error.message
+      message:
+        error.response?.data || error.message
     });
 
   }
+
 };
 
-
-
 module.exports = {
-  getBankDetails,
-  updateBankDetails
+  getBanks,
+  verifyAccount
 };

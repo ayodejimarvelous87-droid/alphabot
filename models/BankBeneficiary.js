@@ -12,6 +12,11 @@ type:String,
 required:true
 },
 
+bankCode:{
+type:String,
+required:true
+},
+
 accountNumber:{
 type:String,
 required:true

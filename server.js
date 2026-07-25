@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const startCron = require("./services/cron");
 const startOTPCleanup = require("./services/otpCleanup");
+const { initializeAirtimeInventory } = require("./services/airtimeInventoryService");
 require("./services/recurringService");
 const path = require("path");
 
@@ -81,6 +82,9 @@ const adminTVRoutes = require("./routes/adminTVRoutes");
 const adminElectricityRoutes = require("./routes/adminElectricityRoutes");
 const adminBettingRoutes = require("./routes/adminBettingRoutes");
 const adminRecurringRoutes = require("./routes/adminRecurringRoutes");
+const adminTransferRoutes = require("./routes/adminTransferRoutes");
+const adminAirtimeInventoryRoutes = require("./routes/adminAirtimeInventoryRoutes");
+const transferSettingsRoutes = require("./routes/transferSettingsRoutes");
 const flutterwaveRoutes = require("./routes/flutterwaveRoutes");
 
 
@@ -114,12 +118,14 @@ app.use("/admin/services", adminServiceRoutes);
 app.use("/admin/tv-plans", adminTVRoutes);
 app.use("/admin/betting-settings", adminBettingRoutes);
 app.use("/admin/recurring", adminRecurringRoutes);
+app.use("/admin/transfer-settings", adminTransferRoutes);
 app.use("/admin/electricity-settings", adminElectricityRoutes);
 app.use("/admin/dashboard", adminDashboardRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/funding", fundingRoutes);
 app.use("/flutterwave", flutterwaveRoutes);
 app.use("/bank", bankRoutes);
+app.use("/transfer/settings", transferSettingsRoutes);
 app.use("/webhook", whatsappWebhook);
 
 app.use("/receipts", receiptRoutes);
@@ -150,6 +156,7 @@ app.use("/settings", settingsRoutes);
 
 app.use("/admin/exam-pin", adminExamPinRoutes);
 app.use("/admin/airtime-cash", adminAirtimeCashRoutes);
+app.use("/admin/airtime-inventory", adminAirtimeInventoryRoutes);
 
 app.use("/epin", ePinRoutes);
 app.use("/transfer", transferRoutes);
@@ -178,6 +185,7 @@ mongoose.connect(process.env.MONGO_URI,{
 
   startCron();
   startOTPCleanup();
+  initializeAirtimeInventory();
 
 
   app.listen(PORT,()=>{
