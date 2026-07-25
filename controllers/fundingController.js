@@ -257,6 +257,13 @@ const rejectFunding = async(req,res)=>{
     await request.save();
 
 
+    await createNotification(
+      request.phone,
+      "Funding Rejected",
+      `₦${Number(request.amount).toLocaleString()} funding request was rejected.`,
+      "warning"
+    );
+
 
     res.json({
 

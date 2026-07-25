@@ -1,6 +1,7 @@
 const TransactionPin = require("../models/TransactionPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const BettingSetting = require("../models/BettingSetting");
 const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 
@@ -80,7 +81,39 @@ message:"Wallet not found"
 }
 
 
-if(wallet.balance < Number(amount)){
+const bettingSetting =
+await BettingSetting.findOne({
+service: service_id
+});
+
+
+if(!bettingSetting){
+
+return res.status(400).json({
+message:"Betting service not configured"
+});
+
+}
+
+
+if(!bettingSetting.active){
+
+return res.status(400).json({
+message:"Betting service unavailable"
+});
+
+}
+
+
+const serviceFee =
+Number(bettingSetting.fee || 0);
+
+
+const totalAmount =
+Number(amount) + serviceFee;
+
+
+if(wallet.balance < totalAmount){
 
 return res.status(400).json({
 message:"Insufficient wallet balance"
@@ -135,7 +168,7 @@ providerResponse
 const balanceBefore = wallet.balance;
 
 
-wallet.balance -= Number(amount);
+wallet.balance -= totalAmount;
 
 
 await wallet.save();
@@ -147,7 +180,7 @@ await Transaction.create({
 phone,
 type:"betting",
 direction:"debit",
-amount:Number(amount),
+amount:totalAmount,
 reference,
 balanceBefore,
 balanceAfter:wallet.balance,

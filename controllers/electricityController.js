@@ -1,6 +1,7 @@
 const TransactionPin = require("../models/TransactionPin");
 const Electricity = require("../models/Electricity");
 const Wallet = require("../models/wallet");
+const ElectricitySetting = require("../models/ElectricitySetting");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
@@ -73,7 +74,39 @@ const payElectricity = async (req, res) => {
     }
 
 
-    if (wallet.balance < Number(amount)) {
+    const electricitySetting =
+      await ElectricitySetting.findOne({
+        disco
+      });
+
+
+    if(!electricitySetting){
+
+      return res.status(400).json({
+        message:"Electricity service not configured"
+      });
+
+    }
+
+
+    if(!electricitySetting.active){
+
+      return res.status(400).json({
+        message:"Electricity service unavailable"
+      });
+
+    }
+
+
+    const serviceFee =
+      Number(electricitySetting.fee || 0);
+
+
+    const totalAmount =
+      Number(amount) + serviceFee;
+
+
+    if (wallet.balance < totalAmount) {
 
       return res.status(400).json({
         message: "Insufficient wallet balance"
@@ -113,7 +146,7 @@ const payElectricity = async (req, res) => {
 
 
     // Debit wallet first
-    wallet.balance -= Number(amount);
+    wallet.balance -= totalAmount;
 
     await wallet.save();
 
@@ -151,7 +184,7 @@ const payElectricity = async (req, res) => {
 
       // Refund wallet if VTU fails
 
-      wallet.balance += Number(amount);
+      wallet.balance += totalAmount;
 
       await wallet.save();
 
@@ -164,11 +197,11 @@ const payElectricity = async (req, res) => {
 
         direction: "credit",
 
-        amount: Number(amount),
+        amount: totalAmount,
 
         reference,
 
-        balanceBefore: wallet.balance - Number(amount),
+        balanceBefore: wallet.balance - totalAmount,
 
         balanceAfter: wallet.balance,
 
@@ -202,7 +235,7 @@ const payElectricity = async (req, res) => {
 
       meterType: meterType || "prepaid",
 
-      amount: Number(amount),
+      amount: totalAmount,
 
       reference,
 
@@ -220,7 +253,7 @@ const payElectricity = async (req, res) => {
 
       direction: "debit",
 
-      amount: Number(amount),
+      amount: totalAmount,
 
       reference,
 

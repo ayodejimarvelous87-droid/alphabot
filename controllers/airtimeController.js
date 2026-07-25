@@ -97,17 +97,7 @@ message:"This airtime network is currently unavailable"
 });
 }
 
-const providerResponse = await purchaseAirtime({
 
-phone: cleanPhone,
-
-network,
-
-amount:Number(amount),
-
-request_id:reference
-
-});
 
 
 
@@ -131,15 +121,92 @@ providerResponse
 const balanceBefore = wallet.balance;
 
 
-const providerCost = Number(
-providerResponse.data.amount_charged || amount
-);
 
 
-wallet.balance -= providerCost;
+wallet.balance -= Number(amount);
 
 
 await wallet.save();
+
+
+let providerResponse;
+
+
+try{
+
+
+providerResponse = await purchaseAirtime({
+
+phone: cleanPhone,
+
+network,
+
+amount:Number(amount),
+
+request_id:reference
+
+});
+
+
+if(
+!providerResponse ||
+providerResponse.code !== "success"
+){
+
+throw new Error("Airtime provider failed");
+
+}
+
+
+}catch(error){
+
+
+wallet.balance += Number(amount);
+
+await wallet.save();
+
+
+await Transaction.create({
+
+phone:cleanPhone,
+
+type:"refund",
+
+direction:"credit",
+
+amount:Number(amount),
+
+reference,
+
+balanceBefore:wallet.balance - Number(amount),
+
+balanceAfter:wallet.balance,
+
+description:"Automatic refund - Airtime failed",
+
+status:"successful"
+
+});
+
+
+return res.status(400).json({
+
+message:"Airtime purchase failed",
+
+error:error.message
+
+});
+
+
+}
+
+
+
+
+const providerCost = Number(
+providerResponse.data?.amount_charged || amount
+);
+
 
 const profit = Number(amount) - providerCost;
 

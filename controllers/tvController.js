@@ -1,6 +1,7 @@
 const TransactionPin = require("../models/TransactionPin");
 const TVSubscription = require("../models/TVSubscription");
 const Wallet = require("../models/wallet");
+const TVPlan = require("../models/TVPlan");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
@@ -75,7 +76,33 @@ const subscribeTV = async (req, res) => {
     }
 
 
-    if (wallet.balance < Number(amount)) {
+    const tvPlan = await TVPlan.findOne({
+      variation_id
+    });
+
+
+    if (!tvPlan){
+
+      return res.status(404).json({
+        message:"TV plan not found"
+      });
+
+    }
+
+
+    if(!tvPlan.active){
+
+      return res.status(400).json({
+        message:"This TV plan is currently unavailable"
+      });
+
+    }
+
+
+    const chargeAmount = Number(tvPlan.sellingPrice);
+
+
+    if (wallet.balance < chargeAmount) {
 
       return res.status(400).json({
         message: "Insufficient wallet balance"
@@ -113,7 +140,7 @@ const subscribeTV = async (req, res) => {
 
 
     // Debit wallet first
-    wallet.balance -= Number(amount);
+    wallet.balance -= chargeAmount;
 
     await wallet.save();
 
@@ -171,7 +198,7 @@ const subscribeTV = async (req, res) => {
 
       // Refund wallet if VTU fails
 
-      wallet.balance += Number(amount);
+      wallet.balance += chargeAmount;
 
       await wallet.save();
 
@@ -184,11 +211,11 @@ const subscribeTV = async (req, res) => {
 
         direction: "credit",
 
-        amount: Number(amount),
+        amount: chargeAmount,
 
         reference,
 
-        balanceBefore: wallet.balance - Number(amount),
+        balanceBefore: wallet.balance - chargeAmount,
 
         balanceAfter: wallet.balance,
 
@@ -222,7 +249,7 @@ const subscribeTV = async (req, res) => {
       package: variation_id,
         vtu_variation_id,
 
-      amount: Number(amount),
+      amount: chargeAmount,
 
       reference,
 
@@ -240,7 +267,7 @@ const subscribeTV = async (req, res) => {
 
       direction: "debit",
 
-      amount: Number(amount),
+      amount: chargeAmount,
 
       reference,
 

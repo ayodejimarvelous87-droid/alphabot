@@ -46,6 +46,15 @@ const userSchema = new mongoose.Schema(
     default:"user"
   },
 
+  status:{
+    type:String,
+    enum:[
+      "active",
+      "suspended"
+    ],
+    default:"active"
+  },
+
 
     emailVerified:{
       type:Boolean,

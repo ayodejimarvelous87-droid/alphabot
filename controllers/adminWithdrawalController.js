@@ -1,6 +1,7 @@
 const Withdrawal = require("../models/Withdrawal");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const Notification = require("../models/Notification");
 
 
 // Get all withdrawals for admin
@@ -40,6 +41,13 @@ const approveWithdrawal = async (req,res)=>{
     }
 
 
+    if(withdrawal.status !== "pending"){
+      return res.status(400).json({
+        message:"Withdrawal already processed"
+      });
+    }
+
+
     withdrawal.status = "successful";
 
     await withdrawal.save();
@@ -53,6 +61,14 @@ const approveWithdrawal = async (req,res)=>{
       reference: withdrawal.reference,
       description:"Withdrawal approved",
       status:"successful"
+    });
+
+
+    await Notification.create({
+      phone:withdrawal.phone,
+      title:"Withdrawal Approved",
+      message:`Your withdrawal of ₦${withdrawal.amount} has been approved.`,
+      type:"success"
     });
 
 
@@ -87,6 +103,13 @@ const rejectWithdrawal = async (req,res)=>{
     }
 
 
+    if(withdrawal.status !== "pending"){
+      return res.status(400).json({
+        message:"Withdrawal already processed"
+      });
+    }
+
+
     const wallet = await Wallet.findOne({
       phone: withdrawal.phone
     });
@@ -105,6 +128,12 @@ const rejectWithdrawal = async (req,res)=>{
 
     await withdrawal.save();
 
+    await Notification.create({
+      phone:withdrawal.phone,
+      title:"Withdrawal Rejected",
+      message:`Your withdrawal of ₦${withdrawal.amount} was rejected. The amount has been refunded to your wallet.`,
+      type:"warning"
+    });
 
     res.json({
       message:"Withdrawal rejected and refunded"

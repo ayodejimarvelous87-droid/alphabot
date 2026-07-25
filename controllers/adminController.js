@@ -3,6 +3,7 @@ const Wallet = require("../models/wallet");
 const Order = require("../models/Order");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
+const Withdrawal = require("../models/Withdrawal");
 const SystemSetting = require("../models/SystemSetting");
 
 
@@ -69,7 +70,31 @@ const getTransactions = async (req, res) => {
     const transactions = await Transaction.find()
       .sort({ createdAt: -1 });
 
-    res.json(transactions);
+
+    const result = await Promise.all(
+
+      transactions.map(async(transaction)=>{
+
+        const user = await User.findOne({
+          phone: transaction.phone
+        });
+
+
+        return {
+
+          ...transaction.toObject(),
+
+          userName: user ? user.name : "Unknown"
+
+        };
+
+      })
+
+    );
+
+
+    res.json(result);
+
 
   } catch (error) {
 
@@ -156,29 +181,55 @@ const updateFootballSettings = async (req,res)=>{
 try{
 
 const{
-firstPrize,
-secondPrize,
-firstMinimumPoints,
-secondMinimumPoints
+footballFirstPrize,
+footballSecondPrize,
+footballFirstMinimumPoints,
+footballSecondMinimumPoints,
+footballMinimumPredictions,
+footballMinimumWins
 }=req.body;
 
-let setting=await SystemSetting.findOne();
+
+let setting = await SystemSetting.findOne();
+
 
 if(!setting){
-setting=await SystemSetting.create({});
+setting = await SystemSetting.create({});
 }
 
-if(firstPrize!==undefined) setting.footballFirstPrize=Number(firstPrize);
-if(secondPrize!==undefined) setting.footballSecondPrize=Number(secondPrize);
-if(firstMinimumPoints!==undefined) setting.footballFirstMinimumPoints=Number(firstMinimumPoints);
-if(secondMinimumPoints!==undefined) setting.footballSecondMinimumPoints=Number(secondMinimumPoints);
+
+if(footballFirstPrize !== undefined)
+setting.footballFirstPrize = Number(footballFirstPrize);
+
+
+if(footballSecondPrize !== undefined)
+setting.footballSecondPrize = Number(footballSecondPrize);
+
+
+if(footballFirstMinimumPoints !== undefined)
+setting.footballFirstMinimumPoints = Number(footballFirstMinimumPoints);
+
+
+if(footballSecondMinimumPoints !== undefined)
+setting.footballSecondMinimumPoints = Number(footballSecondMinimumPoints);
+
+
+if(footballMinimumPredictions !== undefined)
+setting.footballMinimumPredictions = Number(footballMinimumPredictions);
+
+
+if(footballMinimumWins !== undefined)
+setting.footballMinimumWins = Number(footballMinimumWins);
+
 
 await setting.save();
+
 
 res.json({
 message:"Football settings updated",
 setting
 });
+
 
 }catch(error){
 
@@ -227,6 +278,391 @@ message:error.message
 };
 
 
+
+const getUserDetails = async(req,res)=>{
+
+try{
+
+const phone = req.params.phone;
+
+
+const user = await User.findOne({
+phone
+}).select("-password");
+
+
+if(!user){
+
+return res.status(404).json({
+message:"User not found"
+});
+
+}
+
+
+
+const wallet = await Wallet.findOne({
+phone
+});
+
+
+
+const transactions = await Transaction.find({
+phone
+})
+.sort({
+createdAt:-1
+});
+
+
+
+const orders = await Order.find({
+phone
+})
+.sort({
+createdAt:-1
+});
+
+
+
+const withdrawals = await Withdrawal.find({
+phone
+})
+.sort({
+createdAt:-1
+});
+
+
+
+res.json({
+
+user,
+
+wallet,
+
+transactions,
+
+orders,
+
+withdrawals
+
+});
+
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+const suspendUser = async(req,res)=>{
+
+try{
+
+const user = await User.findOne({
+phone:req.params.phone
+});
+
+
+if(!user){
+return res.status(404).json({
+message:"User not found"
+});
+}
+
+
+user.status="suspended";
+
+await user.save();
+
+
+res.json({
+message:"User suspended",
+user
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const activateUser = async(req,res)=>{
+
+try{
+
+const user = await User.findOne({
+phone:req.params.phone
+});
+
+
+if(!user){
+return res.status(404).json({
+message:"User not found"
+});
+}
+
+
+user.status="active";
+
+await user.save();
+
+
+res.json({
+message:"User activated",
+user
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const deleteUser = async(req,res)=>{
+
+try{
+
+const user = await User.findOneAndDelete({
+phone:req.params.phone
+});
+
+
+if(!user){
+return res.status(404).json({
+message:"User not found"
+});
+}
+
+
+res.json({
+message:"User deleted"
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const upgradeUserToAdmin = async(req,res)=>{
+
+try{
+
+const user = await User.findOne({
+phone:req.params.phone
+});
+
+
+if(!user){
+return res.status(404).json({
+message:"User not found"
+});
+}
+
+
+user.role="admin";
+
+await user.save();
+
+
+res.json({
+message:"User upgraded to admin",
+user
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+const demoteUserFromAdmin = async(req,res)=>{
+  sendBroadcastNotification,
+  updateSystemSettings
+
+try{
+
+const user = await User.findOne({
+phone:req.params.phone
+});
+
+
+if(!user){
+return res.status(404).json({
+message:"User not found"
+});
+}
+
+
+user.role="user";
+
+await user.save();
+
+
+res.json({
+message:"User removed from admin role",
+user
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const sendBroadcastNotification = async(req,res)=>{
+
+try{
+
+const {title,message,type}=req.body;
+
+
+if(!title || !message){
+
+return res.status(400).json({
+message:"Title and message are required"
+});
+
+}
+
+
+const users = await User.find();
+
+
+const notifications = users.map(user=>({
+
+phone:user.phone,
+
+title,
+
+message,
+
+type:type || "info"
+
+}));
+
+
+await Notification.insertMany(notifications);
+
+
+res.json({
+
+message:"Broadcast sent successfully",
+
+sent:notifications.length
+
+});
+
+
+}catch(error){
+
+res.status(500).json({
+
+message:error.message
+
+});
+
+}
+
+};
+
+
+
+
+const updateSystemSettings = async(req,res)=>{
+
+try{
+
+const {
+maintenanceMode,
+announcement,
+referralPercentage
+}=req.body;
+
+
+let setting = await SystemSetting.findOne();
+
+
+if(!setting){
+
+setting = await SystemSetting.create({});
+
+}
+
+
+if(maintenanceMode !== undefined)
+setting.maintenanceMode = maintenanceMode;
+
+
+if(announcement !== undefined)
+setting.announcement = announcement;
+
+
+if(referralPercentage !== undefined)
+setting.referralPercentage = Number(referralPercentage);
+
+
+await setting.save();
+
+
+res.json({
+message:"System settings updated",
+setting
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
 module.exports = {
   getUsers,
   getWallets,
@@ -235,7 +671,15 @@ module.exports = {
   getNotifications,
   updateAILimit,
   updateFootballSettings,
-  updatePricingSettings
+  updatePricingSettings,
+  getUserDetails,
+  suspendUser,
+  activateUser,
+  deleteUser,
+  upgradeUserToAdmin,
+  demoteUserFromAdmin,
+  sendBroadcastNotification,
+  updateSystemSettings
 };
 
 

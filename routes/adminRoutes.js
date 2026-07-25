@@ -12,7 +12,15 @@ const {
   getNotifications,
   updateAILimit,
   updateFootballSettings,
-  updatePricingSettings
+  updatePricingSettings,
+  getUserDetails,
+  suspendUser,
+  activateUser,
+  deleteUser,
+  upgradeUserToAdmin,
+  demoteUserFromAdmin,
+  sendBroadcastNotification,
+  updateSystemSettings
 } = require("../controllers/adminController");
 
 
@@ -33,6 +41,22 @@ router.post("/login", adminLogin);
 
 
 // Protected admin routes
+
+router.get("/user/:phone", auth, admin, getUserDetails);
+
+router.put("/user/suspend/:phone", auth, admin, suspendUser);
+
+router.put("/user/activate/:phone", auth, admin, activateUser);
+
+router.put("/user/upgrade/:phone", auth, admin, upgradeUserToAdmin);
+
+router.put("/user/demote/:phone", auth, admin, demoteUserFromAdmin,
+  sendBroadcastNotification);
+  updateSystemSettings
+
+router.delete("/user/:phone", auth, admin, deleteUser);
+
+
 router.get("/users", auth, admin, getUsers);
 
 router.get("/wallets", auth, admin, getWallets);
@@ -42,6 +66,10 @@ router.get("/orders", auth, admin, getOrders);
 router.get("/transactions", auth, admin, getTransactions);
 
 router.get("/notifications", auth, admin, getNotifications);
+
+router.post("/notifications/broadcast", auth, admin, sendBroadcastNotification);
+  updateSystemSettings
+
 
 
 // Wallet management
@@ -94,5 +122,13 @@ router.put(
   admin,
   updatePricingSettings
 );
+
+router.put(
+  "/system-settings",
+  auth,
+  admin,
+  updateSystemSettings
+);
+
 
 module.exports = router;

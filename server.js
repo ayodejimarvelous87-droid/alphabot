@@ -75,6 +75,13 @@ const footballAdminRoutes = require("./routes/footballAdminRoutes");
 const adminDataPriceRoutes = require("./routes/adminDataPriceRoutes");
 const adminAirtimeRoutes = require("./routes/adminAirtimeRoutes");
 const adminProfitRoutes = require("./routes/adminProfitRoutes");
+const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
+const adminServiceRoutes = require("./routes/adminServiceRoutes");
+const adminTVRoutes = require("./routes/adminTVRoutes");
+const adminElectricityRoutes = require("./routes/adminElectricityRoutes");
+const adminBettingRoutes = require("./routes/adminBettingRoutes");
+const adminRecurringRoutes = require("./routes/adminRecurringRoutes");
+const flutterwaveRoutes = require("./routes/flutterwaveRoutes");
 
 
 // Use routes
@@ -103,8 +110,15 @@ app.use("/admin", adminRoutes);
 app.use("/admin/data-prices", adminDataPriceRoutes);
 app.use("/admin/airtime-prices", adminAirtimeRoutes);
 app.use("/admin/profits", adminProfitRoutes);
+app.use("/admin/services", adminServiceRoutes);
+app.use("/admin/tv-plans", adminTVRoutes);
+app.use("/admin/betting-settings", adminBettingRoutes);
+app.use("/admin/recurring", adminRecurringRoutes);
+app.use("/admin/electricity-settings", adminElectricityRoutes);
+app.use("/admin/dashboard", adminDashboardRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/funding", fundingRoutes);
+app.use("/flutterwave", flutterwaveRoutes);
 app.use("/bank", bankRoutes);
 app.use("/webhook", whatsappWebhook);
 

@@ -16,7 +16,25 @@ await SystemSetting.create({});
 res.json({
 
 withdrawalFeeRate:
-setting.withdrawalFeeRate
+setting.withdrawalFeeRate,
+
+footballFirstPrize:
+setting.footballFirstPrize,
+
+footballSecondPrize:
+setting.footballSecondPrize,
+
+footballFirstMinimumPoints:
+setting.footballFirstMinimumPoints,
+
+footballSecondMinimumPoints:
+setting.footballSecondMinimumPoints,
+
+footballMinimumPredictions:
+setting.footballMinimumPredictions,
+
+footballMinimumWins:
+setting.footballMinimumWins
 
 });
 

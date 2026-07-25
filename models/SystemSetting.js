@@ -78,6 +78,21 @@ const systemSettingSchema = new mongoose.Schema({
   bettingProfit:{
     type:Number,
     default:20
+  },
+
+  maintenanceMode:{
+    type:Boolean,
+    default:false
+  },
+
+  announcement:{
+    type:String,
+    default:""
+  },
+
+  referralPercentage:{
+    type:Number,
+    default:1
   }
 
 

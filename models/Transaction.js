@@ -62,6 +62,15 @@ type:String,
 default:null
 },
 
+flutterwaveId:{
+type:String,
+default:null
+},
+
+flutterwaveReference:{
+type:String,
+default:null
+},
 
 service:{
 type:String,
