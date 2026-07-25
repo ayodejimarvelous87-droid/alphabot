@@ -12,6 +12,9 @@ const flw = new Flutterwave(
 const createPayment = async (req, res) => {
   try {
 
+    console.log("FLW USER:", req.user);
+    console.log("FLW KEY EXISTS:", !!process.env.FLW_SECRET_KEY);
+
     const { amount } = req.body;
 
     const phone = normalizePhone(req.user.phone);
