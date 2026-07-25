@@ -65,13 +65,20 @@ const createPayment = async (req, res) => {
         }
       )
 
+    console.log("FLW SUCCESS:", response.data);
+
     res.json(response.data);
 
 
   } catch(error) {
 
+    console.log(
+      "FLW ERROR:",
+      error.response?.data || error.message
+    );
+
     res.status(500).json({
-      message:error.message
+      message:error.response?.data || error.message
     });
 
   }
