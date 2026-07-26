@@ -9,7 +9,6 @@ const normalizePhone = require("../utils/phone");
 const {
   generateOTP,
   verifyOTP,
-  checkQuota,
   transferAirtime
 } = require("../services/a2cService");
 
@@ -100,20 +99,6 @@ if(Number(amount) < 50){
 const cleanPhone = normalizePhone(phone);
 
 
-// Check quota first
-const quota = await checkQuota(
-networkName,
-Number(amount)
-);
-
-
-if(quota.code !== 5030){
-
-return res.status(400).json({
-message:quota.message
-});
-
-}
 
 
 
