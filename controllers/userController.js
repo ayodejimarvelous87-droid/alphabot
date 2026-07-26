@@ -891,6 +891,88 @@ res.status(500).json({message:error.message});
 };
 
 
+
+const saveWithdrawAccount = async(req,res)=>{
+try{
+
+const {
+phone,
+withdrawBankName,
+withdrawBankCode,
+withdrawAccountNumber,
+withdrawAccountName,
+pin
+}=req.body;
+
+
+const User = require("../models/User");
+const TransactionPin = require("../models/TransactionPin");
+
+
+const user = await User.findOne({phone});
+
+
+if(!user){
+return res.status(404).json({
+message:"User not found"
+});
+}
+
+
+const userPin = await TransactionPin.findOne({phone});
+
+
+if(!userPin || userPin.pin !== pin){
+return res.status(400).json({
+message:"Invalid transaction PIN"
+});
+}
+
+
+user.withdrawBankName = withdrawBankName;
+user.withdrawBankCode = withdrawBankCode;
+user.withdrawAccountNumber = withdrawAccountNumber;
+user.withdrawAccountName = withdrawAccountName;
+
+
+await user.save();
+
+
+res.json({
+message:"Withdrawal account saved successfully"
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+const getWithdrawAccount = async(req,res)=>{
+try{
+
+const User = require("../models/User");
+
+const user = await User.findOne({phone:req.params.phone});
+
+res.json({
+withdrawBankName:user?.withdrawBankName || null,
+withdrawBankCode:user?.withdrawBankCode || null,
+withdrawAccountNumber:user?.withdrawAccountNumber || null,
+withdrawAccountName:user?.withdrawAccountName || null
+});
+
+}catch(error){
+res.status(500).json({message:error.message});
+}
+};
+
 module.exports = {
 
   registerUser,
@@ -913,6 +995,9 @@ module.exports = {
 
   verifyProfileOTP,
     sendRegistrationOTP,
-    verifyRegistrationOTP
+    verifyRegistrationOTP,
+  saveWithdrawAccount,
+
+  getWithdrawAccount,
 
 };

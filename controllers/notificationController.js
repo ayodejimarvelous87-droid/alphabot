@@ -83,9 +83,11 @@ const markAllRead = async (req,res)=>{
 
 try{
 
+const phone = normalizePhone(req.params.phone);
+
 await Notification.updateMany(
 {
-phone:req.params.phone,
+phone,
 read:false
 },
 {

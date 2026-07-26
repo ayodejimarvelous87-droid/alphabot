@@ -5,6 +5,7 @@ const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const SystemSetting = require("../models/SystemSetting");
 const { createNotification } = require("../services/notificationService");
+const User = require("../models/User");
 
 
 const withdraw = async(req,res)=>{
@@ -14,9 +15,6 @@ try{
 
 const {
 phone,
-bankName,
-accountNumber,
-accountName,
 amount,
 pin
 }=req.body;
@@ -56,6 +54,22 @@ message:"Incorrect transaction PIN"
 });
 
 }
+
+
+const user = await User.findOne({phone});
+
+if(!user || !user.withdrawAccountNumber){
+
+return res.status(400).json({
+message:"Please save withdrawal account first"
+});
+
+}
+
+const bankName = user.withdrawBankName;
+const bankCode = user.withdrawBankCode;
+const accountNumber = user.withdrawAccountNumber;
+const accountName = user.withdrawAccountName;
 
 
 // Verify bank account with Flutterwave

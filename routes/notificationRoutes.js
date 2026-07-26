@@ -4,6 +4,14 @@ const router = express.Router();
 const DeviceToken = require("../models/DeviceToken");
 const Notification = require("../models/Notification");
 
+const auth = require("../middleware/auth");
+
+const {
+  markRead,
+  markAllRead
+} = require("../controllers/notificationController");
+
+
 
 // Save admin device token
 router.post("/register-token", async (req,res)=>{
@@ -103,6 +111,23 @@ router.get("/:phone", async(req,res)=>{
   }
 
 });
+
+
+
+// Mark a notification as read
+router.patch(
+  "/read/:id",
+  auth,
+  markRead
+);
+
+
+// Mark all notifications as read
+router.patch(
+  "/read-all/:phone",
+  auth,
+  markAllRead
+);
 
 
 module.exports = router;

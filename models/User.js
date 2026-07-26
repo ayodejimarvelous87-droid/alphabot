@@ -89,6 +89,26 @@ const userSchema = new mongoose.Schema(
   referralRewardGiven:{
     type:Boolean,
     default:false
+  },
+
+  withdrawBankName:{
+    type:String,
+    default:null
+  },
+
+  withdrawBankCode:{
+    type:String,
+    default:null
+  },
+
+  withdrawAccountNumber:{
+    type:String,
+    default:null
+  },
+
+  withdrawAccountName:{
+    type:String,
+    default:null
   }
 
 },

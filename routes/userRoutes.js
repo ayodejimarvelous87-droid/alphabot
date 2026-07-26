@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
-
 const {
   registerUser,
   loginUser,
@@ -11,11 +10,13 @@ const {
   verifyResetOTP,
   getProfile,
   updateProfile,
-    changePassword,
-    sendProfileOTP,
-      sendRegistrationOTP,
-      verifyRegistrationOTP,
-    verifyProfileOTP
+  changePassword,
+  sendProfileOTP,
+  sendRegistrationOTP,
+  verifyRegistrationOTP,
+  verifyProfileOTP,
+  saveWithdrawAccount,
+  getWithdrawAccount
 } = require("../controllers/userController");
 
 
@@ -55,6 +56,8 @@ router.post("/verify-registration-otp", verifyRegistrationOTP);
 router.post("/send-profile-otp", sendProfileOTP);
 
 router.post("/verify-profile-otp", verifyProfileOTP);
+      saveWithdrawAccount,
+      getWithdrawAccount
 
 
 // User profile
@@ -78,6 +81,21 @@ router.put(
   "/change-password/:phone",
   auth,
   changePassword
+);
+
+
+
+// Withdrawal saved account
+router.post(
+  "/withdraw-account",
+  auth,
+  saveWithdrawAccount
+);
+
+router.get(
+  "/withdraw-account/:phone",
+  auth,
+  getWithdrawAccount
 );
 
 

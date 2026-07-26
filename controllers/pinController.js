@@ -214,6 +214,5 @@ module.exports = {
     sendPinOTP,
   setPin,
   verifyPin,
-  checkPinStatus,
   checkPinStatus
 };

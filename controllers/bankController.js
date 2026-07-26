@@ -12,6 +12,8 @@ const getBanks = async (req, res) => {
       }
     );
 
+    console.log("BANK VERIFY RESPONSE:", response.data);
+
     res.json(response.data);
 
   } catch (error) {
@@ -58,6 +60,8 @@ const verifyAccount = async (req, res) => {
       }
 
     );
+
+    console.log("BANK VERIFY RESPONSE:", response.data);
 
     res.json(response.data);
 

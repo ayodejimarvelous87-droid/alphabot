@@ -4,7 +4,7 @@ const router = express.Router();
 const { getAIReply } = require("../services/aiService");
 
 
-router.post("/chat",(req,res)=>{
+router.post("/chat",async(req,res)=>{
 
 const {message}=req.body;
 
@@ -16,7 +16,7 @@ message:"Message required"
 }
 
 
-const reply = getAIReply(message);
+const reply = await getAIReply(message);
 
 
 res.json({
