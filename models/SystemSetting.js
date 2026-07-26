@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 
 const systemSettingSchema = new mongoose.Schema({
 
+  airtimeCashProfit:{
+    type:Number,
+    default:15
+  },
+
   airtimeCashRate:{
     type:Number,
     default:80

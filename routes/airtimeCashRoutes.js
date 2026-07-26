@@ -4,16 +4,26 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 
 const {
-requestAirtimeCash,
-getAirtimeCash
+  requestAirtimeCash,
+  getAirtimeCash,
+  generateAirtimeOTP,
+  verifyAirtimeOTP,
+  convertAirtime
 } = require("../controllers/airtimeCashController");
 
 
-// Submit airtime to cash request
-router.post("/", auth, requestAirtimeCash);
+// Legacy airtime cash request
 
 
-// Get user requests
+// A2C automated flow
+router.post("/generate-otp", auth, generateAirtimeOTP);
+
+router.post("/verify-otp", auth, verifyAirtimeOTP);
+
+router.post("/convert", auth, convertAirtime);
+
+
+// History
 router.get("/:phone", auth, getAirtimeCash);
 
 

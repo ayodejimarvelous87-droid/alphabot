@@ -56,4 +56,12 @@ updateService
 );
 
 
+// Update airtime cash settings
+router.put(
+"/airtime-cash",
+auth,
+admin,
+updateService
+);
+
 module.exports = router;
