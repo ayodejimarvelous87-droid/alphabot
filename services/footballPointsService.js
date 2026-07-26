@@ -8,7 +8,7 @@ try{
 
 
 const finishedMatches = await FootballMatch.find({
-status:"Match Finished",
+status:"FINISHED",
 result:{
 $ne:null
 }

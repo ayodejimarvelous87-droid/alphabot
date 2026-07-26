@@ -731,6 +731,14 @@ const updateProfile = async (req,res)=>{
           });
         }
 
+
+const user = await User.findOne({phone:normalizePhone(phone)});
+
+if(user){
+  user.emailVerified = true;
+  await user.save();
+}
+
         await ProfileOTP.deleteOne({_id:verify._id});
         user.email = email;
       }
@@ -879,6 +887,14 @@ return res.status(400).json({message:"Invalid OTP"});
 
 if(verify.expiresAt < new Date()){
 return res.status(400).json({message:"OTP expired"});
+}
+
+
+const user = await User.findOne({phone:normalizePhone(phone)});
+
+if(user){
+  user.emailVerified = true;
+  await user.save();
 }
 
 await ProfileOTP.deleteOne({_id:verify._id});
