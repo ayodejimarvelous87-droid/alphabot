@@ -5,6 +5,7 @@ require("dotenv").config();
 
 const startCron = require("./services/cron");
 const startOTPCleanup = require("./services/otpCleanup");
+const { startFlutterwaveCron } = require("./services/flutterwaveCron");
 const { initializeAirtimeInventory } = require("./services/airtimeInventoryService");
 require("./services/recurringService");
 const path = require("path");
@@ -185,6 +186,7 @@ mongoose.connect(process.env.MONGO_URI,{
 
   startCron();
   startOTPCleanup();
+  startFlutterwaveCron();
   initializeAirtimeInventory();
 
 

@@ -212,7 +212,9 @@ const flutterwaveWebhook = async (req, res) => {
       });
     }
 
+    console.log("🔥 FLUTTERWAVE HIT WEBHOOK");
     const data = req.body;
+    console.log("FLW WEBHOOK RECEIVED:", JSON.stringify(data));
 
     const event = data.event;
 
