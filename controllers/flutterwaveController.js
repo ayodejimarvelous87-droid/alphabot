@@ -74,6 +74,17 @@ const createPayment = async (req, res) => {
         }
       )
 
+
+    await Transaction.create({
+      phone: phone,
+      type: "fund",
+      direction: "credit",
+      amount: Number(amount),
+      reference: payload.tx_ref,
+      status: "pending",
+      description: "Flutterwave wallet funding pending"
+    });
+
     console.log("FLW SUCCESS:", response.data);
 
     res.json(response.data);
