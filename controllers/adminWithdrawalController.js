@@ -53,7 +53,7 @@ const approveWithdrawal = async (req,res)=>{
     await withdrawal.save();
 
 
-    await Transaction.create({
+    const transaction = await Transaction.create({
       phone: withdrawal.phone,
       type:"withdrawal",
       direction:"debit",
@@ -68,7 +68,8 @@ const approveWithdrawal = async (req,res)=>{
       phone:withdrawal.phone,
       title:"Withdrawal Approved",
       message:`Your withdrawal of ₦${withdrawal.amount} has been approved.`,
-      type:"success"
+      type:"success",
+    transactionId: transaction._id
     });
 
 
@@ -128,12 +129,24 @@ const rejectWithdrawal = async (req,res)=>{
 
     await withdrawal.save();
 
-    await Notification.create({
-      phone:withdrawal.phone,
-      title:"Withdrawal Rejected",
-      message:`Your withdrawal of ₦${withdrawal.amount} was rejected. The amount has been refunded to your wallet.`,
-      type:"warning"
-    });
+      const transaction = await Transaction.create({
+        phone: withdrawal.phone,
+        type:"withdrawal_refund",
+        direction:"credit",
+        amount: withdrawal.amount,
+        reference: `${withdrawal.reference}-REFUND`,
+        description:"Withdrawal refund",
+        status:"successful"
+      });
+
+      await Notification.create({
+        phone:withdrawal.phone,
+        title:"Withdrawal Rejected",
+        message:`Your withdrawal of ₦${withdrawal.amount} was rejected. The amount has been refunded to your wallet.`,
+        type:"warning",
+        transactionId: transaction._id
+      });
+
 
     res.json({
       message:"Withdrawal rejected and refunded"

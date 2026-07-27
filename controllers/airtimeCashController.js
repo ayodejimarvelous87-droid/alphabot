@@ -183,7 +183,7 @@ await wallet.save();
 
 
 
-await Transaction.create({
+const transaction = await Transaction.create({
 
 phone:cleanPhone,
 
@@ -203,7 +203,8 @@ await Notification.create({
   phone:cleanPhone,
   title:"Airtime Cash Successful",
   message:`Your ₦${amount} airtime has been converted successfully. ₦${cashAmount} has been added to your wallet.`,
-  type:"wallet"
+  type:"wallet",
+transactionId: transaction._id
 });
 
 

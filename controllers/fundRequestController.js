@@ -102,7 +102,7 @@ await wallet.save();
 }
 
 
-await Transaction.create({
+const transaction = await Transaction.create({
 phone:request.phone,
 type:"fund",
 direction:"credit",
@@ -121,7 +121,8 @@ await Notification.create({
 phone:request.phone,
 title:"Funding Approved",
 message:`Your wallet has been credited with ₦${request.amount}.`,
-type:"success"
+type:"success",
+transactionId: transaction._id
 });
 
 
