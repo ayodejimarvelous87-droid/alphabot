@@ -43,7 +43,7 @@ const createPayment = async (req, res) => {
       currency: "NGN",
 
       redirect_url:
-      "https://alphabot-frontend-chi.vercel.app/dashboard/wallet",
+      "https://alphabot-frontend-chi.vercel.app/payment/result",
 
       customer: {
         email: user.email,
@@ -105,6 +105,7 @@ const createPayment = async (req, res) => {
 };
 
 
+
 const verifyPayment = async (req,res)=>{
 
   try {
@@ -129,19 +130,35 @@ const verifyPayment = async (req,res)=>{
     }
 
 
-    const tx = response.data;
+    const txRef = response.data.tx_ref;
 
 
     const pending = await Transaction.findOne({
-      reference: tx.tx_ref,
+      reference: txRef,
       status:"pending"
     });
 
 
     if(!pending){
 
-      return res.json({
-        message:"Payment already processed"
+      const existing = await Transaction.findOne({
+        reference: txRef,
+        type:"fund",
+        status:"successful"
+      });
+
+
+      if(existing){
+
+        return res.json({
+          message:"Payment already verified"
+        });
+
+      }
+
+
+      return res.status(404).json({
+        message:"Pending payment not found"
       });
 
     }
@@ -164,7 +181,7 @@ const verifyPayment = async (req,res)=>{
 
     const balanceBefore = wallet.balance;
 
-    wallet.balance += Number(tx.amount);
+    wallet.balance += Number(response.data.amount);
 
     await wallet.save();
 
@@ -177,13 +194,13 @@ const verifyPayment = async (req,res)=>{
 
       direction:"credit",
 
-      amount:Number(tx.amount),
+      amount:Number(response.data.amount),
 
-      reference:tx.tx_ref,
+      reference:txRef,
 
-      flutterwaveId:String(tx.id),
+      flutterwaveId:String(response.data.id),
 
-      flutterwaveReference:tx.flw_ref,
+      flutterwaveReference:response.data.flw_ref,
 
       balanceBefore,
 
@@ -196,9 +213,11 @@ const verifyPayment = async (req,res)=>{
     });
 
 
-    pending.status="completed";
-    pending.flutterwaveId=String(tx.id);
-    pending.flutterwaveReference=tx.flw_ref;
+    pending.status = "completed";
+
+    pending.flutterwaveId = String(response.data.id);
+
+    pending.flutterwaveReference = response.data.flw_ref;
 
     await pending.save();
 
@@ -212,7 +231,12 @@ const verifyPayment = async (req,res)=>{
     });
 
 
-  } catch(error){
+  }catch(error){
+
+    console.log(
+      "VERIFY ERROR:",
+      error.message
+    );
 
     res.status(500).json({
       message:error.message

@@ -21,7 +21,6 @@ router.post(
 // Verify payment manually
 router.get(
   "/verify/:transaction_id",
-  auth,
   verifyPayment
 );
 
