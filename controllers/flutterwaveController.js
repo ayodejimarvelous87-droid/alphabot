@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
 const axios = require("axios");
+const { createNotification } = require("../services/notificationService");
 
 const flw = new Flutterwave(
   process.env.FLW_PUBLIC_KEY,
@@ -211,6 +212,14 @@ const verifyPayment = async (req,res)=>{
       status:"successful"
 
     });
+
+
+    await createNotification(
+      pending.phone,
+      "Wallet Funded",
+      `Your wallet has been funded successfully with ₦${Number(response.data.amount).toLocaleString()}.`,
+      "success"
+    );
 
 
     pending.status = "completed";

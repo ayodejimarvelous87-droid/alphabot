@@ -3,6 +3,7 @@ const axios = require("axios");
 
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const { createNotification } = require("../services/notificationService");
 
 
 async function findFlutterwaveTransaction(tx_ref){
@@ -124,6 +125,14 @@ function startFlutterwaveCron(){
             status:"successful"
 
           });
+
+
+          await createNotification(
+            payment.phone,
+            "Wallet Funded",
+            `Your wallet has been funded successfully with ₦${Number(tx.amount).toLocaleString()}.`,
+            "success"
+          );
 
 
           payment.status="completed";
