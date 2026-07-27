@@ -4,7 +4,8 @@ const createNotification = async (
   phone,
   title,
   message,
-  type = "info"
+  type = "info",
+  transactionId = null
 ) => {
   try {
 
@@ -12,12 +13,16 @@ const createNotification = async (
       phone,
       title,
       message,
-      type
+      type,
+      transactionId
     });
 
   } catch (error) {
 
-    console.log("Notification Error:", error.message);
+    console.log(
+      "Notification Error:",
+      error.message
+    );
 
   }
 };

@@ -22,6 +22,12 @@ const notificationSchema = new mongoose.Schema(
       default: "info"
     },
 
+    transactionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Transaction",
+      default: null
+    },
+
     read: {
       type: Boolean,
       default: false

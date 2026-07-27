@@ -100,7 +100,7 @@ function startFlutterwaveCron(){
           await wallet.save();
 
 
-          await Transaction.create({
+          const transaction = await Transaction.create({
 
             phone:payment.phone,
 
@@ -131,7 +131,8 @@ function startFlutterwaveCron(){
             payment.phone,
             "Wallet Funded",
             `Your wallet has been funded successfully with ₦${Number(tx.amount).toLocaleString()}.`,
-            "success"
+            "success",
+            transaction._id
           );
 
 

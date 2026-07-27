@@ -187,7 +187,7 @@ const verifyPayment = async (req,res)=>{
     await wallet.save();
 
 
-    await Transaction.create({
+    const transaction = await Transaction.create({
 
       phone: pending.phone,
 
@@ -218,7 +218,8 @@ const verifyPayment = async (req,res)=>{
       pending.phone,
       "Wallet Funded",
       `Your wallet has been funded successfully with ₦${Number(response.data.amount).toLocaleString()}.`,
-      "success"
+      "success",
+      transaction._id
     );
 
 
@@ -427,7 +428,7 @@ const flutterwaveWebhook = async (req, res) => {
 
     await wallet.save();
 
-    await Transaction.create({
+    const transaction = await Transaction.create({
       phone,
       type: "fund",
       direction: "credit",
@@ -440,6 +441,15 @@ const flutterwaveWebhook = async (req, res) => {
       description: "Flutterwave wallet funding",
       status: "successful"
     });
+
+
+    await createNotification(
+      phone,
+      "Wallet Funded",
+      `Your wallet has been funded successfully with ₦${Number(amount).toLocaleString()}.`,
+      "success",
+      transaction._id
+    );
 
     res.status(200).json({
       message: "Webhook processed"
