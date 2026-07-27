@@ -129,28 +129,33 @@ const verifyPayment = async (req,res)=>{
     }
 
 
-    const user = await User.findById(req.user.id);
+    const tx = response.data;
 
-    if(!user){
-      return res.status(404).json({
-        message:"User not found"
+
+    const pending = await Transaction.findOne({
+      reference: tx.tx_ref,
+      status:"pending"
+    });
+
+
+    if(!pending){
+
+      return res.json({
+        message:"Payment already processed"
       });
+
     }
-
-    const phone = normalizePhone(user.phone);
-
-    const amount = Number(response.data.amount);
 
 
     let wallet = await Wallet.findOne({
-      phone
+      phone: pending.phone
     });
 
 
     if(!wallet){
 
       wallet = await Wallet.create({
-        phone,
+        phone: pending.phone,
         balance:0
       });
 
@@ -159,22 +164,26 @@ const verifyPayment = async (req,res)=>{
 
     const balanceBefore = wallet.balance;
 
-    wallet.balance += amount;
+    wallet.balance += Number(tx.amount);
 
     await wallet.save();
 
 
     await Transaction.create({
 
-      phone,
+      phone: pending.phone,
 
       type:"fund",
 
       direction:"credit",
 
-      amount,
+      amount:Number(tx.amount),
 
-      reference:response.data.tx_ref,
+      reference:tx.tx_ref,
+
+      flutterwaveId:String(tx.id),
+
+      flutterwaveReference:tx.flw_ref,
 
       balanceBefore,
 
@@ -185,6 +194,13 @@ const verifyPayment = async (req,res)=>{
       status:"successful"
 
     });
+
+
+    pending.status="completed";
+    pending.flutterwaveId=String(tx.id);
+    pending.flutterwaveReference=tx.flw_ref;
+
+    await pending.save();
 
 
     res.json({
@@ -205,9 +221,6 @@ const verifyPayment = async (req,res)=>{
   }
 
 };
-
-
-
 
 
 // Flutterwave webhook

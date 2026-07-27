@@ -1,112 +1,149 @@
 const cron = require("node-cron");
-const Flutterwave = require("flutterwave-node-v3");
+const axios = require("axios");
 
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 
-const flw = new Flutterwave(
-  process.env.FLW_PUBLIC_KEY,
-  process.env.FLW_SECRET_KEY
-);
 
-function startFlutterwaveCron() {
+async function findFlutterwaveTransaction(tx_ref){
 
-  cron.schedule("*/2 * * * *", async () => {
+  const response = await axios.get(
+    "https://api.flutterwave.com/v3/transactions",
+    {
+      headers:{
+        Authorization:`Bearer ${process.env.FLW_SECRET_KEY}`
+      }
+    }
+  );
 
-    try {
+  return response.data.data.find(
+    tx => tx.tx_ref === tx_ref
+  );
+
+}
+
+
+function startFlutterwaveCron(){
+
+  console.log("💰 Flutterwave fallback cron started");
+
+
+  cron.schedule("*/2 * * * *", async()=>{
+
+    try{
 
       console.log("🔄 Checking pending Flutterwave payments...");
 
+
       const pending = await Transaction.find({
-        type: "fund_request",
-        status: "pending"
+        type:"fund",
+        status:"pending",
+        description:"Flutterwave wallet funding pending"
       });
 
-      for (const payment of pending) {
 
-        try {
+      for(const payment of pending){
 
-          const verify = await flw.Transaction.verify({
-            id: payment.flutterwaveId
-          });
+        try{
 
-          if (
-            verify.status !== "success" ||
-            verify.data.status !== "successful"
-          ) {
+          const tx = await findFlutterwaveTransaction(
+            payment.reference
+          );
+
+
+          if(!tx){
             continue;
           }
 
+
+          if(tx.status !== "successful"){
+            continue;
+          }
+
+
           const alreadyCredited = await Transaction.findOne({
             reference: payment.reference,
-            type: "fund"
+            description:"Flutterwave Cron Funding"
           });
 
-          if (alreadyCredited) {
 
-            payment.status = "completed";
+          if(alreadyCredited){
+
+            payment.status="completed";
             await payment.save();
 
             continue;
           }
 
+
           let wallet = await Wallet.findOne({
-            phone: payment.phone
+            phone:payment.phone
           });
 
-          if (!wallet) {
+
+          if(!wallet){
 
             wallet = await Wallet.create({
-              phone: payment.phone,
-              balance: 0
+              phone:payment.phone,
+              balance:0
             });
 
           }
 
+
           const balanceBefore = wallet.balance;
 
-          wallet.balance += Number(verify.data.amount);
+
+          wallet.balance += Number(tx.amount);
 
           await wallet.save();
 
+
           await Transaction.create({
 
-            phone: payment.phone,
+            phone:payment.phone,
 
-            type: "fund",
+            type:"fund",
 
-            direction: "credit",
+            direction:"credit",
 
-            amount: Number(verify.data.amount),
+            amount:Number(tx.amount),
 
-            reference: payment.reference,
+            reference:payment.reference,
 
-            flutterwaveId: verify.data.id,
+            flutterwaveId:String(tx.id),
 
-            flutterwaveReference: verify.data.flw_ref,
+            flutterwaveReference:tx.flw_ref,
 
             balanceBefore,
 
-            balanceAfter: wallet.balance,
+            balanceAfter:wallet.balance,
 
-            description: "Flutterwave Cron Funding",
+            description:"Flutterwave Cron Funding",
 
-            status: "successful"
+            status:"successful"
 
           });
 
-          payment.status = "completed";
+
+          payment.status="completed";
+
+          payment.flutterwaveId=String(tx.id);
+
+          payment.flutterwaveReference=tx.flw_ref;
 
           await payment.save();
 
+
           console.log(
-            `✅ Credited ${payment.phone} - ${payment.reference}`
+            `✅ Credited ${payment.phone} ${payment.reference}`
           );
 
-        } catch (err) {
+
+        }catch(err){
 
           console.log(
-            "Cron Verify Error:",
+            "Cron payment error:",
             err.message
           );
 
@@ -114,7 +151,8 @@ function startFlutterwaveCron() {
 
       }
 
-    } catch (err) {
+
+    }catch(err){
 
       console.log(
         "Flutterwave Cron Error:",
@@ -123,10 +161,12 @@ function startFlutterwaveCron() {
 
     }
 
+
   });
 
 }
 
-module.exports = {
-  startFlutterwaveCron
+
+module.exports={
+ startFlutterwaveCron
 };
