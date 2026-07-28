@@ -142,36 +142,51 @@ verifyResponse
 
 const reference = "BET-" + Date.now();
 
+const balanceBefore = wallet.balance;
 
+wallet.balance -= totalAmount;
 
-const providerResponse = await purchaseBetting({
+await wallet.save();
 
+let providerResponse;
+
+try{
+
+providerResponse = await purchaseBetting({
 customer_id,
 service_id,
 amount:Number(amount),
 request_id:reference
-
 });
 
-
 if(!providerResponse || providerResponse.code !== "success"){
+throw new Error("Bet funding failed");
+}
+
+}catch(err){
+
+wallet.balance += totalAmount;
+
+await wallet.save();
+
+await Transaction.create({
+phone,
+type:"refund",
+direction:"credit",
+amount:totalAmount,
+reference,
+balanceBefore:wallet.balance - totalAmount,
+balanceAfter:wallet.balance,
+description:"Automatic refund - Betting failed",
+status:"successful"
+});
 
 return res.status(400).json({
 message:"Bet funding failed",
-providerResponse
+providerResponse:err.message
 });
 
 }
-
-
-
-const balanceBefore = wallet.balance;
-
-
-wallet.balance -= totalAmount;
-
-
-await wallet.save();
 
 
 

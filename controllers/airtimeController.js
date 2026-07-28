@@ -9,6 +9,7 @@ const { createNotification } = require("../services/notificationService");
 const normalizePhone = require("../utils/phone");
 const getErrorMessage = require("../utils/errorHandler");
 const { purchaseAirtime } = require("../services/vtuService");
+const { purchase } = require("../services/blitzPayService");
 
 
 // Buy airtime
@@ -104,20 +105,6 @@ message:"This airtime network is currently unavailable"
 
 let providerResponse;
 
-// Check provider result
-
-if(
-!providerResponse ||
-providerResponse.code !== "success"
-){
-
-return res.status(400).json({
-message:"Airtime purchase failed",
-providerResponse
-});
-
-}
-
 
 
 
@@ -164,6 +151,8 @@ amount_charged:Number(amount)
 }else{
 
 
+try {
+
 providerResponse = await purchaseAirtime({
 
 phone: cleanPhone,
@@ -182,7 +171,43 @@ if(
 providerResponse.code !== "success"
 ){
 
-throw new Error("Airtime provider failed");
+throw new Error("Primary airtime provider failed");
+
+}
+
+
+}catch(primaryError){
+
+
+console.log(
+"Primary airtime failed, trying Blitz:",
+primaryError.message
+);
+
+
+providerResponse = await purchase({
+
+type:"airtime",
+
+network,
+
+phone:cleanPhone,
+
+amount:Number(amount)
+
+});
+
+
+if(
+!providerResponse ||
+providerResponse.success !== true ||
+providerResponse.status !== "success"
+){
+
+throw new Error("Blitz airtime provider failed");
+
+}
+
 
 }
 
@@ -218,6 +243,14 @@ description:"Automatic refund - Airtime failed",
 status:"successful"
 
 });
+
+
+await createNotification(
+  cleanPhone,
+  "Airtime Purchase Failed",
+  `Your ₦${Number(amount).toLocaleString()} has been refunded to your wallet.`,
+  "warning"
+);
 
 
 return res.status(400).json({

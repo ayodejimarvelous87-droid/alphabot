@@ -12,6 +12,8 @@ const {
 } = require("../services/vtuService");
 
 
+const { purchase } = require("../services/blitzPayService");
+
 const payElectricity = async (req, res) => {
 
   try {
@@ -156,72 +158,43 @@ const payElectricity = async (req, res) => {
 
     try {
 
-
       providerResponse = await purchaseElectricity({
-
         customer_id: meterNumber,
-
         service_id: disco,
-
         variation_id: meterType || "prepaid",
-
         amount: Number(amount),
-
         request_id: reference
-
       });
-
 
       if (!providerResponse || providerResponse.code !== "success") {
-
-        throw new Error("Provider failed");
-
+        throw new Error("Primary electricity provider failed");
       }
 
+    } catch (primaryError) {
 
-    } catch (err) {
+      console.log(
+        "Primary electricity failed, trying Blitz:",
+        primaryError.message
+      );
 
-
-      // Refund wallet if VTU fails
-
-      wallet.balance += totalAmount;
-
-      await wallet.save();
-
-
-      await Transaction.create({
-
-        phone,
-
-        type: "refund",
-
-        direction: "credit",
-
-        amount: totalAmount,
-
-        reference,
-
-        balanceBefore: wallet.balance - totalAmount,
-
-        balanceAfter: wallet.balance,
-
-        description: "Automatic refund - Electricity failed",
-
-        status: "successful"
-
+      providerResponse = await purchase({
+        type:"electricity",
+        provider_code: disco,
+        meter_number: meterNumber,
+        amount:Number(amount)
       });
 
-
-      return res.status(400).json({
-
-        message: "Electricity payment failed",
-
-        providerResponse: err.response?.data || err.message
-
-      });
-
+      if (
+        !providerResponse ||
+        providerResponse.success !== true ||
+        providerResponse.status !== "success"
+      ) {
+        throw new Error("Blitz electricity provider failed");
+      }
 
     }
+
+
 
 
 
@@ -309,7 +282,51 @@ const payElectricity = async (req, res) => {
     );
 
 
-    res.status(500).json({
+    
+      // Automatic refund if electricity purchase fails
+
+      wallet.balance += totalAmount;
+
+      await wallet.save();
+
+
+      await Transaction.create({
+
+        phone,
+
+        type:"refund",
+
+        direction:"credit",
+
+        amount:totalAmount,
+
+        reference,
+
+        balanceBefore: wallet.balance - totalAmount,
+
+        balanceAfter: wallet.balance,
+
+        description:"Automatic refund - Electricity failed",
+
+        status:"successful"
+
+      });
+
+
+      await createNotification(
+
+        phone,
+
+        "Electricity Payment Failed",
+
+        `Your ₦${totalAmount.toLocaleString()} has been refunded to your wallet.`,
+
+        "warning"
+
+      );
+
+
+res.status(500).json({
 
       message: error.response?.data || error.message
 

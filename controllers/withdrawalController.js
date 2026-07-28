@@ -21,10 +21,10 @@ pin
 
 
 
-if(!phone || !bankName || !accountNumber || !accountName || !amount || !pin){
+if(!phone || !amount || !pin){
 
 return res.status(400).json({
-message:"All withdrawal details and transaction PIN are required"
+message:"Phone, amount and transaction PIN are required"
 });
 
 }
@@ -179,7 +179,11 @@ const reference =
 
 
 
-const withdrawal = await Withdrawal.create({
+let withdrawal;
+
+try {
+
+withdrawal = await Withdrawal.create({
 
 phone,
 bankName,
@@ -188,9 +192,19 @@ accountName,
 amount:Number(amount),
 fee,
 totalDeducted:total,
-reference
+reference,
+status:"pending"
 
 });
+
+} catch(error) {
+
+wallet.balance += total;
+await wallet.save();
+
+throw error;
+
+}
 
 
 await createNotification(
@@ -203,6 +217,8 @@ await createNotification(
 
 
 
+
+try {
 
 await Transaction.create({
 
@@ -226,6 +242,19 @@ status:"successful"
 
 });
 
+} catch(error) {
+
+wallet.balance += total;
+await wallet.save();
+
+await Withdrawal.deleteOne({
+reference
+});
+
+throw error;
+
+}
+
 
 
 
@@ -234,9 +263,9 @@ await createNotification(
 
 phone,
 
-"Withdrawal Successful",
+"Withdrawal Request Received",
 
-`₦${Number(amount).toLocaleString()} withdrawal processed. Fee: ₦${fee.toFixed(2)}`,
+`Your ₦${Number(amount).toLocaleString()} withdrawal request has been received and is being processed.`,
 
 "success"
 
@@ -248,7 +277,7 @@ phone,
 
 res.json({
 
-message:"Withdrawal successful",
+message:"Withdrawal request submitted successfully",
 
 withdrawal,
 

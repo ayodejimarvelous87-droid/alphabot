@@ -186,9 +186,13 @@ const subscribeTV = async (req, res) => {
 
         }
 
-        if (!providerResponse) {
+        if(
+!providerResponse ||
+providerResponse.success !== true ||
+providerResponse.status !== "success"
+){
 
-          throw new Error("Provider failed");
+          throw new Error("TV provider failed");
 
         }
 

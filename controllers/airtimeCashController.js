@@ -120,7 +120,11 @@ reference:"ATC-"+Date.now()
 
 
 // Transfer airtime
-const result = await transferAirtime({
+let result;
+
+try {
+
+result = await transferAirtime({
 
 networkName,
 
@@ -135,6 +139,18 @@ pin,
 sessionId
 
 });
+
+} catch(error) {
+
+request.status = "rejected";
+await request.save();
+
+return res.status(400).json({
+message:"Airtime transfer failed",
+error:error.message
+});
+
+}
 
 console.log("A2C TRANSFER RESULT:", result);
 

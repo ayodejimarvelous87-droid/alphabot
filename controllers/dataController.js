@@ -251,6 +251,14 @@ status:"successful"
 });
 
 
+await createNotification(
+  userPhone,
+  "Data Purchase Failed",
+  `Your ₦${Number(amount).toLocaleString()} has been refunded to your wallet.`,
+  "warning"
+);
+
+
 
 return res.status(400).json({
 

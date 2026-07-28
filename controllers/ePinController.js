@@ -93,6 +93,14 @@ request_id:reference
 console.log("EPIN VTU RESPONSE:", JSON.stringify(apiResponse,null,2));
 
 
+if(
+!apiResponse ||
+apiResponse.code !== "success"
+){
+throw new Error("EPIN provider failed");
+}
+
+
 
 const epinList = apiResponse.data?.epins || apiResponse.data?.pins || apiResponse.epins || apiResponse.pins || [];
 
