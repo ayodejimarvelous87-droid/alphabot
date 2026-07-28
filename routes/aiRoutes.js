@@ -75,8 +75,12 @@ content:reply
 await conversation.save();
 
 
+const firstMessage = conversation.messages.length <= 2;
+
 res.json({
-reply:`Hello ${name} 👋\n\n${reply}`
+reply: firstMessage
+? `Hello ${name} 👋\n\n${reply}`
+: reply
 });
 
 
