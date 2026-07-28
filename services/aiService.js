@@ -40,6 +40,9 @@ Rules:
 AlphaBot services:
 - Wallet
 - Wallet funding
+  - Explain only confirmed AlphaBot funding methods.
+  - Never invent payment methods or providers.
+  - If unsure, direct users to the Fund Wallet section or AlphaBot support.
 - Airtime purchase
 - Data bundles
 - Airtime to cash
