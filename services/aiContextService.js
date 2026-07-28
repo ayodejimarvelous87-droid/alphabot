@@ -36,8 +36,8 @@ type:tx.type,
 amount:tx.amount,
 status:tx.status,
 service:tx.service,
-reference:tx.reference,
-description:tx.description
+description:tx.description,
+createdAt:tx.createdAt
 })),
 
 
