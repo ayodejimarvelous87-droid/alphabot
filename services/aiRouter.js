@@ -235,6 +235,31 @@ return `Transaction ${tx.reference}\n\nType: ${formatType(tx.type)}\nAmount: ₦
 
 }
 
+// Transaction amount lookup
+console.log("AMOUNT LOOKUP CHECK:", message);
+
+const amountMatch = message.match(/(?:₦|N|NGN)?[ ]?([0-9,]{2,})/i);
+
+if(amountMatch){
+
+const amount = Number(amountMatch[1].replace(/,/g,""));
+
+const tx = await Transaction.findOne({
+phone:user.phone,
+amount:amount
+})
+.sort({createdAt:-1});
+
+
+if(!tx){
+return `I could not find a transaction of ₦${formatAmount(amount)}. Please provide the reference, service, or approximate time.`;
+}
+
+
+return `I found your transaction:\n\nType: ${formatType(tx.type)}\nAmount: ₦${formatAmount(tx.amount)}\nStatus: ${formatStatus(tx.status)}${tx.description ? "\nDescription: " + tx.description : ""}`;
+
+}
+
 // Everything else goes to AI
 return await getAIReply(
 message,
