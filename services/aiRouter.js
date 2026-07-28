@@ -96,6 +96,65 @@ return `Here are your last 3 transactions:\n\n${list}`;
 }
 
 
+// Data purchase failure investigation
+if(
+(lower.includes("data") && (
+lower.includes("fail") ||
+lower.includes("failed") ||
+lower.includes("not received") ||
+lower.includes("did not get") ||
+lower.includes("why")
+))
+){
+
+const dataTransactions = await Transaction.find({
+phone:user.phone,
+type:"data"
+})
+.sort({createdAt:-1})
+.limit(5);
+
+
+if(!dataTransactions.length){
+
+return "I could not find any recent data purchase matching this issue. Please provide the amount or approximate time of the transaction.";
+
+}
+
+
+const latestData = dataTransactions[0];
+
+
+if(latestData.status === "failed"){
+
+const refund = await Transaction.findOne({
+phone:user.phone,
+type:"refund",
+description:/data/i
+})
+.sort({createdAt:-1});
+
+
+if(refund){
+return `Your data purchase of ₦${formatAmount(latestData.amount)} failed. A refund of ₦${formatAmount(refund.amount)} has been processed to your wallet.`;
+}
+
+return `Your data purchase of ₦${formatAmount(latestData.amount)} failed. It is currently being reviewed.`;
+
+}
+
+
+if(latestData.status === "successful" || latestData.status === "completed"){
+
+return `I could not find a failed data purchase. Your latest data purchase of ₦${formatAmount(latestData.amount)} was ${formatStatus(latestData.status)}.`;
+
+}
+
+
+return `I found your latest data purchase of ₦${formatAmount(latestData.amount)}. Status: ${formatStatus(latestData.status)}.`;
+
+}
+
 // Last transaction
 if(
 lower.includes("last transaction") ||
