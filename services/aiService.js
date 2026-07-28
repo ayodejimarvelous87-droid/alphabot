@@ -10,6 +10,17 @@ const groq = new Groq({
 
 const getAIReply = async (message, user={}) => {
 
+const lowerMessage = message.toLowerCase();
+
+if (
+  lowerMessage.includes("fund wallet") ||
+  lowerMessage.includes("fund my wallet") ||
+  lowerMessage.includes("add money") ||
+  lowerMessage.includes("deposit")
+) {
+  return "To fund your AlphaBot wallet, open the Fund Wallet section and use the payment options currently available on your account. If you need help with a specific option, contact AlphaBot support.";
+}
+
 try {
 
 
