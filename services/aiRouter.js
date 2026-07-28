@@ -25,6 +25,18 @@ return names[type] || type;
 };
 
 
+const formatStatus = (status) => {
+
+const statuses = {
+successful:"Successful",
+completed:"Successful",
+pending:"Pending",
+failed:"Failed"
+};
+
+return statuses[status] || status;
+};
+
 const formatAmount = (amount) => {
 return Number(amount).toLocaleString();
 };
@@ -75,7 +87,7 @@ return "You don't have any transactions yet.";
 
 const list = transactions.map((tx,index)=>
 `${index + 1}. ${formatType(tx.type)} — ₦${formatAmount(tx.amount)}
-   Status: ${tx.status}`
+   Status: ${formatStatus(tx.status)}`
 ).join("\n\n");
 
 
@@ -103,7 +115,7 @@ return "You don't have any transactions yet.";
 }
 
 
-return `Your last transaction was ${formatType(tx.type)} of ₦${formatAmount(tx.amount)}. Status: ${tx.status}.`;
+return `Your last transaction was ${formatType(tx.type)} of ₦${formatAmount(tx.amount)}. Status: ${formatStatus(tx.status)}.`;
 
 }
 
@@ -127,7 +139,7 @@ return "You don't have any withdrawal requests.";
 }
 
 
-return `Your latest withdrawal of ₦${formatAmount(wd.amount)} is currently ${wd.status}.`;
+return `Your latest withdrawal of ₦${formatAmount(wd.amount)} is currently ${formatStatus(wd.status)}.`;
 
 }
 
