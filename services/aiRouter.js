@@ -237,11 +237,13 @@ return `Transaction ${tx.reference}\n\nType: ${formatType(tx.type)}\nAmount: ₦
 
 // Spending analytics
 if(
+
 lower.includes("spent") ||
 lower.includes("spending") ||
 lower.includes("expense")
 ){
 
+console.log("SPENDING ANALYTICS CHECK:", message);
 let serviceType = null;
 
 if(lower.includes("data")) serviceType = "data";
