@@ -404,6 +404,21 @@ const spending = transactions
 .reduce((sum,tx)=>sum + Number(tx.amount || 0),0);
 
 
+
+const breakdown = {};
+
+transactions
+.filter(tx => tx.direction === "debit" && ["successful","completed"].includes(tx.status))
+.forEach(tx => {
+breakdown[tx.type] = (breakdown[tx.type] || 0) + Number(tx.amount || 0);
+});
+
+
+const serviceBreakdown = Object.entries(breakdown)
+.map(([type,amount]) => `• ${formatType(type)}: ₦${formatAmount(amount)}`)
+.join("\n");
+
+
 const refunds = transactions
 .filter(tx => tx.type === "refund")
 .reduce((sum,tx)=>sum + Number(tx.amount || 0),0);
@@ -415,7 +430,8 @@ createdAt:{$gte:start,$lte:end}
 });
 
 
-return `AlphaBot Account Summary:\n\nWallet Balance: ₦${formatAmount(wallet?.balance || 0)}\n\nThis Month:\n• Total spent: ₦${formatAmount(spending)}\n• Transactions: ${transactions.length}\n• Refunds: ₦${formatAmount(refunds)}\n• Withdrawals: ${withdrawals.length}`;
+return `AlphaBot Account Summary:\n\nWallet Balance: ₦${formatAmount(wallet?.balance || 0)}\n\nThis Month:\n• Total spent: ₦${formatAmount(spending)}\n• Transactions: ${transactions.length}\n• Refunds: ₦${formatAmount(refunds)}\n• Withdrawals: ${withdrawals.length}\n\nService Breakdown:\n${serviceBreakdown || "No spending breakdown available."}`;
+
 
 }
 
