@@ -4,7 +4,7 @@ const Transaction = require("../models/Transaction");
 const Withdrawal = require("../models/Withdrawal");
 
 
-const getAIContext = async (phone) => {
+const getAIContext = async (phone, message="") => {
 
 try {
 
@@ -14,9 +14,54 @@ const user = await User.findOne({phone});
 const wallet = await Wallet.findOne({phone});
 
 
-const transactions = await Transaction.find({phone})
+const lowerMessage = message.toLowerCase();
+
+let transactionType = null;
+
+if(lowerMessage.includes("data")){
+transactionType = "data";
+}
+else if(lowerMessage.includes("airtime")){
+transactionType = "airtime";
+}
+else if(lowerMessage.includes("electricity")){
+transactionType = "electricity";
+}
+else if(lowerMessage.includes("tv")){
+transactionType = "tv";
+}
+else if(lowerMessage.includes("withdraw")){
+transactionType = "withdrawal";
+}
+else if(lowerMessage.includes("bet")){
+transactionType = "betting";
+}
+else if(
+lowerMessage.includes("exam") ||
+lowerMessage.includes("epin")
+){
+transactionType = "exam_pin";
+}
+
+
+let transactions;
+
+if(transactionType){
+
+transactions = await Transaction.find({
+phone,
+type:transactionType
+})
 .sort({createdAt:-1})
 .limit(5);
+
+}else{
+
+transactions = await Transaction.find({phone})
+.sort({createdAt:-1})
+.limit(5);
+
+}
 
 
 const withdrawal = await Withdrawal.findOne({phone})

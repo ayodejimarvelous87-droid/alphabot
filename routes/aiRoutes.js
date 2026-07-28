@@ -57,7 +57,8 @@ await conversation.save();
 
 // Send identity + memory context to AI
   const businessContext = await getAIContext(
-  req.user.phone
+  req.user.phone,
+  message
   );
 
 
