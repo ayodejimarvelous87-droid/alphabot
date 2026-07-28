@@ -235,29 +235,144 @@ return `Transaction ${tx.reference}\n\nType: ${formatType(tx.type)}\nAmount: ₦
 
 }
 
-// Transaction amount lookup
+// Spending analytics
+if(
+lower.includes("spent") ||
+lower.includes("spending") ||
+lower.includes("expense")
+){
 
+let serviceType = null;
+
+if(lower.includes("data")) serviceType = "data";
+else if(lower.includes("airtime")) serviceType = "airtime";
+else if(lower.includes("electricity")) serviceType = "electricity";
+else if(lower.includes("tv")) serviceType = "tv";
+else if(lower.includes("bet")) serviceType = "betting";
+
+
+const now = new Date();
+
+const start = new Date(now.getFullYear(), now.getMonth(), 1);
+const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+end.setHours(23,59,59,999);
+
+
+let query = {
+phone:user.phone,
+direction:"debit",
+status:{$in:["successful","completed"]},
+createdAt:{$gte:start,$lte:end}
+};
+
+
+if(serviceType){
+query.type = serviceType;
+}
+
+
+const transactions = await Transaction.find(query);
+
+
+const total = transactions.reduce((sum,tx)=>sum + Number(tx.amount || 0),0);
+
+
+if(!transactions.length){
+return `I could not find any spending records for this month${serviceType ? " on " + formatType(serviceType) : ""}.`;
+}
+
+
+return `${serviceType ? "You spent" : "Your total spending this month is"} ₦${formatAmount(total)} across ${transactions.length} transaction${transactions.length > 1 ? "s" : ""}${serviceType ? " on " + formatType(serviceType) : ""}.`;
+
+}
+
+
+// Transaction amount + service + date lookup
 const amountMatch = message.match(/(?:₦|N|NGN)?[ ]?([0-9,]{2,})/i);
 
 if(amountMatch){
 
 const amount = Number(amountMatch[1].replace(/,/g,""));
 
-const tx = await Transaction.findOne({
+let serviceType = null;
+
+if(lower.includes("data")) serviceType = "data";
+else if(lower.includes("airtime")) serviceType = "airtime";
+else if(lower.includes("electricity")) serviceType = "electricity";
+else if(lower.includes("tv")) serviceType = "tv";
+else if(lower.includes("bet")) serviceType = "betting";
+else if(lower.includes("withdraw")) serviceType = "withdrawal";
+
+
+let query = {
 phone:user.phone,
 amount:amount
-})
-.sort({createdAt:-1});
+};
 
 
-if(!tx){
-return `I could not find a transaction of ₦${formatAmount(amount)}. Please provide the reference, service, or approximate time.`;
+if(serviceType){
+query.type = serviceType;
 }
 
+
+const now = new Date();
+
+if(lower.includes("yesterday")){
+
+const start = new Date(now);
+start.setDate(now.getDate() - 1);
+start.setHours(0,0,0,0);
+
+const end = new Date(start);
+end.setHours(23,59,59,999);
+
+query.createdAt = {$gte:start,$lte:end};
+
+}
+
+
+if(lower.includes("today")){
+
+const start = new Date(now);
+start.setHours(0,0,0,0);
+
+const end = new Date(now);
+end.setHours(23,59,59,999);
+
+query.createdAt = {$gte:start,$lte:end};
+
+}
+
+
+const transactions = await Transaction.find(query)
+.sort({createdAt:-1})
+.limit(5);
+
+
+if(!transactions.length){
+return `I could not find a matching transaction of ₦${formatAmount(amount)}${serviceType ? " for " + serviceType : ""}. Please provide the reference, service, or approximate time.`;
+}
+
+
+if(transactions.length > 1 && !serviceType){
+
+const options = transactions.map((tx,index)=>
+`${index + 1}. ${formatType(tx.type)} — ₦${formatAmount(tx.amount)} (${formatStatus(tx.status)})`
+).join("\n");
+
+return `I found multiple transactions matching ₦${formatAmount(amount)}. Please specify which one you mean:\n\n${options}`;
+
+}
+
+
+const tx = transactions[0];
 
 return `I found your transaction:\n\nType: ${formatType(tx.type)}\nAmount: ₦${formatAmount(tx.amount)}\nStatus: ${formatStatus(tx.status)}${tx.description ? "\nDescription: " + tx.description : ""}`;
 
+
 }
+
+
 
 // Everything else goes to AI
 return await getAIReply(
