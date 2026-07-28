@@ -131,7 +131,7 @@ await Transaction.create({
 
 phone:cleanPhone,
 
-type:"epin",
+type:"recharge_pin",
 
 direction:"debit",
 

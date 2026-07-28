@@ -3,7 +3,6 @@ const router = express.Router();
 
 const DeviceToken = require("../models/DeviceToken");
 const Notification = require("../models/Notification");
-
 const auth = require("../middleware/auth");
 
 const {
@@ -12,12 +11,9 @@ const {
 } = require("../controllers/notificationController");
 
 
-
-// Save admin device token
-router.post("/register-token", async (req,res)=>{
-
+// Save user device token
+router.post("/register-token", auth, async (req,res)=>{
   try{
-
     const { token } = req.body;
 
     if(!token){
@@ -26,12 +22,12 @@ router.post("/register-token", async (req,res)=>{
       });
     }
 
-
     await DeviceToken.findOneAndUpdate(
       { token },
       {
         token,
-        userType:"admin"
+        phone:req.user.phone,
+        userType:"user"
       },
       {
         upsert:true,
@@ -39,27 +35,21 @@ router.post("/register-token", async (req,res)=>{
       }
     );
 
-
     res.json({
       success:true,
       message:"Device registered"
     });
 
-
   }catch(error){
-
     res.status(500).json({
       message:error.message
     });
-
   }
-
 });
 
 
 // Get admin notifications
 router.get("/admin", async(req,res)=>{
-
   try{
 
     const notifications = await Notification.find({
@@ -70,9 +60,7 @@ router.get("/admin", async(req,res)=>{
     })
     .limit(50);
 
-
     res.json(notifications);
-
 
   }catch(error){
 
@@ -81,13 +69,11 @@ router.get("/admin", async(req,res)=>{
     });
 
   }
-
 });
 
 
 // Get user notifications
 router.get("/:phone", async(req,res)=>{
-
   try{
 
     const notifications = await Notification.find({
@@ -98,9 +84,7 @@ router.get("/:phone", async(req,res)=>{
     })
     .limit(50);
 
-
     res.json(notifications);
-
 
   }catch(error){
 
@@ -109,32 +93,24 @@ router.get("/:phone", async(req,res)=>{
     });
 
   }
-
 });
 
 
-
-// Get notification details with transaction
+// Get notification details
 router.get("/detail/:id", async(req,res)=>{
-
   try{
 
     const notification = await Notification.findById(
       req.params.id
     ).populate("transactionId");
 
-
     if(!notification){
-
       return res.status(404).json({
         message:"Notification not found"
       });
-
     }
 
-
     res.json(notification);
-
 
   }catch(error){
 
@@ -143,12 +119,10 @@ router.get("/detail/:id", async(req,res)=>{
     });
 
   }
-
 });
 
 
-
-// Mark a notification as read
+// Mark notification read
 router.patch(
   "/read/:id",
   auth,
@@ -156,7 +130,7 @@ router.patch(
 );
 
 
-// Mark all notifications as read
+// Mark all notifications read
 router.patch(
   "/read-all/:phone",
   auth,

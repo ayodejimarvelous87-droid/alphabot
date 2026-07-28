@@ -1,4 +1,7 @@
 const Notification = require("../models/Notification");
+const DeviceToken = require("../models/DeviceToken");
+const { sendPushNotification } = require("./firebaseService");
+
 
 const createNotification = async (
   phone,
@@ -7,8 +10,10 @@ const createNotification = async (
   type = "info",
   transactionId = null
 ) => {
+
   try {
 
+    // Save notification in database
     await Notification.create({
       phone,
       title,
@@ -17,7 +22,26 @@ const createNotification = async (
       transactionId
     });
 
-  } catch (error) {
+
+    // Find user's Firebase device
+    const device = await DeviceToken.findOne({
+      phone
+    });
+
+
+    // Send Firebase push notification
+    if(device?.token){
+
+      await sendPushNotification(
+        device.token,
+        title,
+        message
+      );
+
+    }
+
+
+  } catch(error){
 
     console.log(
       "Notification Error:",
@@ -25,7 +49,9 @@ const createNotification = async (
     );
 
   }
+
 };
+
 
 module.exports = {
   createNotification

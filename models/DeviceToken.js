@@ -8,9 +8,15 @@ const deviceTokenSchema = new mongoose.Schema(
       unique: true
     },
 
+    phone: {
+      type: String,
+      default: null
+    },
+
     userType: {
       type: String,
-      default: "admin"
+      enum: ["admin", "user"],
+      default: "user"
     }
   },
   {
