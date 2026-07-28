@@ -8,6 +8,7 @@ const getAIResponse = async (message, user = {}) => {
 console.log("AI ROUTER ACTIVE:", message);
 
 const lower = message.toLowerCase();
+console.log("ROUTER MESSAGE:", message);
 
 
 // Wallet balance
