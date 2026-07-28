@@ -5,6 +5,7 @@ const auth = require("../middleware/auth");
 const User = require("../models/User");
 const AIConversation = require("../models/AIConversation");
 const { getAIReply } = require("../services/aiService");
+const { getAIContext } = require("../services/aiContextService");
 
 
 router.post("/chat", auth, async(req,res)=>{
@@ -55,12 +56,18 @@ await conversation.save();
 
 
 // Send identity + memory context to AI
+  const businessContext = await getAIContext(
+  req.user.phone
+  );
+
+
 const reply = await getAIReply(
 message,
 {
 name,
 phone:req.user.phone,
-history:conversation.messages.slice(-10)
+  history:conversation.messages.slice(-10),
+  businessContext
 }
 );
 
