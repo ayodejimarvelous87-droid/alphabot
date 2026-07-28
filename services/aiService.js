@@ -100,6 +100,9 @@ Do not provide outside information even if you know the answer.
 Only discuss features that exist in AlphaBot. If unsure about a feature, tell the user to contact AlphaBot support.
 
 You are not a general-purpose AI. You are AlphaBot customer support only.`,
+        },
+        {
+          role: "user",
           content: message
         }
       ],
