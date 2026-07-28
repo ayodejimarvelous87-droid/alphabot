@@ -173,6 +173,9 @@ lower.includes("last transaction") ||
 lower.includes("recent transaction")
 ){
 
+console.log("USER PHONE:", user.phone);
+console.log("REFERENCE:", referenceMatch[0].toUpperCase());
+
 const tx = await Transaction.findOne({
 phone:user.phone
 })
@@ -214,6 +217,27 @@ return `Your latest withdrawal of ₦${formatAmount(wd.amount)} is currently ${f
 
 }
 
+
+// Transaction reference lookup
+const referenceMatch = message.match(/(DATA|WD|AIRTIME|ELEC|TV|BET|EXAM|FUND|REFUND)-[A-Za-z0-9-]+/i);
+
+if(referenceMatch){
+
+console.log("USER PHONE:", user.phone);
+console.log("REFERENCE:", referenceMatch[0].toUpperCase());
+
+const tx = await Transaction.findOne({
+phone:user.phone,
+reference:referenceMatch[0].toUpperCase()
+});
+
+if(!tx){
+return "I could not find a transaction with that reference.";
+}
+
+return `Transaction ${tx.reference}\n\nType: ${formatType(tx.type)}\nAmount: ₦${formatAmount(tx.amount)}\nStatus: ${formatStatus(tx.status)}${tx.description ? "\nDescription: " + tx.description : ""}`;
+
+}
 
 // Everything else goes to AI
 return await getAIReply(
