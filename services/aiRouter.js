@@ -5,6 +5,7 @@ const { getAIReply } = require("./aiService");
 
 
 const getAIResponse = async (message, user = {}) => {
+console.log("AI ROUTER ACTIVE:", message);
 
 const lower = message.toLowerCase();
 
