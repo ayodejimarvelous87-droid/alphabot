@@ -236,7 +236,6 @@ return `Transaction ${tx.reference}\n\nType: ${formatType(tx.type)}\nAmount: ₦
 }
 
 // Transaction amount lookup
-console.log("AMOUNT LOOKUP CHECK:", message);
 
 const amountMatch = message.match(/(?:₦|N|NGN)?[ ]?([0-9,]{2,})/i);
 
