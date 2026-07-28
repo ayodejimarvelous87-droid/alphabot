@@ -19,7 +19,18 @@ if (
   lowerMessage.includes("deposit")
 ) {
   return "To fund your AlphaBot wallet, open the Fund Wallet section and use the payment options currently available on your account. If you need help with a specific option, contact AlphaBot support.";
+
+
 }
+
+  if (
+    lowerMessage.includes("refund") ||
+    lowerMessage.includes("money deducted") ||
+    lowerMessage.includes("wallet was deducted") ||
+    lowerMessage.includes("transaction failed")
+  ) {
+    return "Sorry about that. If a transaction failed after your wallet was debited, AlphaBot will review the transaction status. If a reversal is required, it will be processed automatically. If the issue continues, please contact AlphaBot support.";
+  }
 
 try {
 
