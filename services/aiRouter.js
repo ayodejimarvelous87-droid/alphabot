@@ -243,7 +243,6 @@ lower.includes("spending") ||
 lower.includes("expense")
 ){
 
-console.log("SPENDING ANALYTICS CHECK:", message);
 let serviceType = null;
 
 if(lower.includes("data")) serviceType = "data";
@@ -375,6 +374,50 @@ return `I found your transaction:\n\nType: ${formatType(tx.type)}\nAmount: ₦${
 }
 
 
+
+// Account summary
+if(
+lower.includes("account summary") ||
+lower.includes("financial summary") ||
+lower.includes("account report")
+){
+
+const wallet = await Wallet.findOne({
+phone:user.phone
+});
+
+
+const now = new Date();
+const start = new Date(now.getFullYear(), now.getMonth(), 1);
+const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+end.setHours(23,59,59,999);
+
+
+const transactions = await Transaction.find({
+phone:user.phone,
+createdAt:{$gte:start,$lte:end}
+});
+
+
+const spending = transactions
+.filter(tx => tx.direction === "debit" && ["successful","completed"].includes(tx.status))
+.reduce((sum,tx)=>sum + Number(tx.amount || 0),0);
+
+
+const refunds = transactions
+.filter(tx => tx.type === "refund")
+.reduce((sum,tx)=>sum + Number(tx.amount || 0),0);
+
+
+const withdrawals = await Withdrawal.find({
+phone:user.phone,
+createdAt:{$gte:start,$lte:end}
+});
+
+
+return `AlphaBot Account Summary:\n\nWallet Balance: ₦${formatAmount(wallet?.balance || 0)}\n\nThis Month:\n• Total spent: ₦${formatAmount(spending)}\n• Transactions: ${transactions.length}\n• Refunds: ₦${formatAmount(refunds)}\n• Withdrawals: ${withdrawals.length}`;
+
+}
 
 // Everything else goes to AI
 return await getAIReply(
