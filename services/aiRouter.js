@@ -173,8 +173,6 @@ lower.includes("last transaction") ||
 lower.includes("recent transaction")
 ){
 
-console.log("USER PHONE:", user.phone);
-console.log("REFERENCE:", referenceMatch[0].toUpperCase());
 
 const tx = await Transaction.findOne({
 phone:user.phone
@@ -223,8 +221,6 @@ const referenceMatch = message.match(/(DATA|WD|AIRTIME|ELEC|TV|BET|EXAM|FUND|REF
 
 if(referenceMatch){
 
-console.log("USER PHONE:", user.phone);
-console.log("REFERENCE:", referenceMatch[0].toUpperCase());
 
 const tx = await Transaction.findOne({
 phone:user.phone,
