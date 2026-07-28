@@ -4,7 +4,8 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const User = require("../models/User");
 const AIConversation = require("../models/AIConversation");
-const { getAIReply } = require("../services/aiService");
+const { getAIResponse } = require("../services/aiRouter");
+console.log("AI ROUTER VERSION DEPLOYED");
 const { getAIContext } = require("../services/aiContextService");
 
 
@@ -62,7 +63,7 @@ await conversation.save();
   );
 
 
-const reply = await getAIReply(
+const reply = await getAIResponse(
 message,
 {
 name,
