@@ -16,7 +16,17 @@ const wallet = await Wallet.findOne({phone});
 
 const lowerMessage = message.toLowerCase();
 
+
+// Detect transaction amount from message
+const amountMatch = message.match(/\d+[,.]?\d*/);
+
+const transactionAmount = amountMatch
+? Number(amountMatch[0].replace(",", ""))
+: null;
+
+
 let transactionType = null;
+
 
 if(lowerMessage.includes("data")){
 transactionType = "data";
@@ -46,7 +56,24 @@ transactionType = "exam_pin";
 
 let transactions;
 
-if(transactionType){
+
+// Match exact amount when available
+if(transactionType && transactionAmount){
+
+transactions = await Transaction.find({
+phone,
+type:transactionType,
+amount:transactionAmount
+})
+.sort({createdAt:-1})
+.limit(5);
+
+
+}
+
+
+// Otherwise search by service
+else if(transactionType){
 
 transactions = await Transaction.find({
 phone,
@@ -55,13 +82,20 @@ type:transactionType
 .sort({createdAt:-1})
 .limit(5);
 
-}else{
+
+}
+
+
+// General transaction history fallback
+else{
 
 transactions = await Transaction.find({phone})
 .sort({createdAt:-1})
 .limit(5);
 
+
 }
+
 
 
 const withdrawal = await Withdrawal.findOne({phone})

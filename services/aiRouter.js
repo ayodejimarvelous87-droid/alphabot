@@ -4,11 +4,35 @@ const Withdrawal = require("../models/Withdrawal");
 const { getAIReply } = require("./aiService");
 
 
+const formatType = (type) => {
+
+const names = {
+fund:"Wallet funding",
+purchase:"Purchase",
+airtime:"Airtime purchase",
+data:"Data purchase",
+airtime_cash:"Airtime to cash",
+electricity:"Electricity payment",
+tv:"TV subscription",
+betting:"Betting funding",
+exam_pin:"Exam PIN",
+withdrawal:"Withdrawal",
+refund:"Refund",
+recurring:"Recurring payment"
+};
+
+return names[type] || type;
+};
+
+
+const formatAmount = (amount) => {
+return Number(amount).toLocaleString();
+};
+
+
 const getAIResponse = async (message, user = {}) => {
-console.log("AI ROUTER ACTIVE:", message);
 
 const lower = message.toLowerCase();
-console.log("ROUTER MESSAGE:", message);
 
 
 // Wallet balance
@@ -23,7 +47,7 @@ const wallet = await Wallet.findOne({
 phone:user.phone
 });
 
-return `Your current AlphaBot wallet balance is ₦${wallet?.balance || 0}.`;
+return `Your current AlphaBot wallet balance is ₦${formatAmount(wallet?.balance || 0)}.`;
 
 }
 
@@ -50,8 +74,9 @@ return "You don't have any transactions yet.";
 
 
 const list = transactions.map((tx,index)=>
-`${index + 1}. ${tx.type} - ₦${tx.amount} (${tx.status})`
-).join("\n");
+`${index + 1}. ${formatType(tx.type)} — ₦${formatAmount(tx.amount)}
+   Status: ${tx.status}`
+).join("\n\n");
 
 
 return `Here are your last 3 transactions:\n\n${list}`;
@@ -78,7 +103,7 @@ return "You don't have any transactions yet.";
 }
 
 
-return `Your last transaction was a ${tx.type} transaction of ₦${tx.amount}. Status: ${tx.status}.`;
+return `Your last transaction was ${formatType(tx.type)} of ₦${formatAmount(tx.amount)}. Status: ${tx.status}.`;
 
 }
 
@@ -102,7 +127,7 @@ return "You don't have any withdrawal requests.";
 }
 
 
-return `Your latest withdrawal of ₦${wd.amount} is currently ${wd.status}.`;
+return `Your latest withdrawal of ₦${formatAmount(wd.amount)} is currently ${wd.status}.`;
 
 }
 
