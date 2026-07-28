@@ -24,9 +24,21 @@ const createNotification = async (
 
 
     // Find user's Firebase device
-    const device = await DeviceToken.findOne({
-      phone
-    });
+    let device;
+
+    if(phone === "admin"){
+
+      device = await DeviceToken.findOne({
+        userType:"admin"
+      });
+
+    }else{
+
+      device = await DeviceToken.findOne({
+        phone
+      });
+
+    }
 
 
     // Send Firebase push notification

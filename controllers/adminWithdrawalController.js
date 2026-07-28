@@ -1,7 +1,7 @@
 const Withdrawal = require("../models/Withdrawal");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
-const Notification = require("../models/Notification");
+const { createNotification } = require("../services/notificationService");
 
 
 // Get all withdrawals for admin
@@ -64,13 +64,13 @@ const approveWithdrawal = async (req,res)=>{
     });
 
 
-    await Notification.create({
-      phone:withdrawal.phone,
-      title:"Withdrawal Approved",
-      message:`Your withdrawal of ₦${withdrawal.amount} has been approved.`,
-      type:"success",
-    transactionId: transaction._id
-    });
+    await createNotification(
+      withdrawal.phone,
+      "Withdrawal Approved",
+      `Your withdrawal of ₦${withdrawal.amount} has been approved.`,
+      "success",
+      transaction._id
+    );
 
 
     res.json({
@@ -139,13 +139,13 @@ const rejectWithdrawal = async (req,res)=>{
         status:"successful"
       });
 
-      await Notification.create({
-        phone:withdrawal.phone,
-        title:"Withdrawal Rejected",
-        message:`Your withdrawal of ₦${withdrawal.amount} was rejected. The amount has been refunded to your wallet.`,
-        type:"warning",
-        transactionId: transaction._id
-      });
+      await createNotification(
+        withdrawal.phone,
+        "Withdrawal Rejected",
+        `Your withdrawal of ₦${withdrawal.amount} was rejected. The amount has been refunded to your wallet.`,
+        "warning",
+        transaction._id
+      );
 
 
     res.json({

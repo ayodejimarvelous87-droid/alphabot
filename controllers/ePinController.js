@@ -3,6 +3,8 @@ const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { purchaseEPins } = require("../services/vtuService");
 const { createNotification } = require("../services/notificationService");
+const sendEmail = require("../services/emailService");
+const User = require("../models/User");
 
 const normalizePhone = (phone)=>{
 
@@ -123,6 +125,22 @@ order_id:orderId,
 status:epinStatus
 
 });
+
+
+const user = await User.findOne({
+  phone: buyerPhone
+});
+
+
+if(user?.email && pins.length > 0){
+
+  await sendEmail(
+    user.email,
+    "Your ePIN Purchase",
+    `Your ${network} ePIN codes are:\n\n${pins.join("\n")}\n\nThank you for using AlphaBot.`
+  );
+
+}
 
 
 

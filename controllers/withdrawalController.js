@@ -193,6 +193,14 @@ reference
 });
 
 
+await createNotification(
+  "admin",
+  "New Withdrawal Request",
+  `New withdrawal request of ₦${Number(amount).toLocaleString()} from ${phone}`,
+  "info"
+);
+
+
 
 
 

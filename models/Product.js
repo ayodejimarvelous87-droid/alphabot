@@ -21,7 +21,7 @@ const productSchema = new mongoose.Schema(
         "electricity",
         "betting",
         "exam-pin",
-        "recharge-pin",
+        "epin",
         "airtime-cash",
         "bank"
       ],
