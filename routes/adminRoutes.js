@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
+const { loginLimiter, otpLimiter } = require("../middleware/rateLimiter");
 const auth = require("../middleware/auth");
 const admin = require("../middleware/admin");
 
@@ -25,7 +26,8 @@ const {
 
 
 const {
-  adminLogin
+  adminLogin,
+  verifyAdminOTP
 } = require("../controllers/adminAuthController");
 
 
@@ -37,7 +39,10 @@ const {
 
 
 // Admin login
-router.post("/login", adminLogin);
+router.post("/login", loginLimiter, adminLogin);
+
+// Verify admin OTP
+router.post("/verify-otp", otpLimiter, verifyAdminOTP);
 
 
 // Protected admin routes
