@@ -1,20 +1,24 @@
 const mongoose = require("mongoose");
 
-const adminSchema = new mongoose.Schema({
+const adminOTPSchema = new mongoose.Schema({
 
 username:{
-type:String,
-required:true,
-unique:true
-},
-
-password:{
 type:String,
 required:true
 },
 
-email:{
+otp:{
 type:String,
+required:true
+},
+
+attempts:{
+type:Number,
+default:0
+},
+
+expiresAt:{
+type:Date,
 required:true
 }
 
@@ -24,6 +28,6 @@ timestamps:true
 
 
 module.exports = mongoose.model(
-"Admin",
-adminSchema
+"AdminOTP",
+adminOTPSchema
 );
