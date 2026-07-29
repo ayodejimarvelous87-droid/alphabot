@@ -39,6 +39,13 @@ const addFunds = async (req, res) => {
     const { phone, amount, reason } = req.body;
 
 
+    if(!amount || Number(amount) <= 0){
+      return res.status(400).json({
+        message:"Invalid amount"
+      });
+    }
+
+
     const wallet = await Wallet.findOne({ phone });
 
 
@@ -73,7 +80,9 @@ const addFunds = async (req, res) => {
 
       balanceAfter:wallet.balance,
 
-      description: reason || "Admin added funds"
+      description: reason || "Admin added funds",
+
+      adminId: req.user.id
 
     });
 
@@ -107,6 +116,13 @@ const deductFunds = async (req,res)=>{
 try{
 
 const { phone, amount, reason } = req.body;
+
+
+if(!amount || Number(amount) <= 0){
+return res.status(400).json({
+message:"Invalid amount"
+});
+}
 
 
 const wallet = await Wallet.findOne({phone});
@@ -156,7 +172,9 @@ balanceBefore,
 
 balanceAfter:wallet.balance,
 
-description: reason || "Admin deducted funds"
+description: reason || "Admin deducted funds",
+
+adminId: req.user.id
 
 });
 
