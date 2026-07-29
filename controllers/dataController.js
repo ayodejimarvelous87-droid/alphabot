@@ -240,6 +240,10 @@ amount:Number(amount),
 
 reference,
 
+originalReference:reference,
+
+service:"data",
+
 balanceBefore:wallet.balance - Number(amount),
 
 balanceAfter:wallet.balance,

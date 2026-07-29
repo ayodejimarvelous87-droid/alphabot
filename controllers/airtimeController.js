@@ -234,6 +234,10 @@ amount:Number(amount),
 
 reference,
 
+originalReference:reference,
+
+service:"airtime",
+
 balanceBefore:wallet.balance - Number(amount),
 
 balanceAfter:wallet.balance,

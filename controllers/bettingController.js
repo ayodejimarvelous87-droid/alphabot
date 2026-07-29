@@ -175,6 +175,11 @@ type:"refund",
 direction:"credit",
 amount:totalAmount,
 reference,
+
+originalReference:reference,
+
+service:"betting",
+
 balanceBefore:wallet.balance - totalAmount,
 balanceAfter:wallet.balance,
 description:"Automatic refund - Betting failed",

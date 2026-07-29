@@ -151,6 +151,8 @@ phone,
 
 type:"exam_pin",
 
+service:"exam_pin",
+
 direction:"debit",
 
 amount:total,
@@ -201,6 +203,46 @@ console.log(
 error.message
 );
 
+
+const refundWallet = await Wallet.findOne({
+phone
+});
+
+if(refundWallet){
+
+const balanceBeforeRefund = refundWallet.balance;
+
+refundWallet.balance += total;
+
+await refundWallet.save();
+
+await Transaction.create({
+
+phone,
+
+type:"refund",
+
+direction:"credit",
+
+amount:total,
+
+reference,
+
+originalReference:reference,
+
+service:"exam_pin",
+
+balanceBefore:balanceBeforeRefund,
+
+balanceAfter:refundWallet.balance,
+
+description:"Automatic refund - Exam PIN failed",
+
+status:"successful"
+
+});
+
+}
 
 res.status(500).json({
 

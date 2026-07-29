@@ -219,6 +219,10 @@ providerResponse.status !== "success"
 
         reference,
 
+        originalReference:reference,
+
+        service:"tv",
+
         balanceBefore: wallet.balance - chargeAmount,
 
         balanceAfter: wallet.balance,

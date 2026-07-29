@@ -159,6 +159,8 @@ phone:cleanPhone,
 
 type:"recharge_pin",
 
+service:"recharge_pin",
+
 direction:"debit",
 
 amount:total,

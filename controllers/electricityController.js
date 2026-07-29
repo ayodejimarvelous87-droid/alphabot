@@ -302,6 +302,10 @@ const payElectricity = async (req, res) => {
 
         reference,
 
+        originalReference:reference,
+
+        service:"electricity",
+
         balanceBefore: wallet.balance - totalAmount,
 
         balanceAfter: wallet.balance,

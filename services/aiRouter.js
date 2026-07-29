@@ -16,6 +16,7 @@ electricity:"Electricity payment",
 tv:"TV subscription",
 betting:"Betting funding",
 exam_pin:"Exam PIN",
+recharge_pin:"Recharge PIN",
 withdrawal:"Withdrawal",
 refund:"Refund",
 recurring:"Recurring payment"
