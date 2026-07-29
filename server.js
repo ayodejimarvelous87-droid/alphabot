@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const helmet = require("helmet");
 require("dotenv").config();
 
 const startCron = require("./services/cron");
@@ -12,6 +13,8 @@ const path = require("path");
 
 const emailTestRoutes = require("./routes/emailTestRoutes");
 const app = express();
+
+app.use(helmet());
 
 
 // CORS
@@ -25,7 +28,7 @@ app.use(cors({
 }));
 
 
-app.use(express.json());
+app.use(express.json({ limit:"10kb" }));
 app.use(express.urlencoded({ extended:false }));
 
 app.use(express.static(path.join(__dirname,"public")));
