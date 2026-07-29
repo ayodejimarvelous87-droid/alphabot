@@ -433,28 +433,36 @@ return "I could not find a transaction with that reference.";
 return `Transaction ${tx.reference}\n\nType: ${formatType(tx.type)}\nAmount: ₦${formatAmount(tx.amount)}\nStatus: ${formatStatus(tx.status)}${tx.description ? "\nDescription: " + tx.description : ""}`;
 
 }
-// Refund tracking
-if(
-lower.includes("refund") ||
-lower.includes("refunded") ||
-lower.includes("money back")
-){
+ // Refund tracking
+ if(
+ lower.includes("refund") ||
+ lower.includes("refunded") ||
+ lower.includes("money back")
+ ){
 
-const refund = await Transaction.findOne({
-phone:user.phone,
-type:"refund"
-})
-.sort({createdAt:-1});
+ const failedTransaction = await Transaction.findOne({
+ phone:user.phone,
+ status:"failed"
+ })
+ .sort({createdAt:-1});
 
-if(!refund){
-return "I could not find any refund records on your account.";
-}
+ if(!failedTransaction){
+ return "I could not find any failed transaction linked to a refund."; 
+ }
 
-return `Your latest refund of ₦${formatAmount(refund.amount)} is ${formatStatus(refund.status)}.${refund.description ? "\n\nDescription: " + refund.description : ""}`;
+ const refund = await Transaction.findOne({
+ phone:user.phone,
+ type:"refund",
+ originalReference:failedTransaction.reference
+ });
 
-}
+ if(!refund){
+ return "I found your failed transaction, but I could not find a matching refund record yet.";
+ }
 
+ return `Your failed ${formatType(failedTransaction.type)} transaction of ₦${formatAmount(failedTransaction.amount)} has a refund of ₦${formatAmount(refund.amount)}. Refund status: ${formatStatus(refund.status)}.`;
 
+ }
 // Wallet funding troubleshooting
 if(
 (
