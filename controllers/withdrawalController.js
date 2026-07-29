@@ -213,8 +213,16 @@ status:"pending"
 
 } catch(error) {
 
-wallet.balance += total;
-await wallet.save();
+await Wallet.findOneAndUpdate(
+{
+phone
+},
+{
+$inc:{
+balance: total
+}
+}
+);
 
 throw error;
 
@@ -258,8 +266,16 @@ status:"successful"
 
 } catch(error) {
 
-wallet.balance += total;
-await wallet.save();
+await Wallet.findOneAndUpdate(
+{
+phone
+},
+{
+$inc:{
+balance: total
+}
+}
+);
 
 await Withdrawal.deleteOne({
 reference
