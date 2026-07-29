@@ -288,6 +288,40 @@ return `I found your Exam PIN purchase of ₦${formatAmount(exam.amount)}. Statu
 }
 
 
+// Recharge PIN troubleshooting
+if(
+lower.includes("epin") ||
+lower.includes("e pin") ||
+lower.includes("recharge pin") ||
+lower.includes("recharge code") ||
+lower.includes("pin not received") ||
+lower.includes("where is my pin")
+){
+
+const epin = await Transaction.findOne({
+phone:user.phone,
+type:"recharge_pin"
+})
+.sort({createdAt:-1});
+
+if(!epin){
+return "I could not find a recent Recharge PIN transaction related to this issue.";
+}
+
+if(epin.status === "failed"){
+return `Your Recharge PIN purchase of ₦${formatAmount(epin.amount)} failed. If your wallet was debited, please check for a refund or contact support.`;
+}
+
+if(epin.status === "successful" || epin.status === "completed"){
+return `I found your Recharge PIN purchase of ₦${formatAmount(epin.amount)}. Status: ${formatStatus(epin.status)}.${epin.description ? "\n\nDescription: " + epin.description : ""}`;
+}
+
+return `I found your Recharge PIN order of ₦${formatAmount(epin.amount)}. Status: ${formatStatus(epin.status)}.`;
+
+}
+
+
+
  // Betting troubleshooting
  if(
  lower.includes("betting") ||
