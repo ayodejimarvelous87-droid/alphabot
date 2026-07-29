@@ -36,6 +36,7 @@ router.post("/forgot-password", forgotPassword);
 // Send reset OTP
 router.post(
 "/send-reset-otp",
+otpLimiter,
 sendResetOTP
 );
 
@@ -43,6 +44,7 @@ sendResetOTP
 // Verify reset OTP
 router.post(
 "/verify-reset-otp",
+otpLimiter,
 verifyResetOTP
 );
 
@@ -50,13 +52,13 @@ verifyResetOTP
 
 // Profile verification OTP
 // Registration OTP
-router.post("/send-registration-otp", sendRegistrationOTP);
+router.post("/send-registration-otp", otpLimiter, sendRegistrationOTP);
 
-router.post("/verify-registration-otp", verifyRegistrationOTP);
+router.post("/verify-registration-otp", otpLimiter, verifyRegistrationOTP);
 
-router.post("/send-profile-otp", sendProfileOTP);
+router.post("/send-profile-otp", otpLimiter, sendProfileOTP);
 
-router.post("/verify-profile-otp", verifyProfileOTP);
+router.post("/verify-profile-otp", otpLimiter, verifyProfileOTP);
       saveWithdrawAccount,
       getWithdrawAccount
 

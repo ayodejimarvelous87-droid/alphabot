@@ -4,6 +4,7 @@ const router = express.Router();
 
 
 const auth = require("../middleware/auth");
+const { otpLimiter } = require("../middleware/rateLimiter");
 
 
 const {
@@ -20,6 +21,7 @@ verifyPin
 router.post(
 "/send-pin-otp",
 auth,
+otpLimiter,
 sendPinOTP
 );
 

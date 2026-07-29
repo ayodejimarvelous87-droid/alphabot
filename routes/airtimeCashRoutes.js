@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
+const { otpLimiter } = require("../middleware/rateLimiter");
 
 const {
   requestAirtimeCash,
@@ -16,9 +17,9 @@ const {
 
 
 // A2C automated flow
-router.post("/generate-otp", auth, generateAirtimeOTP);
+router.post("/generate-otp", auth, otpLimiter, generateAirtimeOTP);
 
-router.post("/verify-otp", auth, verifyAirtimeOTP);
+router.post("/verify-otp", auth, otpLimiter, verifyAirtimeOTP);
 
 router.post("/convert", auth, convertAirtime);
 
