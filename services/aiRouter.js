@@ -206,6 +206,42 @@ return `I found your electricity payment of ₦${formatAmount(electricity.amount
 
 
 
+// TV subscription troubleshooting
+if(
+lower.includes("tv") &&
+(
+lower.includes("fail") ||
+lower.includes("failed") ||
+lower.includes("not active") ||
+lower.includes("not showing") ||
+lower.includes("did not get") ||
+lower.includes("why")
+)
+){
+
+const tv = await Transaction.findOne({
+phone:user.phone,
+type:"tv"
+})
+.sort({createdAt:-1});
+
+if(!tv){
+return "I could not find a recent TV subscription payment related to this issue.";
+}
+
+if(tv.status === "failed"){
+return `Your TV subscription payment of ₦${formatAmount(tv.amount)} failed.\n\nStatus: ${formatStatus(tv.status)}\n\nIf your wallet was debited and your subscription was not activated, please check for a refund or contact support.`;
+}
+
+if(tv.status === "successful" || tv.status === "completed"){
+return `I could not find a failed TV subscription payment. Your latest TV subscription payment of ₦${formatAmount(tv.amount)} was ${formatStatus(tv.status)}.${tv.description ? "\n\nDescription: " + tv.description : ""}`;
+}
+
+return `I found your TV subscription payment of ₦${formatAmount(tv.amount)}. Status: ${formatStatus(tv.status)}.`;
+
+}
+
+
 // Last 3 transactions
 if(
 lower.includes("last 3 transactions") ||
