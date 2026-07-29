@@ -1,6 +1,7 @@
 const Admin = require("../models/Admin");
 const AdminOTP = require("../models/AdminOTP");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const sendEmail = require("../services/emailService");
 
 
@@ -27,7 +28,13 @@ message:"Invalid username or password"
 }
 
 
-if(admin.password !== password){
+const validPassword = await bcrypt.compare(
+password,
+admin.password
+);
+
+
+if(!validPassword){
 
 return res.status(401).json({
 message:"Invalid username or password"
