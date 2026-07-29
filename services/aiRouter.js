@@ -169,6 +169,42 @@ return `I found your airtime purchase of ₦${formatAmount(airtime.amount)}. Sta
 
 }
 
+// Electricity troubleshooting
+if(
+lower.includes("electricity") &&
+(
+lower.includes("fail") ||
+lower.includes("failed") ||
+lower.includes("token") ||
+lower.includes("not received") ||
+lower.includes("did not get") ||
+lower.includes("why")
+)
+){
+
+const electricity = await Transaction.findOne({
+phone:user.phone,
+type:"electricity"
+})
+.sort({createdAt:-1});
+
+if(!electricity){
+return "I could not find a recent electricity payment related to this issue.";
+}
+
+if(electricity.status === "failed"){
+return `Your electricity payment of ₦${formatAmount(electricity.amount)} failed.\n\nStatus: ${formatStatus(electricity.status)}\n\nIf your wallet was debited and you did not receive a token, please check for a refund or contact support.`;
+}
+
+if(electricity.status === "successful" || electricity.status === "completed"){
+return `I could not find a failed electricity payment. Your latest electricity payment of ₦${formatAmount(electricity.amount)} was ${formatStatus(electricity.status)}.${electricity.description ? "\n\nDescription: " + electricity.description : ""}`;
+}
+
+return `I found your electricity payment of ₦${formatAmount(electricity.amount)}. Status: ${formatStatus(electricity.status)}.`;
+
+}
+
+
 
 // Last 3 transactions
 if(
