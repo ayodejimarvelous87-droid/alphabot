@@ -154,7 +154,28 @@ Number(amount) + fee;
 
 
 
-if(wallet.balance < total){
+const balanceBefore = wallet.balance;
+
+
+const updatedWallet = await Wallet.findOneAndUpdate(
+{
+phone,
+balance:{
+$gte: total
+}
+},
+{
+$inc:{
+balance:-total
+}
+},
+{
+new:true
+}
+);
+
+
+if(!updatedWallet){
 
 return res.status(400).json({
 message:"Insufficient wallet balance"
@@ -163,14 +184,7 @@ message:"Insufficient wallet balance"
 }
 
 
-
-const balanceBefore = wallet.balance;
-
-
-wallet.balance -= total;
-
-
-await wallet.save();
+wallet = updatedWallet;
 
 
 
