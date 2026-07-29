@@ -59,11 +59,15 @@ required:true
 
 reference:{
 type:String,
+unique:true,
+sparse:true,
 default:null
 },
 
 flutterwaveId:{
 type:String,
+unique:true,
+sparse:true,
 default:null
 },
 
@@ -110,6 +114,13 @@ required:true
 
 status:{
 type:String,
+enum:[
+"pending",
+"successful",
+"failed",
+"cancelled",
+"refunded"
+],
 default:"successful"
 }
 
@@ -119,6 +130,20 @@ default:"successful"
 timestamps:true
 }
 );
+
+
+transactionSchema.index({
+phone:1,
+createdAt:-1
+});
+
+transactionSchema.index({
+reference:1
+});
+
+transactionSchema.index({
+flutterwaveId:1
+});
 
 
 module.exports = mongoose.model(
