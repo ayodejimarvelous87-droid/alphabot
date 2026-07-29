@@ -299,10 +299,10 @@ return `Your last transaction was ${formatType(tx.type)} of ₦${formatAmount(tx
 }
 
 
-// Withdrawal status
+// Withdrawal troubleshooting
 if(
-lower.includes("withdrawal status") ||
-lower.includes("my withdrawal")
+lower.includes("withdrawal") ||
+lower.includes("withdraw")
 ){
 
 const wd = await Withdrawal.findOne({
@@ -310,13 +310,21 @@ phone:user.phone
 })
 .sort({createdAt:-1});
 
-
 if(!wd){
-
 return "You don't have any withdrawal requests.";
-
 }
 
+if(wd.status === "failed"){
+return `Your withdrawal of ₦${formatAmount(wd.amount)} failed.\n\nStatus: ${formatStatus(wd.status)}\n\nPlease check your wallet and contact support if the amount was deducted.`;
+}
+
+if(wd.status === "pending"){
+return `Your withdrawal of ₦${formatAmount(wd.amount)} is currently Pending.\n\nIt is waiting for processing. Please contact support if it takes longer than expected.`;
+}
+
+if(wd.status === "successful" || wd.status === "completed"){
+return `Your withdrawal of ₦${formatAmount(wd.amount)} was ${formatStatus(wd.status)}.`;
+}
 
 return `Your latest withdrawal of ₦${formatAmount(wd.amount)} is currently ${formatStatus(wd.status)}.`;
 
