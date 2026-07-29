@@ -1,4 +1,8 @@
-module.exports = function(req,res,next){
+const Admin = require("../models/Admin");
+
+module.exports = async function(req,res,next){
+
+try{
 
 if(!req.user){
 
@@ -18,6 +22,32 @@ message:"Admin access required"
 }
 
 
+
+const admin = await Admin.findById(req.user.id);
+
+
+if(!admin){
+
+return res.status(403).json({
+message:"Admin account no longer exists"
+});
+
+}
+
+
+
+req.admin = admin;
+
+
 next();
+
+
+}catch(error){
+
+return res.status(500).json({
+message:"Admin verification failed"
+});
+
+}
 
 };
