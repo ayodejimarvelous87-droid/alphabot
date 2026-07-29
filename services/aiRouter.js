@@ -135,6 +135,41 @@ return `I found your latest data purchase of ₦${formatAmount(latestData.amount
 }
 
 
+// Airtime purchase troubleshooting
+if(
+lower.includes("airtime") &&
+(
+lower.includes("fail") ||
+lower.includes("failed") ||
+lower.includes("not received") ||
+lower.includes("did not get") ||
+lower.includes("why")
+)
+){
+
+const airtime = await Transaction.findOne({
+phone:user.phone,
+type:"airtime"
+})
+.sort({createdAt:-1});
+
+if(!airtime){
+return "I could not find a recent airtime purchase related to this issue.";
+}
+
+if(airtime.status === "failed"){
+return `Your airtime purchase of ₦${formatAmount(airtime.amount)} failed.\n\nStatus: ${formatStatus(airtime.status)}\n\nIf your wallet was debited and airtime was not received, please check for a refund or contact support.`;
+}
+
+if(airtime.status === "successful" || airtime.status === "completed"){
+return `I could not find a failed airtime purchase. Your latest airtime purchase of ₦${formatAmount(airtime.amount)} was ${formatStatus(airtime.status)}.`;
+}
+
+return `I found your airtime purchase of ₦${formatAmount(airtime.amount)}. Status: ${formatStatus(airtime.status)}.`;
+
+}
+
+
 // Last 3 transactions
 if(
 lower.includes("last 3 transactions") ||
