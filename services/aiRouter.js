@@ -49,6 +49,20 @@ const getAIResponse = async (message, user = {}) => {
 
 const lower = message.toLowerCase();
 
+const failedIntent =
+lower.includes("failed") ||
+lower.includes("fail") ||
+lower.includes("not working") ||
+lower.includes("didn't work") ||
+lower.includes("did not work") ||
+lower.includes("not received") ||
+lower.includes("not showing") ||
+lower.includes("not reflecting") ||
+lower.includes("missing") ||
+lower.includes("problem") ||
+lower.includes("issue");
+
+
 
 // Wallet balance
 if(
@@ -69,14 +83,13 @@ return `Your current AlphaBot wallet balance is ₦${formatAmount(wallet?.balanc
 
 // Data purchase failure investigation
 if(
-lower.includes("data") &&
 (
-lower.includes("fail") ||
-lower.includes("failed") ||
-lower.includes("not received") ||
-lower.includes("did not get") ||
-lower.includes("why")
-)
+lower.includes("data") ||
+lower.includes("bundle") ||
+lower.includes("gb") ||
+lower.includes("internet")
+) &&
+failedIntent
 ){
 
 const dataTransactions = await Transaction.find({
@@ -137,14 +150,14 @@ return `I found your latest data purchase of ₦${formatAmount(latestData.amount
 
 // Airtime purchase troubleshooting
 if(
-lower.includes("airtime") &&
 (
-lower.includes("fail") ||
-lower.includes("failed") ||
-lower.includes("not received") ||
-lower.includes("did not get") ||
-lower.includes("why")
-)
+lower.includes("airtime") ||
+lower.includes("recharge") ||
+lower.includes("top up") ||
+lower.includes("topup") ||
+lower.includes("credit")
+) &&
+failedIntent
 ){
 
 const airtime = await Transaction.findOne({
@@ -171,15 +184,16 @@ return `I found your airtime purchase of ₦${formatAmount(airtime.amount)}. Sta
 
 // Electricity troubleshooting
 if(
-lower.includes("electricity") &&
 (
-lower.includes("fail") ||
-lower.includes("failed") ||
+lower.includes("electricity") ||
+lower.includes("light") ||
 lower.includes("token") ||
-lower.includes("not received") ||
-lower.includes("did not get") ||
-lower.includes("why")
-)
+lower.includes("meter") ||
+lower.includes("nepa") ||
+lower.includes("phcn") ||
+lower.includes("unit")
+) &&
+failedIntent
 ){
 
 const electricity = await Transaction.findOne({
@@ -208,15 +222,15 @@ return `I found your electricity payment of ₦${formatAmount(electricity.amount
 
 // TV subscription troubleshooting
 if(
-lower.includes("tv") &&
 (
-lower.includes("fail") ||
-lower.includes("failed") ||
-lower.includes("not active") ||
-lower.includes("not showing") ||
-lower.includes("did not get") ||
-lower.includes("why")
-)
+lower.includes("tv") ||
+lower.includes("dstv") ||
+lower.includes("gotv") ||
+lower.includes("decoder") ||
+lower.includes("subscription") ||
+lower.includes("renew")
+) &&
+failedIntent
 ){
 
 const tv = await Transaction.findOne({
@@ -367,7 +381,12 @@ return `Your last transaction was ${formatType(tx.type)} of ₦${formatAmount(tx
 // Withdrawal troubleshooting
 if(
 lower.includes("withdrawal") ||
-lower.includes("withdraw")
+lower.includes("withdraw") ||
+lower.includes("cashout") ||
+lower.includes("cash out") ||
+lower.includes("payout") ||
+lower.includes("comot") ||
+lower.includes("take out")
 ){
 
 const wd = await Withdrawal.findOne({
@@ -438,11 +457,20 @@ return `Your latest refund of ₦${formatAmount(refund.amount)} is ${formatStatu
 
 // Wallet funding troubleshooting
 if(
+(
 lower.includes("fund") ||
 lower.includes("deposit") ||
-lower.includes("payment succeeded") ||
+lower.includes("top up") ||
+lower.includes("topup") ||
+lower.includes("added money") ||
+lower.includes("add money") ||
+lower.includes("put money") ||
+lower.includes("sent money") ||
+lower.includes("transferred") ||
 lower.includes("wallet not credited") ||
 lower.includes("balance not updated")
+) &&
+failedIntent
 ){
 
 const fund = await Transaction.findOne({
