@@ -133,6 +133,22 @@ const verifyPayment = async (req,res)=>{
 
     const txRef = response.data.tx_ref;
 
+      const alreadyProcessed = await Transaction.findOne({
+        flutterwaveId: String(response.data.id),
+        status:"successful"
+      });
+
+
+      if(alreadyProcessed){
+
+        return res.json({
+          message:"Payment already processed"
+        });
+
+      }
+
+
+
 
     const pending = await Transaction.findOne({
       reference: txRef,
