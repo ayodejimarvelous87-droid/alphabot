@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const { generalLimiter } = require("./middleware/rateLimiter");
 const helmet = require("helmet");
 require("dotenv").config();
 
@@ -13,6 +14,9 @@ const path = require("path");
 
 const emailTestRoutes = require("./routes/emailTestRoutes");
 const app = express();
+
+// Global API rate protection
+app.use(generalLimiter);
 
 app.use(helmet());
 
