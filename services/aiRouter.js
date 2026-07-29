@@ -242,6 +242,71 @@ return `I found your TV subscription payment of ₦${formatAmount(tv.amount)}. S
 }
 
 
+// Exam PIN troubleshooting
+if(
+lower.includes("exam") ||
+lower.includes("waec") ||
+lower.includes("neco") ||
+lower.includes("result checker") ||
+lower.includes("exam pin")
+){
+
+const exam = await Transaction.findOne({
+phone:user.phone,
+type:"exam_pin"
+})
+.sort({createdAt:-1});
+
+if(!exam){
+return "I could not find a recent Exam PIN transaction related to this issue.";
+}
+
+if(exam.status === "failed"){
+return `Your Exam PIN purchase of ₦${formatAmount(exam.amount)} failed. If your wallet was debited, please check for a refund or contact support.`;
+}
+
+if(exam.status === "successful" || exam.status === "completed"){
+return `I could not find a failed Exam PIN purchase. Your latest Exam PIN purchase of ₦${formatAmount(exam.amount)} was ${formatStatus(exam.status)}.${exam.description ? "\n\nDescription: " + exam.description : ""}`;
+}
+
+return `I found your Exam PIN purchase of ₦${formatAmount(exam.amount)}. Status: ${formatStatus(exam.status)}.`;
+
+}
+
+
+ // Betting troubleshooting
+ if(
+ lower.includes("betting") ||
+ lower.includes("bet account") ||
+ lower.includes("bet wallet") ||
+ lower.includes("fund my bet") ||
+ lower.includes("sports betting")
+ ){
+
+
+const betting = await Transaction.findOne({
+phone:user.phone,
+type:"betting"
+})
+.sort({createdAt:-1});
+
+if(!betting){
+return "I could not find a recent betting transaction related to this issue.";
+}
+
+if(betting.status === "failed"){
+return `Your betting funding of ₦${formatAmount(betting.amount)} failed. If your wallet was debited, please check for a refund or contact support.`;
+}
+
+if(betting.status === "successful" || betting.status === "completed"){
+return `I could not find a failed betting transaction. Your latest betting funding of ₦${formatAmount(betting.amount)} was ${formatStatus(betting.status)}.${betting.description ? "\n\nDescription: " + betting.description : ""}`;
+}
+
+return `I found your betting transaction of ₦${formatAmount(betting.amount)}. Status: ${formatStatus(betting.status)}.`;
+
+}
+
+
 // Last 3 transactions
 if(
 lower.includes("last 3 transactions") ||
@@ -349,6 +414,63 @@ return "I could not find a transaction with that reference.";
 return `Transaction ${tx.reference}\n\nType: ${formatType(tx.type)}\nAmount: ₦${formatAmount(tx.amount)}\nStatus: ${formatStatus(tx.status)}${tx.description ? "\nDescription: " + tx.description : ""}`;
 
 }
+// Refund tracking
+if(
+lower.includes("refund") ||
+lower.includes("refunded") ||
+lower.includes("money back")
+){
+
+const refund = await Transaction.findOne({
+phone:user.phone,
+type:"refund"
+})
+.sort({createdAt:-1});
+
+if(!refund){
+return "I could not find any refund records on your account.";
+}
+
+return `Your latest refund of ₦${formatAmount(refund.amount)} is ${formatStatus(refund.status)}.${refund.description ? "\n\nDescription: " + refund.description : ""}`;
+
+}
+
+
+// Wallet funding troubleshooting
+if(
+lower.includes("fund") ||
+lower.includes("deposit") ||
+lower.includes("payment succeeded") ||
+lower.includes("wallet not credited") ||
+lower.includes("balance not updated")
+){
+
+const fund = await Transaction.findOne({
+phone:user.phone,
+type:"fund"
+})
+.sort({createdAt:-1});
+
+if(!fund){
+return "I could not find any recent wallet funding transaction on your account.";
+}
+
+if(fund.status === "failed"){
+return `Your wallet funding of ₦${formatAmount(fund.amount)} failed. Please try again or use another payment method.`;
+}
+
+if(fund.status === "pending"){
+return `Your wallet funding of ₦${formatAmount(fund.amount)} is still Pending. Please wait while the payment is confirmed.`;
+}
+
+if(fund.status === "successful" || fund.status === "completed"){
+return `Your wallet funding of ₦${formatAmount(fund.amount)} was successful and has been credited to your wallet.${fund.reference ? "\n\nReference: " + fund.reference : ""}`;
+}
+
+return `I found your wallet funding of ₦${formatAmount(fund.amount)}. Status: ${formatStatus(fund.status)}.`;
+
+}
+
 
 // Spending analytics
 if(
