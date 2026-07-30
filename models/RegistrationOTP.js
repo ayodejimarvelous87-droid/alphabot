@@ -9,7 +9,8 @@ required:true
 
 phone:{
 type:String,
-required:true
+required:true,
+index:true
 },
 
 email:{
@@ -31,9 +32,15 @@ type:String,
 required:true
 },
 
+attempts:{
+type:Number,
+default:0
+},
+
 expiresAt:{
 type:Date,
-required:true
+required:true,
+index:true
 }
 
 },{

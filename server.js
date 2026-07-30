@@ -1,9 +1,10 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const { generalLimiter } = require("./middleware/rateLimiter");
 const helmet = require("helmet");
-require("dotenv").config();
+const xss = require("xss");
 
 const startCron = require("./services/cron");
 const startOTPCleanup = require("./services/otpCleanup");
@@ -13,6 +14,7 @@ require("./services/recurringService");
 const path = require("path");
 
 const emailTestRoutes = require("./routes/emailTestRoutes");
+const errorHandler = require("./middleware/errorHandler");
 const app = express();
 
 // Global API rate protection
@@ -32,8 +34,32 @@ app.use(cors({
 }));
 
 
-app.use(express.json({ limit:"10kb" }));
+app.use(express.json({
+  limit:"10kb",
+  verify:(req,res,buf)=>{
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ extended:false }));
+
+// NoSQL injection protection
+
+// XSS protection
+app.use((req,res,next)=>{
+  if(req.body){
+    req.body = JSON.parse(
+      JSON.stringify(req.body),
+      (key,value)=>{
+        if(typeof value === "string"){
+          return xss(value);
+        }
+        return value;
+      }
+    );
+  }
+
+  next();
+});
 
 app.use(express.static(path.join(__dirname,"public")));
 
@@ -148,6 +174,7 @@ app.use("/maintenance", maintenanceRoutes);
 app.use("/airtime", airtimeRoutes);
 app.use("/data", dataRoutes);
 app.use("/data", dataPlanRoutes);
+app.use("/vtu", vtuRoutes);
 app.use("/betting", bettingRoutes);
 app.use("/electricity", electricityRoutes);
 app.use("/tv", tvRoutes);
@@ -197,7 +224,10 @@ mongoose.connect(process.env.MONGO_URI,{
   initializeAirtimeInventory();
 
 
-  app.listen(PORT,()=>{
+  
+app.use(errorHandler);
+
+app.listen(PORT,()=>{
 
     console.log(`AlphaBot API running on port ${PORT}`);
 

@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const BettingSetting = require("../models/BettingSetting");
 
 
@@ -38,9 +39,10 @@ service:req.params.service
 
 if(!setting){
 
-return res.status(404).json({
-message:"Betting setting not found"
-});
+throw new AppError(
+  "Betting setting not found",
+  404
+);
 
 }
 

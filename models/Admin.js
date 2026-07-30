@@ -8,6 +8,11 @@ required:true,
 unique:true
 },
 
+tokenVersion:{
+type:Number,
+default:0
+},
+
 password:{
 type:String,
 required:true

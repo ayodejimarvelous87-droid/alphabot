@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const FundingRequest = require("../models/FundingRequest");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
@@ -17,9 +18,7 @@ const createFundingRequest = async (req, res) => {
 
 
     if (!cleanPhone || !amount) {
-      return res.status(400).json({
-        message: "Phone and amount are required"
-      });
+      throw new AppError("Phone and amount are required", 400);
     }
 
 
@@ -124,11 +123,7 @@ const approveFunding = async(req,res)=>{
 
     if(!request){
 
-      return res.status(404).json({
-
-        message:"Funding request not found"
-
-      });
+      throw new AppError("Funding request not found", 404);
 
     }
 
@@ -136,11 +131,7 @@ const approveFunding = async(req,res)=>{
 
     if(request.status !== "pending"){
 
-      return res.status(400).json({
-
-        message:"Request already processed"
-
-      });
+      throw new AppError("Request already processed", 400);
 
     }
 
@@ -159,11 +150,7 @@ const approveFunding = async(req,res)=>{
 
     if(!wallet){
 
-      return res.status(404).json({
-
-        message:"Wallet not found"
-
-      });
+      throw new AppError("Wallet not found", 404);
 
     }
 
@@ -265,11 +252,7 @@ const rejectFunding = async(req,res)=>{
 
     if(!request){
 
-      return res.status(404).json({
-
-        message:"Funding request not found"
-
-      });
+      throw new AppError("Funding request not found", 404);
 
     }
 

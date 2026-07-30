@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const TVSubscription = require("../models/TVSubscription");
 const Wallet = require("../models/wallet");
@@ -11,6 +13,7 @@ const {
   purchaseTV
 } = require("../services/vtuService");
 const { purchase, getCablePackages } = require("../services/blitzPayService");
+const { checkIdempotency } = require("../utils/idempotency");
 
 
 const subscribeTV = async (req, res) => {
@@ -26,15 +29,32 @@ const subscribeTV = async (req, res) => {
       pin
     } = req.body;
 
+      const idempotencyKey =
+      req.headers["idempotency-key"];
+
+
+      const existingTransaction =
+      await checkIdempotency(idempotencyKey);
+
+
+      if(existingTransaction){
+
+        return res.json({
+          message:"Transaction already processed",
+          transaction:existingTransaction
+        });
+
+      }
+
+
+
 
     const phone = normalizePhone(req.user.phone);
 
 
     if (!provider || !smartCardNumber || !variation_id || !amount || !pin) {
 
-      return res.status(400).json({
-        message: "Provider, smart card, package, amount and PIN required"
-      });
+      throw new AppError("Provider, smart card, package, amount and PIN required", 400);
 
     }
 
@@ -46,18 +66,14 @@ const subscribeTV = async (req, res) => {
 
     if (!userPin) {
 
-      return res.status(400).json({
-        message: "Create transaction PIN first"
-      });
+      throw new AppError("Create transaction PIN first", 400);
 
     }
 
 
-    if (userPin.pin !== pin) {
+    if (!(await bcrypt.compare(pin,userPin.pin))) {
 
-      return res.status(400).json({
-        message: "Incorrect transaction PIN"
-      });
+      throw new AppError("Incorrect transaction PIN", 400);
 
     }
 
@@ -69,9 +85,7 @@ const subscribeTV = async (req, res) => {
 
     if (!wallet) {
 
-      return res.status(404).json({
-        message: "Wallet not found"
-      });
+      throw new AppError("Wallet not found", 404);
 
     }
 
@@ -83,18 +97,14 @@ const subscribeTV = async (req, res) => {
 
     if (!tvPlan){
 
-      return res.status(404).json({
-        message:"TV plan not found"
-      });
+      throw new AppError("TV plan not found", 404);
 
     }
 
 
     if(!tvPlan.active){
 
-      return res.status(400).json({
-        message:"This TV plan is currently unavailable"
-      });
+      throw new AppError("This TV plan is currently unavailable", 400);
 
     }
 
@@ -104,9 +114,7 @@ const subscribeTV = async (req, res) => {
 
     if (wallet.balance < chargeAmount) {
 
-      return res.status(400).json({
-        message: "Insufficient wallet balance"
-      });
+      throw new AppError("Insufficient wallet balance", 400);
 
     }
 
@@ -122,13 +130,7 @@ const subscribeTV = async (req, res) => {
 
     if (!verify || verify.code !== "success") {
 
-      return res.status(400).json({
-
-        message: "Smart card verification failed",
-
-        verify
-
-      });
+      throw new AppError("Smart card verification failed", 400);
 
     }
 
@@ -219,6 +221,8 @@ providerResponse.status !== "success"
 
         reference,
 
+        idempotencyKey,
+
         originalReference:reference,
 
         service:"tv",
@@ -234,13 +238,7 @@ providerResponse.status !== "success"
       });
 
 
-      return res.status(400).json({
-
-        message: "TV subscription failed",
-
-        providerResponse: err.response?.data || err.message
-
-      });
+      throw new AppError("TV subscription failed", 400);
 
     }
 
@@ -278,6 +276,18 @@ providerResponse.status !== "success"
       amount: chargeAmount,
 
       reference,
+
+      vtuRequestId:
+        providerResponse.reference ||
+        providerResponse.request_id ||
+        reference,
+
+      vtuOrderId:
+        providerResponse.data?.order ||
+        providerResponse.order_id ||
+        null,
+
+      providerResponse: providerResponse,
 
       balanceBefore,
 

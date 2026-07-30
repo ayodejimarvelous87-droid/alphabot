@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const axios = require("axios");
 
 const getBanks = async (req, res) => {
@@ -37,9 +38,10 @@ const verifyAccount = async (req, res) => {
 
     if (!accountNumber || !bankCode) {
 
-      return res.status(400).json({
-        message: "Bank code and account number are required"
-      });
+      throw new AppError(
+  "Bank code and account number are required",
+  400
+);
 
     }
 

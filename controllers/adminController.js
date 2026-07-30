@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const User = require("../models/User");
 const Wallet = require("../models/wallet");
 const Order = require("../models/Order");
@@ -135,9 +136,10 @@ const updateAILimit = async (req, res) => {
 
     if (!limit || Number(limit) < 0) {
 
-      return res.status(400).json({
-        message:"Valid AI limit is required"
-      });
+      throw new AppError(
+  "Valid AI limit is required",
+  400
+);
 
     }
 
@@ -293,9 +295,10 @@ phone
 
 if(!user){
 
-return res.status(404).json({
-message:"User not found"
-});
+throw new AppError(
+  "User not found",
+  404
+);
 
 }
 
@@ -371,9 +374,10 @@ phone:req.params.phone
 
 
 if(!user){
-return res.status(404).json({
-message:"User not found"
-});
+throw new AppError(
+  "User not found",
+  404
+);
 }
 
 
@@ -410,9 +414,10 @@ phone:req.params.phone
 
 
 if(!user){
-return res.status(404).json({
-message:"User not found"
-});
+throw new AppError(
+  "User not found",
+  404
+);
 }
 
 
@@ -449,9 +454,10 @@ phone:req.params.phone
 
 
 if(!user){
-return res.status(404).json({
-message:"User not found"
-});
+throw new AppError(
+  "User not found",
+  404
+);
 }
 
 
@@ -482,9 +488,10 @@ phone:req.params.phone
 
 
 if(!user){
-return res.status(404).json({
-message:"User not found"
-});
+throw new AppError(
+  "User not found",
+  404
+);
 }
 
 
@@ -522,9 +529,10 @@ phone:req.params.phone
 
 
 if(!user){
-return res.status(404).json({
-message:"User not found"
-});
+throw new AppError(
+  "User not found",
+  404
+);
 }
 
 
@@ -560,9 +568,10 @@ const {title,message,type}=req.body;
 
 if(!title || !message){
 
-return res.status(400).json({
-message:"Title and message are required"
-});
+throw new AppError(
+  "Title and message are required",
+  400
+);
 
 }
 

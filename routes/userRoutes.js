@@ -3,6 +3,8 @@ const router = express.Router();
 const { loginLimiter, otpLimiter } = require("../middleware/rateLimiter");
 
 const auth = require("../middleware/auth");
+const validate = require("../middleware/validate");
+const { registerSchema, loginSchema, otpSchema } = require("../validators/authValidator");
 const {
   registerUser,
   loginUser,
@@ -15,18 +17,18 @@ const {
   sendProfileOTP,
   sendRegistrationOTP,
   verifyRegistrationOTP,
-  verifyProfileOTP,
   saveWithdrawAccount,
-  getWithdrawAccount
+  getWithdrawAccount,
+  verifyProfileOTP,
 } = require("../controllers/userController");
 
 
 // Register
-router.post("/register", registerUser);
+router.post("/register", validate(registerSchema), registerUser);
 
 
 // Login
-router.post("/login", loginLimiter, (req,res,next)=>{ console.log("USER LOGIN ROUTE HIT"); loginUser(req,res,next); });
+router.post("/login", validate(loginSchema), loginLimiter, (req,res,next)=>{ console.log("USER LOGIN ROUTE HIT"); loginUser(req,res,next); });
 
 
 // Forgot password
@@ -58,9 +60,7 @@ router.post("/verify-registration-otp", otpLimiter, verifyRegistrationOTP);
 
 router.post("/send-profile-otp", otpLimiter, sendProfileOTP);
 
-router.post("/verify-profile-otp", otpLimiter, verifyProfileOTP);
-      saveWithdrawAccount,
-      getWithdrawAccount
+router.post("/verify-profile-otp", validate(otpSchema), otpLimiter, verifyProfileOTP);
 
 
 // User profile

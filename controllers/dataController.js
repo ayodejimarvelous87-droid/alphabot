@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const Data = require("../models/Data");
 const Wallet = require("../models/wallet");
@@ -6,13 +8,18 @@ const { createNotification } = require("../services/notificationService");
 const normalizePhone = require("../utils/phone");
 const getErrorMessage = require("../utils/errorHandler");
 
+const {
+checkIdempotency,
+saveIdempotencyKey
+} = require("../utils/idempotency");
+
 const { vtuRequest } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
 const { purchaseData } = require("../services/oplugService");
 
 
 
-const buyData = async (req,res)=>{
+const buyData = async (req,res,next)=>{
 
 try{
 
@@ -28,12 +35,26 @@ provider
 }=req.body;
 
 
+const idempotencyKey =
+req.headers["idempotency-key"];
+
+const existingTransaction =
+await checkIdempotency(idempotencyKey);
+
+if(existingTransaction){
+
+return res.json({
+message:"Transaction already processed",
+transaction:existingTransaction
+});
+
+}
+
+
 
 if(!network || !plan || !amount){
 
-return res.status(400).json({
-message:"Network, plan and amount are required"
-});
+throw new AppError("Network, plan and amount are required", 400);
 
 }
 
@@ -53,19 +74,15 @@ phone:userPhone
 
 if(!userPin){
 
-return res.status(400).json({
-message:"Create transaction PIN first"
-});
+throw new AppError("Create transaction PIN first", 400);
 
 }
 
 
 
-if(userPin.pin !== pin){
+if(!(await bcrypt.compare(pin,userPin.pin))){
 
-return res.status(400).json({
-message:"Incorrect transaction PIN"
-});
+throw new AppError("Incorrect transaction PIN", 400);
 
 }
 
@@ -78,9 +95,7 @@ phone:userPhone
 
 if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+throw new AppError("Wallet not found", 404);
 
 }
 
@@ -88,9 +103,7 @@ message:"Wallet not found"
 
 if(wallet.balance < Number(amount)){
 
-return res.status(400).json({
-message:"Insufficient balance"
-});
+throw new AppError("Insufficient balance", 400);
 
 }
 
@@ -240,6 +253,8 @@ amount:Number(amount),
 
 reference,
 
+    idempotencyKey,
+
 originalReference:reference,
 
 service:"data",
@@ -264,13 +279,7 @@ await createNotification(
 
 
 
-return res.status(400).json({
-
-message:"Data purchase failed",
-
-error:error.message
-
-});
+throw new AppError("Data purchase failed", 400);
 
 }
 
@@ -286,27 +295,41 @@ phone:dataPhone,
 
 
 
-await Transaction.create({
+  await Transaction.create({
 
-phone:userPhone,
+  phone:userPhone,
 
-type:"data",
+  type:"data",
 
-direction:"debit",
+  direction:"debit",
 
-amount:Number(amount),
+  amount:Number(amount),
 
-reference,
+  reference,
 
-balanceBefore,
+  vtuRequestId:
+    providerResponse.reference ||
+    providerResponse.request_id ||
+    reference,
 
-balanceAfter:wallet.balance,
+  vtuOrderId:
+    providerResponse.data?.order ||
+    providerResponse.order_id ||
+    null,
 
-description:`${network} data purchase`,
+  providerResponse: providerResponse,
 
-status:"successful"
+  service:"data",
 
-});
+  balanceBefore,
+
+  balanceAfter:wallet.balance,
+
+  description:`${network} data purchase`,
+
+  status:"successful"
+
+  });
 
 
 
@@ -349,10 +372,7 @@ error.response?.data || error.message
 
 
 
-res.status(500).json({
-success:false,
-message:getErrorMessage(error)
-});
+next(error);
 
 
 }

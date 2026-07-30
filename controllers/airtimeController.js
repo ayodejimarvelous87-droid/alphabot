@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const AirtimeOverride = require("../models/AirtimeOverride");
 const TransactionPin = require("../models/TransactionPin");
 const Airtime = require("../models/Airtime");
@@ -10,6 +12,7 @@ const normalizePhone = require("../utils/phone");
 const getErrorMessage = require("../utils/errorHandler");
 const { purchaseAirtime } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
+const { checkIdempotency } = require("../utils/idempotency");
 
 
 // Buy airtime
@@ -21,11 +24,25 @@ try{
 const { network, amount, pin, phone } = req.body;
 
 
+const idempotencyKey =
+req.headers["idempotency-key"];
+
+const existingTransaction =
+await checkIdempotency(idempotencyKey);
+
+if(existingTransaction){
+
+return res.json({
+message:"Transaction already processed",
+transaction:existingTransaction
+});
+
+}
+
+
 if(!network || !amount){
 
-return res.status(400).json({
-message:"Network and amount are required"
-});
+throw new AppError("Network and amount are required", 400);
 
 }
 
@@ -45,18 +62,14 @@ phone: cleanPhone
 
 if(!userPin){
 
-return res.status(400).json({
-message:"Create transaction PIN first"
-});
+throw new AppError("Create transaction PIN first", 400);
 
 }
 
 
-if(userPin.pin !== pin){
+if(!(await bcrypt.compare(pin,userPin.pin))){
 
-return res.status(400).json({
-message:"Incorrect transaction PIN"
-});
+throw new AppError("Incorrect transaction PIN", 400);
 
 }
 
@@ -69,18 +82,14 @@ phone: cleanPhone
 
 if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+throw new AppError("Wallet not found", 404);
 
 }
 
 
 if(wallet.balance < Number(amount)){
 
-return res.status(400).json({
-message:"Insufficient wallet balance"
-});
+throw new AppError("Insufficient wallet balance", 400);
 
 }
 
@@ -94,9 +103,7 @@ const reference = "AIRTIME-" + Date.now();
 const airtimeSetting = await AirtimeOverride.findOne({network: network.toUpperCase()});
 
 if(airtimeSetting && airtimeSetting.active === false){
-return res.status(400).json({
-message:"This airtime network is currently unavailable"
-});
+throw new AppError("This airtime network is currently unavailable", 400);
 }
 
 
@@ -234,6 +241,21 @@ amount:Number(amount),
 
 reference,
 
+  idempotencyKey,
+
+vtuRequestId:
+providerResponse.reference ||
+providerResponse.request_id ||
+reference,
+
+vtuOrderId:
+providerResponse.data?.order ||
+providerResponse.order_id ||
+null,
+
+providerResponse: providerResponse,
+
+
 originalReference:reference,
 
 service:"airtime",
@@ -257,13 +279,7 @@ await createNotification(
 );
 
 
-return res.status(400).json({
-
-message:"Airtime purchase failed",
-
-error:error.message
-
-});
+throw new AppError("Airtime purchase failed", 400);
 
 
 }
@@ -295,6 +311,19 @@ source: providerResponse.source || "provider",
 
 reference,
 
+vtuRequestId:
+providerResponse.reference ||
+providerResponse.request_id ||
+reference,
+
+vtuOrderId:
+providerResponse.data?.order ||
+providerResponse.order_id ||
+null,
+
+providerResponse: providerResponse,
+
+
 status:"successful"
 
 });
@@ -312,6 +341,19 @@ direction:"debit",
 amount:Number(amount),
 
 reference,
+
+vtuRequestId:
+providerResponse.reference ||
+providerResponse.request_id ||
+reference,
+
+vtuOrderId:
+providerResponse.data?.order ||
+providerResponse.order_id ||
+null,
+
+providerResponse: providerResponse,
+
 
 balanceBefore,
 
@@ -338,6 +380,19 @@ profit,
 source: providerResponse.source || "provider",
 
 reference,
+
+vtuRequestId:
+providerResponse.reference ||
+providerResponse.request_id ||
+reference,
+
+vtuOrderId:
+providerResponse.data?.order ||
+providerResponse.order_id ||
+null,
+
+providerResponse: providerResponse,
+
 
 phone:cleanPhone
 
@@ -374,6 +429,19 @@ direction:"credit",
 amount:cashback,
 
 reference,
+
+vtuRequestId:
+providerResponse.reference ||
+providerResponse.request_id ||
+reference,
+
+vtuOrderId:
+providerResponse.data?.order ||
+providerResponse.order_id ||
+null,
+
+providerResponse: providerResponse,
+
 
 balanceBefore:cashbackBefore,
 

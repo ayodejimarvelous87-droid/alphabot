@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const ElectricitySetting = require("../models/ElectricitySetting");
 
 
@@ -38,9 +39,10 @@ disco:req.params.disco
 
 if(!setting){
 
-return res.status(404).json({
-message:"Electricity setting not found"
-});
+throw new AppError(
+  "Electricity setting not found",
+  404
+);
 
 }
 

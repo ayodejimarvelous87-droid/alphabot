@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 require("dotenv").config();
 
 const Wallet = require("../models/wallet");
@@ -21,9 +22,7 @@ const paymentWebhook = async (req, res) => {
     const cleanPhone = normalizePhone(phone);
 
     if (!cleanPhone || !amount || !reference) {
-      return res.status(400).json({
-        message: "Invalid payment data"
-      });
+      throw new AppError("Invalid payment data", 400);
     }
 
     const existingTransaction = await Transaction.findOne({
@@ -31,9 +30,7 @@ const paymentWebhook = async (req, res) => {
     });
 
     if (existingTransaction) {
-      return res.status(400).json({
-        message: "Payment already processed"
-      });
+      throw new AppError("Payment already processed", 400);
     }
 
     const wallet = await Wallet.findOne({
@@ -41,9 +38,7 @@ const paymentWebhook = async (req, res) => {
     });
 
     if (!wallet) {
-      return res.status(404).json({
-        message: "Wallet not found"
-      });
+      throw new AppError("Wallet not found", 404);
     }
 
     wallet.balance += Number(amount);

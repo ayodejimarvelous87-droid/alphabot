@@ -1,9 +1,11 @@
+const AppError = require("../utils/AppError");
 const EPin = require("../models/EPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { purchaseEPins } = require("../services/vtuService");
 const { createNotification } = require("../services/notificationService");
 const sendEmail = require("../services/emailService");
+const { checkIdempotency } = require("../utils/idempotency");
 const User = require("../models/User");
 
 const normalizePhone = (phone)=>{
@@ -32,15 +34,35 @@ amount,
 quantity
 }=req.body;
 
+const idempotencyKey =
+req.headers["idempotency-key"];
+
+
+const existingTransaction =
+await checkIdempotency(idempotencyKey);
+
+
+if(existingTransaction){
+
+return res.json({
+message:"Transaction already processed",
+transaction:existingTransaction
+});
+
+}
+
+
+
 
 const cleanPhone = normalizePhone(phone);
 
 
 if(!cleanPhone || !network || !amount || !quantity){
 
-return res.status(400).json({
-message:"Phone, network, amount and quantity are required"
-});
+throw new AppError(
+  "Phone, network, amount and quantity are required",
+  400
+);
 
 }
 
@@ -54,9 +76,10 @@ phone:buyerPhone
 
 if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+throw new AppError(
+  "Wallet not found",
+  404
+);
 
 }
 
@@ -67,9 +90,10 @@ Number(amount) * Number(quantity);
 
 if(wallet.balance < total){
 
-return res.status(400).json({
-message:"Insufficient wallet balance"
-});
+throw new AppError(
+  "Insufficient wallet balance",
+  400
+);
 
 }
 
@@ -128,6 +152,18 @@ pins,
 
 reference,
 
+      vtuRequestId:
+      providerResponse.reference ||
+      providerResponse.request_id ||
+      reference,
+
+      vtuOrderId:
+      providerResponse.data?.order ||
+      providerResponse.order_id ||
+      null,
+
+      providerResponse: providerResponse,
+
 order_id:orderId,
 
 status:epinStatus
@@ -166,6 +202,18 @@ direction:"debit",
 amount:total,
 
 reference,
+
+      vtuRequestId:
+      providerResponse.reference ||
+      providerResponse.request_id ||
+      reference,
+
+      vtuOrderId:
+      providerResponse.data?.order ||
+      providerResponse.order_id ||
+      null,
+
+      providerResponse: providerResponse,
 
 balanceBefore,
 

@@ -1,9 +1,12 @@
 require("dotenv").config();
 const axios = require("axios");
+const { recordProviderResult } = require("./providerMonitorService");
 
 const BASE_URL = process.env.OPLUG_BASE_URL;
 
 const oplugRequest = async(endpoint, method="GET", data=null)=>{
+
+const startTime = Date.now();
 
 try{
 
@@ -19,6 +22,7 @@ let response;
 
 
 if(method==="POST"){
+
 console.log("OPLUG AXIOS BODY:", data);
 
 response = await axios.post(
@@ -37,22 +41,39 @@ config
 }
 
 
+await recordProviderResult({
+provider:"oplug",
+service:endpoint,
+success:true,
+responseTime:Date.now()-startTime
+});
+
+
 return response.data;
 
 
 }catch(error){
+
+await recordProviderResult({
+provider:"oplug",
+service:endpoint,
+success:false,
+responseTime:Date.now()-startTime,
+error:error.response?.data?.message || error.message
+});
+
 
 console.log(
 "OPLUG error:",
 error.response?.data || error.message
 );
 
+
 throw error;
 
 }
 
 };
-
 
 
 const getBalance = async()=>{

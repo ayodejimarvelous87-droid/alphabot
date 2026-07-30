@@ -1,10 +1,11 @@
+const AppError = require("../utils/AppError");
 const FundRequest = require("../models/FundRequest");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
 
 // User creates funding request
-const createFundRequest = async(req,res)=>{
+const createFundRequest = async(req,res,next)=>{
 
 try{
 
@@ -30,9 +31,7 @@ request
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
@@ -40,7 +39,7 @@ message:error.message
 
 
 // Admin gets all requests
-const getFundRequests=async(req,res)=>{
+const getFundRequests=async(req,res,next)=>{
 
 try{
 
@@ -51,9 +50,7 @@ res.json(requests);
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
@@ -61,7 +58,7 @@ message:error.message
 
 
 
-const approveFundRequest = async(req,res)=>{
+const approveFundRequest = async(req,res,next)=>{
 
 try{
 
@@ -70,15 +67,17 @@ const {id}=req.params;
 const request=await FundRequest.findById(id);
 
 if(!request){
-return res.status(404).json({
-message:"Funding request not found"
-});
+throw new AppError(
+  "Funding request not found",
+  404
+);
 }
 
 if(request.status!=="pending"){
-return res.status(400).json({
-message:"Funding request already processed"
-});
+throw new AppError(
+  "Funding request already processed",
+  400
+);
 }
 
 let wallet=await Wallet.findOne({
@@ -133,9 +132,7 @@ message:"Funding request approved"
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
@@ -144,7 +141,7 @@ message:error.message
 
 
 
-const rejectFundRequest = async(req,res)=>{
+const rejectFundRequest = async(req,res,next)=>{
 
 try{
 
@@ -153,16 +150,18 @@ const {id}=req.params;
 const request=await FundRequest.findById(id);
 
 if(!request){
-return res.status(404).json({
-message:"Funding request not found"
-});
+throw new AppError(
+  "Funding request not found",
+  404
+);
 }
 
 
 if(request.status!=="pending"){
-return res.status(400).json({
-message:"Funding request already processed"
-});
+throw new AppError(
+  "Funding request already processed",
+  400
+);
 }
 
 
@@ -186,9 +185,7 @@ message:"Funding request rejected"
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 

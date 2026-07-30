@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 
@@ -12,9 +13,10 @@ const searchWallet = async (req, res) => {
 
 
     if (!wallet) {
-      return res.status(404).json({
-        message: "Wallet not found"
-      });
+      throw new AppError(
+  "Wallet not found",
+  404
+);
     }
 
 
@@ -40,9 +42,10 @@ const addFunds = async (req, res) => {
 
 
     if(!amount || Number(amount) <= 0){
-      return res.status(400).json({
-        message:"Invalid amount"
-      });
+      throw new AppError(
+  "Invalid amount",
+  400
+);
     }
 
 
@@ -50,9 +53,10 @@ const addFunds = async (req, res) => {
 
 
     if(!wallet){
-      return res.status(404).json({
-        message:"Wallet not found"
-      });
+      throw new AppError(
+  "Wallet not found",
+  404
+);
     }
 
 
@@ -119,9 +123,10 @@ const { phone, amount, reason } = req.body;
 
 
 if(!amount || Number(amount) <= 0){
-return res.status(400).json({
-message:"Invalid amount"
-});
+throw new AppError(
+  "Invalid amount",
+  400
+);
 }
 
 
@@ -130,9 +135,10 @@ const wallet = await Wallet.findOne({phone});
 
 if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+throw new AppError(
+  "Wallet not found",
+  404
+);
 
 }
 
@@ -140,9 +146,10 @@ message:"Wallet not found"
 
 if(wallet.balance < Number(amount)){
 
-return res.status(400).json({
-message:"Insufficient balance"
-});
+throw new AppError(
+  "Insufficient balance",
+  400
+);
 
 }
 

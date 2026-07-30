@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
@@ -19,9 +21,10 @@ pin
 
 if(!phone || !network || !plan || !amount || !pin){
 
-return res.status(400).json({
-message:"Phone, network, plan, amount and PIN are required"
-});
+throw new AppError(
+  "Phone, network, plan, amount and PIN are required",
+  400
+);
 
 }
 
@@ -35,18 +38,20 @@ phone
 
 if(!userPin){
 
-return res.status(400).json({
-message:"Create transaction PIN first"
-});
+throw new AppError(
+  "Create transaction PIN first",
+  400
+);
 
 }
 
 
-if(userPin.pin !== pin){
+if(!(await bcrypt.compare(pin,userPin.pin))){
 
-return res.status(400).json({
-message:"Incorrect transaction PIN"
-});
+throw new AppError(
+  "Incorrect transaction PIN",
+  400
+);
 
 }
 
@@ -60,19 +65,20 @@ phone
 
 if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+throw new AppError(
+  "Wallet not found",
+  404
+);
 
 }
 
 
 if(wallet.balance < Number(amount)){
 
-return res.status(400).json({
-message:"Insufficient balance",
-balance:wallet.balance
-});
+throw new AppError(
+  "Insufficient balance",
+  400
+);
 
 }
 
@@ -98,10 +104,10 @@ providerResponse.success === false ||
 String(providerResponse).toLowerCase().includes("failed")
 ){
 
-return res.status(400).json({
-message:"Data purchase failed",
-providerResponse
-});
+throw new AppError(
+  "Data purchase failed",
+  400
+);
 
 }
 
@@ -125,6 +131,20 @@ type:"purchase",
 direction:"debit",
 
 amount:Number(amount),
+
+reference,
+
+vtuRequestId:
+providerResponse.reference ||
+providerResponse.request_id ||
+reference,
+
+vtuOrderId:
+providerResponse.data?.order ||
+providerResponse.order_id ||
+null,
+
+providerResponse: providerResponse,
 
 balanceBefore,
 

@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const Recurring = require("../models/Recurring");
 
 
@@ -36,9 +37,10 @@ await Recurring.findById(req.params.id);
 
 if(!recurring){
 
-return res.status(404).json({
-message:"Recurring payment not found"
-});
+throw new AppError(
+  "Recurring payment not found",
+  404
+);
 
 }
 

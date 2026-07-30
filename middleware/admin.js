@@ -22,7 +22,6 @@ message:"Admin access required"
 }
 
 
-
 const admin = await Admin.findById(req.user.id);
 
 
@@ -34,6 +33,14 @@ message:"Admin account no longer exists"
 
 }
 
+
+if(admin.tokenVersion !== req.user.tokenVersion){
+
+return res.status(401).json({
+message:"Admin token revoked"
+});
+
+}
 
 
 req.admin = admin;

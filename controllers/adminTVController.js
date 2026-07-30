@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const TVPlan = require("../models/TVPlan");
 
 const {
@@ -79,9 +80,10 @@ await TVPlan.findById(req.params.id);
 
 if(!plan){
 
-return res.status(404).json({
-message:"TV plan not found"
-});
+throw new AppError(
+  "TV plan not found",
+  404
+);
 
 }
 

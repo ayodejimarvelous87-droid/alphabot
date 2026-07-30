@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const Withdrawal = require("../models/Withdrawal");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
@@ -35,16 +36,18 @@ const approveWithdrawal = async (req,res)=>{
     const withdrawal = await Withdrawal.findById(id);
 
     if(!withdrawal){
-      return res.status(404).json({
-        message:"Withdrawal not found"
-      });
+      throw new AppError(
+  "Withdrawal not found",
+  404
+);
     }
 
 
     if(withdrawal.status !== "pending"){
-      return res.status(400).json({
-        message:"Withdrawal already processed"
-      });
+      throw new AppError(
+  "Withdrawal already processed",
+  400
+);
     }
 
 
@@ -98,16 +101,18 @@ const rejectWithdrawal = async (req,res)=>{
 
 
     if(!withdrawal){
-      return res.status(404).json({
-        message:"Withdrawal not found"
-      });
+      throw new AppError(
+  "Withdrawal not found",
+  404
+);
     }
 
 
     if(withdrawal.status !== "pending"){
-      return res.status(400).json({
-        message:"Withdrawal already processed"
-      });
+      throw new AppError(
+  "Withdrawal already processed",
+  400
+);
     }
 
 

@@ -1,64 +1,105 @@
 const rateLimit = require("express-rate-limit");
+const { RedisStore } = require("rate-limit-redis");
+const { createClient } = require("redis");
 
 
-// General API protection
-const generalLimiter = rateLimit({
-
-windowMs: 15 * 60 * 1000,
-
-max: 200,
-
-message:{
-message:"Too many requests. Please try again later."
-},
-
-standardHeaders:true,
-
-legacyHeaders:false
-
+const redisClient = createClient({
+  url: process.env.REDIS_URL
 });
 
 
-
-// Login protection
-const loginLimiter = rateLimit({
-
-windowMs: 15 * 60 * 1000,
-
-max: 5,
-
-message:{
-message:"Too many login attempts. Try again later."
-},
-
-standardHeaders:true,
-
-legacyHeaders:false
-
-});
+redisClient.on(
+  "error",
+  (err)=>{
+    console.log("Redis error:", err.message);
+  }
+);
 
 
+let redisReady = false;
 
-// OTP protection
-const otpLimiter = rateLimit({
 
-windowMs: 10 * 60 * 1000,
+const connectRedis = async()=>{
 
-max: 5,
+  if(redisClient.isOpen){
+    return;
+  }
 
-message:{
-message:"Too many OTP attempts. Try again later."
-},
+  console.log("Redis connecting...");
 
-standardHeaders:true,
+  await redisClient.connect();
 
-legacyHeaders:false
+  redisReady = true;
 
-});
+  console.log("Redis connected");
+
+};
+
+
+const createLimiter = (
+  windowMs,
+  max,
+  message
+)=>{
+
+  return rateLimit({
+
+    store: new RedisStore({
+
+      sendCommand: async(...args)=>{
+
+        if(!redisReady){
+          await connectRedis();
+        }
+
+        return redisClient.sendCommand(args);
+
+      }
+
+    }),
+
+    windowMs,
+
+    max,
+
+    message:{
+      message
+    },
+
+    standardHeaders:true,
+
+    legacyHeaders:false
+
+  });
+
+};
+
+
+
+const generalLimiter = createLimiter(
+  15 * 60 * 1000,
+  200,
+  "Too many requests. Please try again later."
+);
+
+
+const loginLimiter = createLimiter(
+  15 * 60 * 1000,
+  5,
+  "Too many login attempts. Try again later."
+);
+
+
+const otpLimiter = createLimiter(
+  10 * 60 * 1000,
+  5,
+  "Too many OTP attempts. Try again later."
+);
+
 
 
 module.exports = {
-generalLimiter,
-loginLimiter,
-otpLimiter
+  generalLimiter,
+  loginLimiter,
+  otpLimiter
 };

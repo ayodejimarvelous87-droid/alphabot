@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const Notification = require("../models/Notification");
 const normalizePhone = require("../utils/phone");
 
@@ -51,9 +52,10 @@ const markRead = async (req,res)=>{
 
 
     if(!notification){
-      return res.status(404).json({
-        message:"Notification not found"
-      });
+      throw new AppError(
+  "Notification not found",
+  404
+);
     }
 
 

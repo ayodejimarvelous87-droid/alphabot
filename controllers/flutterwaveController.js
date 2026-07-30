@@ -1,9 +1,11 @@
+const AppError = require("../utils/AppError");
 const Flutterwave = require("flutterwave-node-v3");
 const Wallet = require("../models/wallet");
 const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
 const axios = require("axios");
+const { recordProviderResult } = require("../services/providerMonitorService");
 const { createNotification } = require("../services/notificationService");
 
 const flw = new Flutterwave(
@@ -22,17 +24,13 @@ const createPayment = async (req, res) => {
     const user = await User.findById(req.user.id);
 
     if(!user){
-      return res.status(404).json({
-        message:"User not found"
-      });
+      throw new AppError("User not found", 404);
     }
 
     const phone = normalizePhone(user.phone);
 
     if (!amount || Number(amount) <= 0) {
-      return res.status(400).json({
-        message: "Invalid amount"
-      });
+      throw new AppError("Invalid amount", 400);
     }
 
     const payload = {
@@ -98,16 +96,14 @@ const createPayment = async (req, res) => {
       error.response?.data || error.message
     );
 
-    res.status(500).json({
-      message:error.response?.data || error.message
-    });
+    next(error);
 
   }
 };
 
 
 
-const verifyPayment = async (req,res)=>{
+const verifyPayment = async (req,res,next)=>{
 
   try {
 
@@ -124,9 +120,7 @@ const verifyPayment = async (req,res)=>{
       response.data.status !== "successful"
     ){
 
-      return res.status(400).json({
-        message:"Payment verification failed"
-      });
+      throw new AppError("Payment verification failed", 400);
 
     }
 
@@ -174,9 +168,7 @@ const verifyPayment = async (req,res)=>{
       }
 
 
-      return res.status(404).json({
-        message:"Pending payment not found"
-      });
+      throw new AppError("Pending payment not found", 404);
 
     }
 
@@ -196,6 +188,37 @@ const verifyPayment = async (req,res)=>{
     }
 
 
+// Flutterwave integrity checks
+
+if(response.data.currency !== "NGN"){
+
+throw new AppError("Invalid payment currency", 400);
+
+}
+
+
+if(Number(response.data.amount) !== Number(pending.amount)){
+
+throw new AppError("Payment amount mismatch", 400);
+
+}
+
+
+if(response.data.tx_ref !== pending.reference){
+
+throw new AppError("Payment reference mismatch", 400);
+
+}
+
+
+if(
+response.data.meta?.phone &&
+response.data.meta.phone !== pending.phone
+){
+
+throw new AppError("Payment owner mismatch", 400);
+
+}
     const balanceBefore = wallet.balance;
 
     wallet.balance += Number(response.data.amount);
@@ -239,7 +262,7 @@ const verifyPayment = async (req,res)=>{
     );
 
 
-    pending.status = "completed";
+    pending.status = "successful";
 
     pending.flutterwaveId = String(response.data.id);
 
@@ -264,9 +287,7 @@ const verifyPayment = async (req,res)=>{
       error.message
     );
 
-    res.status(500).json({
-      message:error.message
-    });
+    next(error);
 
   }
 
@@ -293,6 +314,17 @@ const flutterwaveWebhook = async (req, res) => {
     const event = data.event;
 
     if (event === "charge.failed") {
+
+        const failedExists = await Transaction.findOne({
+          reference: data.data.tx_ref,
+          status: "failed"
+        });
+
+        if (failedExists) {
+          return res.status(200).json({
+            message: "Already recorded"
+          });
+        }
 
       await Transaction.create({
         phone: data.data.customer?.phonenumber || "unknown",
@@ -379,9 +411,7 @@ const flutterwaveWebhook = async (req, res) => {
 
 
     if (!data.data) {
-      return res.status(400).json({
-        message: "Invalid webhook data"
-      });
+      throw new AppError("Invalid webhook data", 400);
     }
 
     const verified = await flw.Transaction.verify({
@@ -392,28 +422,38 @@ const flutterwaveWebhook = async (req, res) => {
       verified.status !== "success" ||
       verified.data.status !== "successful"
     ) {
-      return res.status(400).json({
-        message: "Transaction verification failed"
-      });
+      throw new AppError("Transaction verification failed", 400);
     }
 
     if (verified.data.currency !== "NGN") {
-      return res.status(400).json({
-        message: "Invalid currency"
-      });
+      throw new AppError("Invalid currency", 400);
     }
 
-    const txRef = verified.data.tx_ref;
+      const txRef = verified.data.tx_ref;
 
-    const existing = await Transaction.findOne({
-      reference: txRef
-    });
-
-    if (existing) {
-      return res.status(200).json({
-        message: "Already processed"
+      const existing = await Transaction.findOne({
+        reference: txRef,
+        status:"successful"
       });
-    }
+
+      if(existing){
+        return res.status(200).json({
+          message:"Already processed"
+        });
+      }
+
+      const pending = await Transaction.findOne({
+        reference:txRef,
+        status:"pending"
+      });
+
+      if(!pending){
+        throw new AppError("Pending transaction not found",400);
+      }
+
+      if(Number(pending.amount) !== Number(verified.data.amount)){
+        throw new AppError("Payment amount mismatch",400);
+      }
 
     const phone = normalizePhone(
       verified.data.meta.phone
@@ -422,9 +462,7 @@ const flutterwaveWebhook = async (req, res) => {
     const amount = Number(verified.data.amount);
 
     if (!amount || amount <= 0) {
-      return res.status(400).json({
-        message: "Invalid amount"
-      });
+      throw new AppError("Invalid amount", 400);
     }
 
     let wallet = await Wallet.findOne({
@@ -473,9 +511,7 @@ const flutterwaveWebhook = async (req, res) => {
 
   } catch(error) {
 
-    res.status(500).json({
-      message: error.message
-    });
+    next(error);
 
   }
 

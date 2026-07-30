@@ -1,8 +1,11 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const ExamPin = require("../models/ExamPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const TransactionPin = require("../models/TransactionPin");
 const { createNotification } = require("../services/notificationService");
+const { checkIdempotency } = require("../utils/idempotency");
 
 
 const buyExamPin = async(req,res)=>{
@@ -15,24 +18,45 @@ quantity,
 pin
 }=req.body;
 
+const idempotencyKey =
+req.headers["idempotency-key"];
+
+
+const existingTransaction =
+await checkIdempotency(idempotencyKey);
+
+
+if(existingTransaction){
+
+return res.json({
+message:"Transaction already processed",
+transaction:existingTransaction
+});
+
+}
+
+
+
 
 const phone = req.user.phone;
 
 
 if(!exam || !quantity || !pin){
 
-return res.status(400).json({
-message:"Exam type, quantity and transaction PIN are required"
-});
+throw new AppError(
+  "Exam type, quantity and transaction PIN are required",
+  400
+);
 
 }
 
 
 if(Number(quantity) <= 0 || isNaN(Number(quantity))){
 
-return res.status(400).json({
-message:"Invalid quantity"
-});
+throw new AppError(
+  "Invalid quantity",
+  400
+);
 
 }
 
@@ -45,18 +69,20 @@ phone
 
 if(!userPin){
 
-return res.status(400).json({
-message:"Create transaction PIN first"
-});
+throw new AppError(
+  "Create transaction PIN first",
+  400
+);
 
 }
 
 
-if(userPin.pin !== pin){
+if(!(await bcrypt.compare(pin,userPin.pin))){
 
-return res.status(400).json({
-message:"Incorrect transaction PIN"
-});
+throw new AppError(
+  "Incorrect transaction PIN",
+  400
+);
 
 }
 
@@ -74,9 +100,10 @@ status:"available"
 
 if(pins.length < Number(quantity)){
 
-return res.status(400).json({
-message:"Insufficient PIN stock"
-});
+throw new AppError(
+  "Insufficient PIN stock",
+  400
+);
 
 }
 
@@ -96,9 +123,10 @@ phone
 
 if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+throw new AppError(
+  "Wallet not found",
+  404
+);
 
 }
 
@@ -106,9 +134,10 @@ message:"Wallet not found"
 
 if(wallet.balance < total){
 
-return res.status(400).json({
-message:"Insufficient wallet balance"
-});
+throw new AppError(
+  "Insufficient wallet balance",
+  400
+);
 
 }
 
@@ -158,6 +187,18 @@ direction:"debit",
 amount:total,
 
 reference,
+
+      vtuRequestId:
+      providerResponse.reference ||
+      providerResponse.request_id ||
+      reference,
+
+      vtuOrderId:
+      providerResponse.data?.order ||
+      providerResponse.order_id ||
+      null,
+
+      providerResponse: providerResponse,
 
 balanceBefore,
 
@@ -228,7 +269,31 @@ amount:total,
 
 reference,
 
+      vtuRequestId:
+      providerResponse.reference ||
+      providerResponse.request_id ||
+      reference,
+
+      vtuOrderId:
+      providerResponse.data?.order ||
+      providerResponse.order_id ||
+      null,
+
+      providerResponse: providerResponse,
+
 originalReference:reference,
+
+      vtuRequestId:
+      providerResponse.reference ||
+      providerResponse.request_id ||
+      reference,
+
+      vtuOrderId:
+      providerResponse.data?.order ||
+      providerResponse.order_id ||
+      null,
+
+      providerResponse: providerResponse,
 
 service:"exam_pin",
 

@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const ProfileOTP = require("../models/ProfileOTP");
 const User = require("../models/User");
@@ -19,7 +21,10 @@ phone:cleanPhone
 });
 
 if(!user){
-return res.status(404).json({message:"User not found"});
+throw new AppError(
+  "User not found",
+  404
+);
 }
 
 const otp=Math.floor(100000 + Math.random()*900000).toString();
@@ -58,18 +63,20 @@ const setPin = async(req,res)=>{
 
     if(!pin || !otp){
 
-      return res.status(400).json({
-        message:"PIN and OTP are required"
-      });
+      throw new AppError(
+  "PIN and OTP are required",
+  400
+);
 
     }
 
 
     if(pin.length !== 4){
 
-      return res.status(400).json({
-        message:"PIN must be 4 digits"
-      });
+      throw new AppError(
+  "PIN must be 4 digits",
+  400
+);
 
     }
 
@@ -82,10 +89,17 @@ const setPin = async(req,res)=>{
         otp
       });
 
+if(otpRecord && otpRecord.attempts >= 5){
+return res.status(429).json({
+message:"Too many OTP attempts"
+});
+}
+
       if(!otpRecord || otpRecord.expiresAt < new Date()){
-        return res.status(400).json({
-          message:"Invalid or expired OTP"
-        });
+        throw new AppError(
+  "Invalid or expired OTP",
+  400
+);
       }
 
       await ProfileOTP.deleteOne({
@@ -100,7 +114,7 @@ const setPin = async(req,res)=>{
 
     if(userPin){
 
-      userPin.pin = pin;
+      userPin.pin = await bcrypt.hash(pin,10);
       userPin.updatedAt = Date.now();
 
       await userPin.save();
@@ -114,7 +128,7 @@ const setPin = async(req,res)=>{
 
     await TransactionPin.create({
       phone: cleanPhone,
-      pin
+      pin: await bcrypt.hash(pin,10)
     });
 
 
@@ -156,18 +170,20 @@ const verifyPin = async(req,res)=>{
 
     if(!userPin){
 
-      return res.status(404).json({
-        message:"Transaction PIN not created"
-      });
+      throw new AppError(
+  "Transaction PIN not created",
+  404
+);
 
     }
 
 
-    if(userPin.pin !== pin){
+    if(!(await bcrypt.compare(pin,userPin.pin))){
 
-      return res.status(400).json({
-        message:"Incorrect transaction PIN"
-      });
+      throw new AppError(
+  "Incorrect transaction PIN",
+  400
+);
 
     }
 

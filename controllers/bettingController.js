@@ -1,9 +1,12 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const BettingSetting = require("../models/BettingSetting");
 const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
+const { checkIdempotency } = require("../utils/idempotency");
 
 const {
   verifyCustomer,
@@ -22,24 +25,45 @@ amount,
 pin
 }=req.body;
 
+const idempotencyKey =
+req.headers["idempotency-key"];
+
+
+const existingTransaction =
+await checkIdempotency(idempotencyKey);
+
+
+if(existingTransaction){
+
+return res.json({
+message:"Transaction already processed",
+transaction:existingTransaction
+});
+
+}
+
+
+
 
 const phone = normalizePhone(req.user.phone);
 
 
 if(!customer_id || !service_id || !amount || !pin){
 
-return res.status(400).json({
-message:"Customer ID, service, amount and PIN required"
-});
+throw new AppError(
+"Customer ID, service, amount and PIN required",
+400
+);
 
 }
 
 
 if(isNaN(Number(amount)) || Number(amount) <= 0){
 
-return res.status(400).json({
-message:"Invalid amount"
-});
+throw new AppError(
+"Invalid amount",
+400
+);
 
 }
 
@@ -51,18 +75,20 @@ phone
 
 if(!userPin){
 
-return res.status(400).json({
-message:"Create transaction PIN first"
-});
+throw new AppError(
+"Create transaction PIN first",
+400
+);
 
 }
 
 
-if(userPin.pin !== pin){
+if(!(await bcrypt.compare(pin,userPin.pin))){
 
-return res.status(400).json({
-message:"Incorrect transaction PIN"
-});
+throw new AppError(
+"Incorrect transaction PIN",
+400
+);
 
 }
 
@@ -74,9 +100,10 @@ phone
 
 if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+throw new AppError(
+"Wallet not found",
+404
+);
 
 }
 
@@ -89,18 +116,20 @@ service: service_id
 
 if(!bettingSetting){
 
-return res.status(400).json({
-message:"Betting service not configured"
-});
+throw new AppError(
+"Betting service not configured",
+400
+);
 
 }
 
 
 if(!bettingSetting.active){
 
-return res.status(400).json({
-message:"Betting service unavailable"
-});
+throw new AppError(
+"Betting service unavailable",
+400
+);
 
 }
 
@@ -115,9 +144,10 @@ Number(amount) + serviceFee;
 
 if(wallet.balance < totalAmount){
 
-return res.status(400).json({
-message:"Insufficient wallet balance"
-});
+throw new AppError(
+"Insufficient wallet balance",
+400
+);
 
 }
 
@@ -131,10 +161,10 @@ service_id
 
 if(!verifyResponse || verifyResponse.code !== "success"){
 
-return res.status(400).json({
-message:"Bet account verification failed",
-verifyResponse
-});
+throw new AppError(
+"Bet account verification failed",
+400
+);
 
 }
 
@@ -176,6 +206,8 @@ direction:"credit",
 amount:totalAmount,
 reference,
 
+idempotencyKey,
+
 originalReference:reference,
 
 service:"betting",
@@ -186,10 +218,10 @@ description:"Automatic refund - Betting failed",
 status:"successful"
 });
 
-return res.status(400).json({
-message:"Bet funding failed",
-providerResponse:err.message
-});
+throw new AppError(
+"Bet funding failed",
+400
+);
 
 }
 
@@ -202,6 +234,19 @@ type:"betting",
 direction:"debit",
 amount:totalAmount,
 reference,
+
+vtuRequestId:
+providerResponse.reference ||
+providerResponse.request_id ||
+reference,
+
+vtuOrderId:
+providerResponse.data?.order ||
+providerResponse.order_id ||
+null,
+
+providerResponse: providerResponse,
+
 balanceBefore,
 balanceAfter:wallet.balance,
 description:`Betting wallet funding for ${service_id}`,

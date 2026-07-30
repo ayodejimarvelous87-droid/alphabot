@@ -1,11 +1,14 @@
 require("dotenv").config();
 const axios = require("axios");
+const { recordProviderResult } = require("./providerMonitorService");
 
 const BASE_URL =
 "https://tljnhlhzyntotadxoypz.supabase.co/functions/v1";
 
 
 const blitzRequest = async(endpoint, method="GET", data=null)=>{
+
+const startTime = Date.now();
 
 try{
 
@@ -38,22 +41,40 @@ config
 }
 
 
+await recordProviderResult({
+provider:"blitzpay",
+service:endpoint,
+success:true,
+responseTime:Date.now()-startTime
+});
+
+
 return response.data;
 
 
 }catch(error){
+
+
+await recordProviderResult({
+provider:"blitzpay",
+service:endpoint,
+success:false,
+responseTime:Date.now()-startTime,
+error:error.response?.data?.message || error.message
+});
+
 
 console.log(
 "BlitzPay error:",
 error.response?.data || error.message
 );
 
+
 throw error;
 
 }
 
 };
-
 
 
 const getBalance = async()=>{

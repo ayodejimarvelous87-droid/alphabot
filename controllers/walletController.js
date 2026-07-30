@@ -1,3 +1,6 @@
+const AppError = require("../utils/AppError");
+const auditLogger = require("../services/auditLogger");
+const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
@@ -20,26 +23,22 @@ const fundWallet = async (req, res) => {
     }
 
 
-    let wallet = await Wallet.findOne({
-      phone: cleanPhone
-    });
+    let wallet = await Wallet.findOneAndUpdate(
+      {
+        phone: cleanPhone
+      },
+      {
+        $inc:{
+          balance:Number(amount)
+        }
+      },
+      {
+        new:true,
+        upsert:true
+      }
+    );
 
-    const balanceBefore = wallet ? wallet.balance : 0;
-
-
-    if (!wallet) {
-
-      wallet = await Wallet.create({
-        phone: cleanPhone,
-        balance: Number(amount)
-      });
-
-    } else {
-
-      wallet.balance += Number(amount);
-      await wallet.save();
-
-    }
+    const balanceBefore = wallet.balance - Number(amount);
 
 
 
@@ -62,6 +61,16 @@ const fundWallet = async (req, res) => {
     });
 
 
+await auditLogger({
+actor:req.user.id.toString(),
+role:req.user.role,
+action:"WALLET_FUND",
+target:cleanPhone,
+ip:req.ip,
+userAgent:req.headers["user-agent"],
+details:{amount:Number(amount)}
+});
+
 
     res.json({
 
@@ -75,11 +84,7 @@ const fundWallet = async (req, res) => {
 
   } catch(error){
 
-    res.status(500).json({
-
-      message:error.message
-
-    });
+    next(error);
 
   }
 };
@@ -89,7 +94,7 @@ const fundWallet = async (req, res) => {
 
 
 // Check wallet balance
-const checkBalance = async (req,res)=>{
+const checkBalance = async (req,res,next)=>{
 
   try{
 
@@ -116,11 +121,7 @@ const checkBalance = async (req,res)=>{
 
     if(!wallet){
 
-      return res.status(404).json({
-
-        message:"Wallet not found"
-
-      });
+      throw new AppError("Wallet not found", 404);
 
     }
 
@@ -131,11 +132,7 @@ const checkBalance = async (req,res)=>{
 
   }catch(error){
 
-    res.status(500).json({
-
-      message:error.message
-
-    });
+    next(error);
 
   }
 
@@ -146,7 +143,7 @@ const checkBalance = async (req,res)=>{
 
 
 // Transaction history
-const transactionHistory = async(req,res)=>{
+const transactionHistory = async(req,res,next)=>{
 
   try{
 
@@ -185,11 +182,7 @@ const transactionHistory = async(req,res)=>{
 
   }catch(error){
 
-    res.status(500).json({
-
-      message:error.message
-
-    });
+    next(error);
 
   }
 
@@ -200,7 +193,7 @@ const transactionHistory = async(req,res)=>{
 
 
 // Pay using wallet with Transaction PIN
-const payWallet = async(req,res)=>{
+const payWallet = async(req,res,next)=>{
 
   try{
 
@@ -241,24 +234,16 @@ const payWallet = async(req,res)=>{
 
     if(!userPin){
 
-      return res.status(400).json({
-
-        message:"Create transaction PIN first"
-
-      });
+      throw new AppError("Create transaction PIN first", 400);
 
     }
 
 
 
 
-    if(userPin.pin !== pin){
+    if(!(await bcrypt.compare(pin,userPin.pin))){
 
-      return res.status(400).json({
-
-        message:"Incorrect transaction PIN"
-
-      });
+      throw new AppError("Incorrect transaction PIN", 400);
 
     }
 
@@ -266,46 +251,36 @@ const payWallet = async(req,res)=>{
 
 
 
-    const wallet = await Wallet.findOne({
-
-      phone:cleanPhone
-
-    });
-
-
-
-    if(!wallet){
-
-      return res.status(404).json({
-
-        message:"Wallet not found"
-
+      const walletBefore = await Wallet.findOne({
+        phone:cleanPhone
       });
 
-    }
+      if(!walletBefore){
+        throw new AppError("Wallet not found", 404);
+      }
 
+      const balanceBefore = walletBefore.balance;
 
+      const wallet = await Wallet.findOneAndUpdate(
+        {
+          phone:cleanPhone,
+          balance:{
+            $gte:Number(amount)
+          }
+        },
+        {
+          $inc:{
+            balance:-Number(amount)
+          }
+        },
+        {
+          new:true
+        }
+      );
 
-
-    if(wallet.balance < Number(amount)){
-
-      return res.status(400).json({
-
-        message:"Insufficient wallet balance"
-
-      });
-
-    }
-
-
-
-
-    const balanceBefore = wallet.balance;
-
-    wallet.balance -= Number(amount);
-
-
-    await wallet.save();
+      if(!wallet){
+        throw new AppError("Insufficient wallet balance", 400);
+      }
 
 
 
@@ -343,11 +318,7 @@ const payWallet = async(req,res)=>{
 
   }catch(error){
 
-    res.status(500).json({
-
-      message:error.message
-
-    });
+    next(error);
 
   }
 

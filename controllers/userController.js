@@ -1,3 +1,5 @@
+const auditLogger = require("../services/auditLogger");
+const AppError = require("../utils/AppError");
 const User = require("../models/User");
 const Wallet = require("../models/wallet");
 const PasswordReset = require("../models/PasswordReset");
@@ -13,7 +15,7 @@ const sendEmail = require("../services/emailService");
 
 
 // Send reset OTP
-const sendResetOTP = async(req,res)=>{
+const sendResetOTP = async(req,res,next)=>{
 
 try{
 
@@ -26,9 +28,7 @@ phone:normalizePhone(phone)
 
 if(!user){
 
-return res.status(404).json({
-message:"User not found"
-});
+throw new AppError("User not found", 404);
 
 }
 
@@ -72,9 +72,7 @@ message:"OTP sent successfully"
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
@@ -83,7 +81,7 @@ message:error.message
 
 
 // Verify reset OTP
-const verifyResetOTP = async(req,res)=>{
+const verifyResetOTP = async(req,res,next)=>{
 
 try{
 
@@ -105,22 +103,14 @@ otp
 
 if(!reset){
 
-return res.status(400).json({
-
-message:"Invalid OTP"
-
-});
+throw new AppError("Invalid OTP", 400);
 
 }
 
 
 if(reset.expiresAt < new Date()){
 
-return res.status(400).json({
-
-message:"OTP expired"
-
-});
+throw new AppError("OTP expired", 400);
 
 }
 
@@ -155,9 +145,7 @@ message:"Password reset successful"
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
@@ -175,13 +163,13 @@ const generateReferralCode = () => {
 
 
 // Registration OTP
-const sendRegistrationOTP = async(req,res)=>{
+const sendRegistrationOTP = async(req,res,next)=>{
 try{
 
 const {name,phone,email,password,referralCode}=req.body;
 
 if(!name || !phone || !email || !password){
-return res.status(400).json({message:"All fields are required"});
+throw new AppError("All fields are required", 400);
 }
 
 const cleanPhone = normalizePhone(phone);
@@ -189,7 +177,7 @@ const cleanPhone = normalizePhone(phone);
 const existingUser = await User.findOne({phone:cleanPhone});
 
 if(existingUser){
-return res.status(400).json({message:"User already exists"});
+throw new AppError("User already exists", 400);
 }
 
 const hashedPassword = await bcrypt.hash(password,10);
@@ -217,12 +205,12 @@ email,
 res.json({message:"Registration OTP sent successfully"});
 
 }catch(error){
-res.status(500).json({message:error.message});
+next(error);
 }
 };
 
 
-const verifyRegistrationOTP = async(req,res)=>{
+const verifyRegistrationOTP = async(req,res,next)=>{
 try{
 
 const {phone,otp}=req.body;
@@ -233,13 +221,17 @@ const verify = await RegistrationOTP.findOne({
 phone:cleanPhone,
 otp
 });
+if(verify.attempts >= 5){
+throw new AppError("Too many OTP attempts", 429);
+}
+
 
 if(!verify){
-return res.status(400).json({message:"Invalid OTP"});
+throw new AppError("Invalid OTP", 400);
 }
 
 if(verify.expiresAt < new Date()){
-return res.status(400).json({message:"OTP expired"});
+throw new AppError("OTP expired", 400);
 }
 
 let wallet = await Wallet.findOne({phone:cleanPhone});
@@ -285,12 +277,13 @@ name:user.name,
 phone:user.phone,
 email:user.email,
 referralCode:user.referralCode,
+          tokenVersion:user.tokenVersion,
 role:user.role
 }
 });
 
 }catch(error){
-res.status(500).json({message:error.message});
+next(error);
 }
 };
 
@@ -314,9 +307,7 @@ const registerUser = async (req, res) => {
     const cleanPhone = normalizePhone(phone);
 
       if(!email){
-        return res.status(400).json({
-          message:"Email is required"
-        });
+        throw new AppError("Email is required", 400);
       }
 
 
@@ -328,9 +319,7 @@ const registerUser = async (req, res) => {
 
     if(existingUser){
 
-      return res.status(400).json({
-        message:"User already exists"
-      });
+      throw new AppError("User already exists", 400);
 
     }
 
@@ -422,6 +411,7 @@ const userReferralCode = generateReferralCode();
 
         referralCode:user.referralCode,
 
+          tokenVersion:user.tokenVersion,
         role:user.role
 
       }
@@ -432,11 +422,7 @@ const userReferralCode = generateReferralCode();
 
   } catch(error){
 
-    res.status(500).json({
-
-      message:error.message
-
-    });
+    next(error);
 
   }
 
@@ -473,11 +459,7 @@ const loginUser = async (req,res)=>{
 
     if(!user){
 
-      return res.status(404).json({
-
-        message:"User not found"
-
-      });
+      throw new AppError("User not found", 404);
 
     }
 
@@ -496,11 +478,7 @@ const loginUser = async (req,res)=>{
 
     if(!passwordMatch){
 
-      return res.status(400).json({
-
-        message:"Invalid password"
-
-      });
+      throw new AppError("Invalid password", 400);
 
     }
 
@@ -516,6 +494,7 @@ const loginUser = async (req,res)=>{
 
         phone:user.phone,
 
+          tokenVersion:user.tokenVersion,
         role:user.role
 
       },
@@ -543,7 +522,17 @@ const loginUser = async (req,res)=>{
       wallet: user.wallet
     };
 
+await auditLogger({
+actor:user._id.toString(),
+role:user.role,
+action:"USER_LOGIN_SUCCESS",
+target:user.phone,
+ip:req.ip,
+userAgent:req.headers["user-agent"]
+});
+
     res.json({
+
       message:"Login successful",
       token,
       user: safeUser
@@ -553,11 +542,7 @@ const loginUser = async (req,res)=>{
 
   }catch(error){
 
-    res.status(500).json({
-
-      message:error.message
-
-    });
+    next(error);
 
   }
 
@@ -569,7 +554,7 @@ const loginUser = async (req,res)=>{
 
 
 // Forgot password
-const forgotPassword = async(req,res)=>{
+const forgotPassword = async(req,res,next)=>{
 
 
   try{
@@ -585,9 +570,7 @@ const forgotPassword = async(req,res)=>{
     const cleanPhone = normalizePhone(phone);
 
       if(!email){
-        return res.status(400).json({
-          message:"Email is required"
-        });
+        throw new AppError("Email is required", 400);
       }
 
 
@@ -602,11 +585,7 @@ const forgotPassword = async(req,res)=>{
 
     if(!user){
 
-      return res.status(404).json({
-
-        message:"User not found"
-
-      });
+      throw new AppError("User not found", 404);
 
     }
 
@@ -638,11 +617,7 @@ const forgotPassword = async(req,res)=>{
   }catch(error){
 
 
-    res.status(500).json({
-
-      message:error.message
-
-    });
+    next(error);
 
   }
 
@@ -668,9 +643,7 @@ const getProfile = async (req,res)=>{
 
     if(!user){
 
-      return res.status(404).json({
-        message:"User not found"
-      });
+      throw new AppError("User not found", 404);
 
     }
 
@@ -680,9 +653,7 @@ const getProfile = async (req,res)=>{
 
   }catch(error){
 
-    res.status(500).json({
-      message:error.message
-    });
+    next(error);
 
   }
 
@@ -705,9 +676,7 @@ const updateProfile = async (req,res)=>{
 
     if(!user){
 
-      return res.status(404).json({
-        message:"User not found"
-      });
+      throw new AppError("User not found", 404);
 
     }
 
@@ -719,6 +688,12 @@ const updateProfile = async (req,res)=>{
       } = req.body;
 
       if(email && email !== user.email){
+if(verify && verify.attempts >= 5){
+return res.status(429).json({
+message:"Too many OTP attempts"
+});
+}
+
 
         const verify = await ProfileOTP.findOne({
           phone,
@@ -726,9 +701,7 @@ const updateProfile = async (req,res)=>{
         });
 
         if(!verify){
-          return res.status(400).json({
-            message:"Invalid or missing OTP"
-          });
+          throw new AppError("Invalid or missing OTP", 400);
         }
 
 
@@ -755,9 +728,7 @@ if(user){
 
   }catch(error){
 
-    res.status(500).json({
-      message:error.message
-    });
+    next(error);
 
   }
 
@@ -786,9 +757,7 @@ const changePassword = async (req,res)=>{
 
     if(!user){
 
-      return res.status(404).json({
-        message:"User not found"
-      });
+      throw new AppError("User not found", 404);
 
     }
 
@@ -801,9 +770,7 @@ const changePassword = async (req,res)=>{
 
     if(!match){
 
-      return res.status(400).json({
-        message:"Old password is incorrect"
-      });
+      throw new AppError("Old password is incorrect", 400);
 
     }
 
@@ -824,9 +791,7 @@ const changePassword = async (req,res)=>{
 
   }catch(error){
 
-    res.status(500).json({
-      message:error.message
-    });
+    next(error);
 
   }
 
@@ -834,7 +799,7 @@ const changePassword = async (req,res)=>{
 
 
 
-const sendProfileOTP = async(req,res)=>{
+const sendProfileOTP = async(req,res,next)=>{
 try{
 
 const {phone}=req.body;
@@ -844,7 +809,7 @@ phone:normalizePhone(phone)
 });
 
 if(!user){
-return res.status(404).json({message:"User not found"});
+throw new AppError("User not found", 404);
 }
 
 const otp=Math.floor(100000 + Math.random()*900000).toString();
@@ -866,12 +831,13 @@ user.email,
 res.json({message:"Profile OTP sent successfully"});
 
 }catch(error){
-res.status(500).json({message:error.message});
+next(error);
 }
 };
 
 
-const verifyProfileOTP = async(req,res)=>{
+
+const verifyProfileOTP = async(req,res,next)=>{
 try{
 
 const {phone,otp}=req.body;
@@ -882,11 +848,11 @@ otp
 });
 
 if(!verify){
-return res.status(400).json({message:"Invalid OTP"});
+throw new AppError("Invalid OTP", 400);
 }
 
 if(verify.expiresAt < new Date()){
-return res.status(400).json({message:"OTP expired"});
+throw new AppError("OTP expired", 400);
 }
 
 
@@ -902,13 +868,13 @@ await ProfileOTP.deleteOne({_id:verify._id});
 res.json({message:"Profile verified successfully"});
 
 }catch(error){
-res.status(500).json({message:error.message});
+next(error);
 }
 };
 
 
 
-const saveWithdrawAccount = async(req,res)=>{
+const saveWithdrawAccount = async(req,res,next)=>{
 try{
 
 const {
@@ -929,19 +895,15 @@ const user = await User.findOne({phone});
 
 
 if(!user){
-return res.status(404).json({
-message:"User not found"
-});
+throw new AppError("User not found", 404);
 }
 
 
 const userPin = await TransactionPin.findOne({phone});
 
 
-if(!userPin || userPin.pin !== pin){
-return res.status(400).json({
-message:"Invalid transaction PIN"
-});
+if(!userPin || !(await bcrypt.compare(pin,userPin.pin))){
+throw new AppError("Invalid transaction PIN", 400);
 }
 
 
@@ -961,16 +923,14 @@ message:"Withdrawal account saved successfully"
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
 };
 
 
-const getWithdrawAccount = async(req,res)=>{
+const getWithdrawAccount = async(req,res,next)=>{
 try{
 
 const User = require("../models/User");
@@ -985,7 +945,7 @@ withdrawAccountName:user?.withdrawAccountName || null
 });
 
 }catch(error){
-res.status(500).json({message:error.message});
+next(error);
 }
 };
 

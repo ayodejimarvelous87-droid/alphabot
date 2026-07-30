@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const Electricity = require("../models/Electricity");
 const Wallet = require("../models/wallet");
@@ -13,6 +15,7 @@ const {
 
 
 const { purchase } = require("../services/blitzPayService");
+const { checkIdempotency } = require("../utils/idempotency");
 
 const payElectricity = async (req, res) => {
 
@@ -26,15 +29,32 @@ const payElectricity = async (req, res) => {
       pin
     } = req.body;
 
+      const idempotencyKey =
+      req.headers["idempotency-key"];
+
+
+      const existingTransaction =
+      await checkIdempotency(idempotencyKey);
+
+
+      if(existingTransaction){
+
+        return res.json({
+          message:"Transaction already processed",
+          transaction:existingTransaction
+        });
+
+      }
+
+
+
 
     const phone = normalizePhone(req.user.phone);
 
 
     if (!disco || !meterNumber || !amount || !pin) {
 
-      return res.status(400).json({
-        message: "Disco, meter number, amount and PIN required"
-      });
+      throw new AppError("Disco, meter number, amount and PIN required", 400);
 
     }
 
@@ -46,18 +66,14 @@ const payElectricity = async (req, res) => {
 
     if (!userPin) {
 
-      return res.status(400).json({
-        message: "Create transaction PIN first"
-      });
+      throw new AppError("Create transaction PIN first", 400);
 
     }
 
 
-    if (userPin.pin !== pin) {
+    if (!(await bcrypt.compare(pin,userPin.pin))) {
 
-      return res.status(400).json({
-        message: "Incorrect transaction PIN"
-      });
+      throw new AppError("Incorrect transaction PIN", 400);
 
     }
 
@@ -69,9 +85,7 @@ const payElectricity = async (req, res) => {
 
     if (!wallet) {
 
-      return res.status(404).json({
-        message: "Wallet not found"
-      });
+      throw new AppError("Wallet not found", 404);
 
     }
 
@@ -84,18 +98,14 @@ const payElectricity = async (req, res) => {
 
     if(!electricitySetting){
 
-      return res.status(400).json({
-        message:"Electricity service not configured"
-      });
+      throw new AppError("Electricity service not configured", 400);
 
     }
 
 
     if(!electricitySetting.active){
 
-      return res.status(400).json({
-        message:"Electricity service unavailable"
-      });
+      throw new AppError("Electricity service unavailable", 400);
 
     }
 
@@ -110,9 +120,7 @@ const payElectricity = async (req, res) => {
 
     if (wallet.balance < totalAmount) {
 
-      return res.status(400).json({
-        message: "Insufficient wallet balance"
-      });
+      throw new AppError("Insufficient wallet balance", 400);
 
     }
 
@@ -130,13 +138,7 @@ const payElectricity = async (req, res) => {
 
     if (!verify || verify.code !== "success") {
 
-      return res.status(400).json({
-
-        message: "Meter verification failed",
-
-        verify
-
-      });
+      throw new AppError("Meter verification failed", 400);
 
     }
 
@@ -230,6 +232,18 @@ const payElectricity = async (req, res) => {
 
       reference,
 
+      vtuRequestId:
+        providerResponse.reference ||
+        providerResponse.request_id ||
+        reference,
+
+      vtuOrderId:
+        providerResponse.data?.order ||
+        providerResponse.order_id ||
+        null,
+
+      providerResponse: providerResponse,
+
       balanceBefore,
 
       balanceAfter: wallet.balance,
@@ -301,6 +315,8 @@ const payElectricity = async (req, res) => {
         amount:totalAmount,
 
         reference,
+
+        idempotencyKey,
 
         originalReference:reference,
 

@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const AirtimeCash = require("../models/AirtimeCash");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
@@ -14,7 +15,7 @@ const {
 
 
 // Generate OTP
-const generateAirtimeOTP = async(req,res)=>{
+const generateAirtimeOTP = async(req,res,next)=>{
 try{
 
 const {
@@ -34,9 +35,7 @@ res.json(result);
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
@@ -44,7 +43,7 @@ message:error.message
 
 
 // Verify OTP
-const verifyAirtimeOTP = async(req,res)=>{
+const verifyAirtimeOTP = async(req,res,next)=>{
 try{
 
 const {
@@ -66,9 +65,7 @@ res.json(result);
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
@@ -77,7 +74,7 @@ message:error.message
 
 
 // Convert airtime automatically
-const convertAirtime = async(req,res)=>{
+const convertAirtime = async(req,res,next)=>{
 try{
 
 const {
@@ -91,9 +88,10 @@ pin
 
 
 if(Number(amount) < 50){
-  return res.status(400).json({
-    message:"Minimum Airtime Cash conversion amount is ₦50"
-  });
+  throw new AppError(
+    "Minimum Airtime Cash conversion amount is ₦50",
+    400
+  );
 }
 
 const cleanPhone = normalizePhone(phone);
@@ -145,10 +143,10 @@ sessionId
 request.status = "rejected";
 await request.save();
 
-return res.status(400).json({
-message:"Airtime transfer failed",
-error:error.message
-});
+throw new AppError(
+  "Airtime transfer failed",
+  400
+);
 
 }
 
@@ -158,6 +156,20 @@ console.log("A2C TRANSFER RESULT:", result);
 
 // Successful conversion
 if(result.code === 2000){
+
+
+  const existingTransaction = await Transaction.findOne({
+    reference: request.reference
+  });
+
+  if(existingTransaction){
+
+    return res.json({
+      message:"Airtime already converted",
+      transaction:existingTransaction
+    });
+
+  }
 
 
   // Dynamic Airtime Cash payout
@@ -199,6 +211,8 @@ await wallet.save();
 
 
 
+const balanceBefore = wallet.balance - cashAmount;
+
 const transaction = await Transaction.create({
 
 phone:cleanPhone,
@@ -209,9 +223,19 @@ direction:"credit",
 
 amount:cashAmount,
 
+reference:request.reference,
+
+balanceBefore,
+
 balanceAfter:wallet.balance,
 
-description:"Airtime to cash conversion"
+providerResponse: result,
+
+service:"airtime_cash",
+
+description:"Airtime to cash conversion",
+
+status:"successful"
 
 });
 
@@ -249,15 +273,16 @@ request.status="rejected";
 await request.save();
 
 
-res.status(400).json(result);
+throw new AppError(
+  result.message || "Airtime cash conversion failed",
+  400
+);
 
 
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 
@@ -266,7 +291,7 @@ message:error.message
 
 
 // User requests
-const getAirtimeCash = async(req,res)=>{
+const getAirtimeCash = async(req,res,next)=>{
 try{
 
 const phone = normalizePhone(
@@ -288,9 +313,7 @@ res.json(requests);
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 

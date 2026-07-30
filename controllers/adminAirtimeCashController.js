@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const AirtimeCash = require("../models/AirtimeCash");
 const AirtimeInventory = require("../models/AirtimeInventory");
 const Wallet = require("../models/wallet");
@@ -56,11 +57,10 @@ wallet
 }catch(error){
 
 
-res.status(400).json({
-
-message:error.message
-
-});
+throw new AppError(
+  error.message,
+  400
+);
 
 
 }

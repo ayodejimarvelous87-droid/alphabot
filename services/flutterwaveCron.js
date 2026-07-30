@@ -8,18 +8,32 @@ const { createNotification } = require("../services/notificationService");
 
 async function findFlutterwaveTransaction(tx_ref){
 
-  const response = await axios.get(
-    "https://api.flutterwave.com/v3/transactions",
-    {
-      headers:{
-        Authorization:`Bearer ${process.env.FLW_SECRET_KEY}`
-      }
-    }
-  );
+  try{
 
-  return response.data.data.find(
-    tx => tx.tx_ref === tx_ref
-  );
+    const response = await axios.get(
+      "https://api.flutterwave.com/v3/transactions",
+      {
+        params:{
+          tx_ref
+        },
+        headers:{
+          Authorization:`Bearer ${process.env.FLW_SECRET_KEY}`
+        }
+      }
+    );
+
+    return response.data.data?.[0] || null;
+
+  }catch(error){
+
+    console.log(
+      "Flutterwave lookup error:",
+      error.response?.data || error.message
+    );
+
+    throw error;
+
+  }
 
 }
 

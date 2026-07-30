@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const Transaction = require("../models/Transaction");
 
 
@@ -13,11 +14,10 @@ const transaction = await Transaction.findById(id);
 
 if(!transaction){
 
-return res.status(404).json({
-
-message:"Receipt not found"
-
-});
+throw new AppError(
+  "Receipt not found",
+  404
+);
 
 }
 

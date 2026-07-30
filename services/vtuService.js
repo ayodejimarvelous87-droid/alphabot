@@ -1,6 +1,11 @@
 require("dotenv").config();
 
 const axios = require("axios");
+const { recordProviderResult } = require("./providerMonitorService");
+
+const vtuAxios = axios.create({
+  timeout:10000
+});
 
 let token = null;
 
@@ -14,7 +19,7 @@ const getToken = async () => {
 
   try {
 
-    const response = await axios.post(
+    const response = await vtuAxios.post(
       `${process.env.VTU_BASE_URL}/jwt-auth/v1/token`,
       {
         username: process.env.VTU_USERNAME,
@@ -51,9 +56,14 @@ const getToken = async () => {
 
 
 const vtuRequest = async(endpoint,data={})=>{
+
+const startTime = Date.now();
+
 try{
+
 const accessToken = await getToken();
-const response = await axios.post(
+
+const response = await vtuAxios.post(
 `${process.env.VTU_BASE_URL}${endpoint}`,
 data,
 {
@@ -63,12 +73,38 @@ Authorization:`Bearer ${accessToken}`,
 }
 }
 );
+
+
+await recordProviderResult({
+provider:"VTU",
+service:endpoint,
+success:true,
+responseTime:Date.now() - startTime
+});
+
+
 return response.data;
+
+
 }catch(error){
+
+
+await recordProviderResult({
+provider:"VTU",
+service:endpoint,
+success:false,
+responseTime:Date.now() - startTime,
+error:error.response?.data?.message || error.message
+});
+
+
 if(error.response && error.response.status===401){
+
 token=null;
-const newToken=await getToken();
-const retry=await axios.post(
+
+const newToken = await getToken();
+
+const retry = await vtuAxios.post(
 `${process.env.VTU_BASE_URL}${endpoint}`,
 data,
 {
@@ -78,12 +114,26 @@ Authorization:`Bearer ${newToken}`,
 }
 }
 );
-return retry.data;
-}
-throw error;
-}
-};
 
+
+await recordProviderResult({
+provider:"VTU",
+service:endpoint,
+success:true,
+responseTime:Date.now() - startTime
+});
+
+
+return retry.data;
+
+}
+
+
+throw error;
+
+}
+
+};
 
 
 // GET request helper
@@ -93,7 +143,7 @@ const vtuGet = async(endpoint)=>{
   const accessToken = await getToken();
 
 
-  const response = await axios.get(
+  const response = await vtuAxios.get(
     `${process.env.VTU_BASE_URL}${endpoint}`,
     {
       headers:{
@@ -132,7 +182,7 @@ const purchaseAirtime = async ({
 
 const vtuPublicGet = async(endpoint)=>{
 
-  const response = await axios.get(
+  const response = await vtuAxios.get(
     `${process.env.VTU_BASE_URL}${endpoint}`
   );
 

@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const ExamPin = require("../models/ExamPin");
 
 
@@ -20,9 +21,10 @@ pin
 
 if(exists){
 
-return res.status(400).json({
-message:"PIN already exists"
-});
+throw new AppError(
+  "PIN already exists",
+  400
+);
 
 }
 
@@ -70,9 +72,10 @@ pins
 
 if(!exam || !price || !Array.isArray(pins) || pins.length === 0){
 
-return res.status(400).json({
-message:"Exam, price and PIN list are required"
-});
+throw new AppError(
+  "Exam, price and PIN list are required",
+  400
+);
 
 }
 
@@ -105,11 +108,10 @@ price:Number(price)
 
 if(newPins.length === 0){
 
-return res.status(400).json({
-
-message:"All PINs already exist"
-
-});
+throw new AppError(
+  "All PINs already exist",
+  400
+);
 
 }
 

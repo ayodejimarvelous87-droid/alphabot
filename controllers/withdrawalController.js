@@ -1,3 +1,6 @@
+const AppError = require("../utils/AppError");
+const auditLogger = require("../services/auditLogger");
+const bcrypt = require("bcryptjs");
 const axios = require("axios");
 const Withdrawal = require("../models/Withdrawal");
 const TransactionPin = require("../models/TransactionPin");
@@ -6,9 +9,10 @@ const Transaction = require("../models/Transaction");
 const SystemSetting = require("../models/SystemSetting");
 const { createNotification } = require("../services/notificationService");
 const User = require("../models/User");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 
-const withdraw = async(req,res)=>{
+const withdraw = async(req,res,next)=>{
 
 try{
 
@@ -16,16 +20,15 @@ try{
 const {
 phone,
 amount,
-pin
+pin,
+idempotencyKey
 }=req.body;
 
 
 
 if(!phone || !amount || !pin){
 
-return res.status(400).json({
-message:"Phone, amount and transaction PIN are required"
-});
+throw new AppError("Phone, amount and transaction PIN are required", 400);
 
 }
 
@@ -40,18 +43,14 @@ phone
 
 if(!userPin){
 
-return res.status(400).json({
-message:"Create transaction PIN first"
-});
+throw new AppError("Create transaction PIN first", 400);
 
 }
 
 
-if(userPin.pin !== pin){
+if(!(await bcrypt.compare(pin,userPin.pin))){
 
-return res.status(400).json({
-message:"Incorrect transaction PIN"
-});
+throw new AppError("Incorrect transaction PIN", 400);
 
 }
 
@@ -60,9 +59,7 @@ const user = await User.findOne({phone});
 
 if(!user || !user.withdrawAccountNumber){
 
-return res.status(400).json({
-message:"Please save withdrawal account first"
-});
+throw new AppError("Please save withdrawal account first", 400);
 
 }
 
@@ -100,9 +97,7 @@ if(
 verifyResponse.data.status !== "success"
 ){
 
-return res.status(400).json({
-message:"Bank account verification failed"
-});
+throw new AppError("Bank account verification failed", 400);
 
 }
 
@@ -113,9 +108,7 @@ accountName = verifyResponse.data.data.account_name;
 
 }catch(error){
 
-return res.status(400).json({
-message:"Unable to verify bank account"
-});
+throw new AppError("Unable to verify bank account", 400);
 
 }
 
@@ -129,9 +122,7 @@ phone
 
 if(!wallet){
 
-return res.status(404).json({
-message:"Wallet not found"
-});
+throw new AppError("Wallet not found", 404);
 
 }
 
@@ -154,7 +145,34 @@ Number(amount) + fee;
 
 
 
+
+await checkFraudLimits({
+  phone,
+  amount: total,
+  type:"withdrawal",
+  ip:req.ip,
+  userAgent:req.headers["user-agent"]
+});
+
 const balanceBefore = wallet.balance;
+
+
+if(idempotencyKey){
+
+const existingWithdrawal = await Withdrawal.findOne({
+idempotencyKey
+});
+
+if(existingWithdrawal){
+
+return res.json({
+message:"Withdrawal already processed",
+withdrawal:existingWithdrawal
+});
+
+}
+
+}
 
 
 const updatedWallet = await Wallet.findOneAndUpdate(
@@ -177,9 +195,7 @@ new:true
 
 if(!updatedWallet){
 
-return res.status(400).json({
-message:"Insufficient wallet balance"
-});
+throw new AppError("Insufficient wallet balance", 400);
 
 }
 
@@ -207,6 +223,7 @@ amount:Number(amount),
 fee,
 totalDeducted:total,
 reference,
+idempotencyKey,
 status:"pending"
 
 });
@@ -305,7 +322,18 @@ phone,
 
 
 
+await auditLogger({
+actor:phone,
+role:"user",
+action:"WITHDRAWAL_REQUEST",
+target:accountNumber,
+ip:req.ip,
+userAgent:req.headers["user-agent"],
+details:{amount:Number(amount),bankName}
+});
+
 res.json({
+
 
 message:"Withdrawal request submitted successfully",
 
@@ -319,11 +347,7 @@ balance:wallet.balance
 
 }catch(error){
 
-res.status(500).json({
-
-message:error.message
-
-});
+next(error);
 
 }
 
@@ -336,7 +360,7 @@ withdraw
 };
 
 
-const getWithdrawals = async(req,res)=>{
+const getWithdrawals = async(req,res,next)=>{
 
 try{
 
@@ -353,9 +377,7 @@ res.json(withdrawals);
 
 }catch(error){
 
-res.status(500).json({
-message:error.message
-});
+next(error);
 
 }
 

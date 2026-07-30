@@ -1,9 +1,14 @@
+const AppError = require("../utils/AppError");
+const auditLogger = require("../services/auditLogger");
+const bcrypt = require("bcryptjs");
 const axios = require("axios");
+const crypto = require("crypto");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const TransactionPin = require("../models/TransactionPin");
 const BankBeneficiary = require("../models/BankBeneficiary");
 const TransferSetting = require("../models/TransferSetting");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 
 // Add bank beneficiary
@@ -44,9 +49,7 @@ if(
 verifyResponse.data.status !== "success"
 ){
 
-return res.status(400).json({
-message:"Bank account verification failed"
-});
+throw new AppError("Bank account verification failed", 400);
 
 }
 
@@ -109,57 +112,127 @@ message:error.message
 
 
 // Send money
+
 const sendMoney = async(req,res)=>{
 
 try{
 
 const {
 phone,
-bankName,
 bankCode,
 accountNumber,
 accountName,
 pin,
-amount
+amount,
+idempotencyKey
 }=req.body;
 
-const wallet=await Wallet.findOne({phone});
 
-if(!wallet){
-return res.status(404).json({
-message:"Wallet not found"
+const userPin = await TransactionPin.findOne({
+phone
 });
+
+
+if(!userPin || !(await bcrypt.compare(pin,userPin.pin))){
+
+throw new AppError("Invalid transaction PIN", 400);
+
 }
 
-const userPin=await TransactionPin.findOne({phone});
 
-if(!userPin || userPin.pin!==pin){
-return res.status(400).json({
-message:"Invalid transaction PIN"
-});
-}
+const setting = await TransferSetting.findOne();
 
-const setting=await TransferSetting.findOne();
 
-const fee=
+const fee =
 setting && setting.feeEnabled
 ? Number(setting.transferFee)
 :0;
 
-const total=
+
+const total =
 Number(amount)+fee;
 
-if(wallet.balance<total){
-return res.status(400).json({
-message:"Insufficient balance"
-});
-}
 
-const reference=
+const reference =
 "ALPHATRANS-"+Date.now();
 
-const transferResponse=
-await axios.post(
+
+if(idempotencyKey){
+
+const existingTransfer = await Transaction.findOne({
+idempotencyKey
+});
+
+if(existingTransfer){
+
+return res.json({
+message:"Transfer already processed",
+transaction:existingTransfer
+});
+
+}
+
+}
+
+
+
+await checkFraudLimits({
+  phone,
+  amount: total,
+  type:"bank_transfer",
+  ip:req.ip,
+  userAgent:req.headers["user-agent"]
+});
+
+const wallet = await Wallet.findOneAndUpdate(
+{
+phone,
+balance:{
+$gte:total
+}
+},
+{
+$inc:{
+balance:-total
+}
+},
+{
+new:true
+}
+);
+
+
+if(!wallet){
+
+throw new AppError("Insufficient balance", 400);
+
+}
+
+
+
+const balanceAfter = wallet.balance;
+const balanceBefore = balanceAfter + total;
+
+const pendingTransaction = await Transaction.create({
+phone,
+type:"bank_transfer",
+direction:"debit",
+amount:total,
+reference,
+idempotencyKey,
+service:"bank_transfer",
+balanceBefore,
+balanceAfter,
+description:`Transfer to ${accountName}`,
+status:"pending"
+});
+
+
+
+
+try{
+
+const transferResponse = await axios.post(
 
 "https://api.flutterwave.com/v3/transfers",
 
@@ -174,64 +247,88 @@ beneficiary_name:accountName
 },
 
 {
+timeout:10000,
 headers:{
 Authorization:`Bearer ${process.env.FLW_SECRET_KEY}`,
-"Content-Type":"application/json"
+"Content-Type":"application/json",
+"Idempotency-Key": reference
 }
 }
 
 );
 
+
+
 if(
 !transferResponse.data ||
-transferResponse.data.status!=="success"
+transferResponse.data.status !== "success"
 ){
 
-return res.status(400).json({
-message:"Transfer failed"
-});
+throw new Error("Transfer failed");
 
 }
 
-const before=wallet.balance;
 
-wallet.balance-=total;
 
-await wallet.save();
+await Transaction.findOneAndUpdate(
+{reference},
+{
+status:"successful",
+flutterwaveId:String(transferResponse.data.data?.id || "")
+}
+);
 
-await Transaction.create({
 
-phone,
 
-type:"bank_transfer",
-
-direction:"debit",
-
-amount:total,
-
-reference,
-
-service:"bank_transfer",
-
-description:`Transfer to ${accountName}`,
-
-balanceBefore:before,
-
-balanceAfter:wallet.balance,
-
-status:"successful"
-
+await auditLogger({
+actor:phone,
+role:"user",
+action:"BANK_TRANSFER_SUCCESS",
+target:accountNumber,
+ip:req.ip,
+userAgent:req.headers["user-agent"],
+details:{amount:Number(amount),bankCode}
 });
 
 res.json({
 
+
 message:"Transfer successful",
 
-balance:wallet.balance,
-
-transfer:transferResponse.data
+balance:wallet.balance
 
 });
+
+
+
+}catch(error){
+
+
+await Wallet.findOneAndUpdate(
+
+{
+phone
+},
+
+{
+$inc:{
+balance:total
+}
+}
+
+);
+
+
+await Transaction.findOneAndUpdate(
+{reference},
+{status:"failed"}
+);
+
+throw error;
+
+}
+
+
 
 }catch(error){
 

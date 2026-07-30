@@ -4,7 +4,8 @@ const profileOTPSchema = new mongoose.Schema({
 
 phone:{
 type:String,
-required:true
+required:true,
+index:true
 },
 
 otp:{
@@ -12,9 +13,15 @@ type:String,
 required:true
 },
 
+attempts:{
+type:Number,
+default:0
+},
+
 expiresAt:{
 type:Date,
-required:true
+required:true,
+index:true
 }
 
 },{

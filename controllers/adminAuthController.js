@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+const auditLogger = require("../services/auditLogger");
 const Admin = require("../models/Admin");
 const AdminOTP = require("../models/AdminOTP");
 const jwt = require("jsonwebtoken");
@@ -117,11 +119,18 @@ username
 
 if(!record){
 
-return res.status(400).json({
-message:"OTP not found or expired"
-});
+throw new AppError(
+  "OTP not found or expired",
+  400
+);
 
 }
+if(record.attempts >= 5){
+return res.status(429).json({
+message:"Too many OTP attempts"
+});
+}
+
 
 
 
@@ -132,9 +141,10 @@ _id:record._id
 });
 
 
-return res.status(400).json({
-message:"OTP expired"
-});
+throw new AppError(
+  "OTP expired",
+  400
+);
 
 }
 
@@ -156,17 +166,19 @@ _id:record._id
 });
 
 
-return res.status(400).json({
-message:"Too many failed attempts"
-});
+throw new AppError(
+  "Too many failed attempts",
+  400
+);
 
 }
 
 
 
-return res.status(400).json({
-message:"Invalid OTP"
-});
+throw new AppError(
+  "Invalid OTP",
+  400
+);
 
 }
 
@@ -187,7 +199,8 @@ username
 const token = jwt.sign(
 {
 id:admin._id,
-role:"admin"
+role:"admin",
+tokenVersion:admin.tokenVersion,
 },
 process.env.JWT_SECRET,
 {
@@ -195,6 +208,15 @@ expiresIn:"7d"
 }
 );
 
+
+await auditLogger({
+actor:admin._id.toString(),
+role:"admin",
+action:"ADMIN_LOGIN_SUCCESS",
+target:username,
+ip:req.ip,
+userAgent:req.headers["user-agent"]
+});
 
 
 res.json({

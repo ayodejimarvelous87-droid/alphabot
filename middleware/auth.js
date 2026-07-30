@@ -1,14 +1,15 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
 
-const auth = (req, res, next) => {
+const auth = async (req, res, next) => {
 
   const authHeader = req.headers.authorization;
 
 
   if (!authHeader) {
     return res.status(401).json({
-      message: "No token provided"
+      message:"No token provided"
     });
   }
 
@@ -24,15 +25,30 @@ const auth = (req, res, next) => {
     );
 
 
+    const user = await User.findById(decoded.id);
+
+
+    if(
+      !user ||
+      user.tokenVersion !== decoded.tokenVersion
+    ){
+
+      return res.status(401).json({
+        message:"Token revoked"
+      });
+
+    }
+
+
     req.user = decoded;
 
     next();
 
 
-  } catch (error) {
+  } catch(error){
 
     return res.status(401).json({
-      message: "Invalid token"
+      message:"Invalid token"
     });
 
   }

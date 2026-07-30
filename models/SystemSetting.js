@@ -102,6 +102,40 @@ const systemSettingSchema = new mongoose.Schema({
     default:""
   },
 
+  
+  // Fraud and transaction limits
+
+  dailyTransactionLimit:{
+    type:Number,
+    default:100000
+  },
+
+  dailyWithdrawalLimit:{
+    type:Number,
+    default:200000
+  },
+
+  dailyTransferLimit:{
+    type:Number,
+    default:500000
+  },
+
+  maxTransactionsPerDay:{
+    type:Number,
+    default:50
+  },
+
+  fraudVelocityWindow:{
+    type:Number,
+    default:5
+  },
+
+  maxTransactionsPerWindow:{
+    type:Number,
+    default:10
+  },
+
+
   referralPercentage:{
     type:Number,
     default:1

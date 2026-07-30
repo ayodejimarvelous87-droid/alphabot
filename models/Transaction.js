@@ -76,6 +76,31 @@ type:String,
 default:null
 },
 
+vtuOrderId:{
+type:String,
+unique:true,
+sparse:true,
+default:null
+},
+
+vtuRequestId:{
+type:String,
+unique:true,
+sparse:true,
+default:null
+},
+
+vtuStatus:{
+type:String,
+default:null
+},
+
+
+providerResponse:{
+type:Object,
+default:null
+},
+
 service:{
 type:String,
 default:null
@@ -85,6 +110,12 @@ default:null
 originalReference:{
 type:String,
 default:null
+},
+
+idempotencyKey:{
+type:String,
+unique:true,
+sparse:true
 },
 
 
@@ -137,13 +168,6 @@ phone:1,
 createdAt:-1
 });
 
-transactionSchema.index({
-reference:1
-});
-
-transactionSchema.index({
-flutterwaveId:1
-});
 
 
 module.exports = mongoose.model(

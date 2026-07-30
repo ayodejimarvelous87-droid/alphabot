@@ -1,3 +1,5 @@
+const AppError = require("../utils/AppError");
+const bcrypt = require("bcryptjs");
 const Wallet = require("../models/wallet");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
@@ -30,9 +32,10 @@ const buyProduct = async (req, res) => {
 
 
     if (!product) {
-      return res.status(404).json({
-        message: "Product not found"
-      });
+      throw new AppError(
+  "Product not found",
+  404
+);
     }
 
 
@@ -43,15 +46,17 @@ const buyProduct = async (req, res) => {
     });
 
     if(!userPin){
-      return res.status(400).json({
-        message:"Create transaction PIN first"
-      });
+      throw new AppError(
+  "Create transaction PIN first",
+  400
+);
     }
 
-    if(userPin.pin !== pin){
-      return res.status(400).json({
-        message:"Incorrect transaction PIN"
-      });
+    if(!(await bcrypt.compare(pin,userPin.pin))){
+      throw new AppError(
+  "Incorrect transaction PIN",
+  400
+);
     }
 
     const wallet = await Wallet.findOne({
@@ -61,17 +66,19 @@ const buyProduct = async (req, res) => {
 
 
     if (!wallet) {
-      return res.status(404).json({
-        message: "Wallet not found"
-      });
+      throw new AppError(
+  "Wallet not found",
+  404
+);
     }
 
 
 
     if (wallet.balance < product.price) {
-      return res.status(400).json({
-        message: "Insufficient wallet balance"
-      });
+      throw new AppError(
+  "Insufficient wallet balance",
+  400
+);
     }
 
 
@@ -84,9 +91,10 @@ const buyProduct = async (req, res) => {
 
 
     if (!vtuResponse.success) {
-      return res.status(400).json({
-        message: vtuResponse.message
-      });
+      throw new AppError(
+  vtuResponse.message,
+  400
+);
     }
 
 

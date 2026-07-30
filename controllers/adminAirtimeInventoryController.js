@@ -1,3 +1,4 @@
+const AppError = require("../utils/AppError");
 const AirtimeInventory = require("../models/AirtimeInventory");
 
 
@@ -38,9 +39,10 @@ const { limit } = req.body;
 
 if(!limit){
 
-return res.status(400).json({
-message:"Limit is required"
-});
+throw new AppError(
+  "Limit is required",
+  400
+);
 
 }
 
@@ -52,9 +54,10 @@ network
 
 if(!inventory){
 
-return res.status(404).json({
-message:"Network inventory not found"
-});
+throw new AppError(
+  "Network inventory not found",
+  404
+);
 
 }
 
