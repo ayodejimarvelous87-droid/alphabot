@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { loginLimiter, otpLimiter } = require("../middleware/rateLimiter");
+const { loginLimiter, otpLimiter, otpPhoneLimiter } = require("../middleware/rateLimiter");
 
 const auth = require("../middleware/auth");
 const validate = require("../middleware/validate");
@@ -54,7 +54,7 @@ verifyResetOTP
 
 // Profile verification OTP
 // Registration OTP
-router.post("/send-registration-otp", otpLimiter, sendRegistrationOTP);
+router.post("/send-registration-otp", otpLimiter, otpPhoneLimiter, sendRegistrationOTP);
 
 router.post("/verify-registration-otp", otpLimiter, verifyRegistrationOTP);
 

@@ -39,7 +39,8 @@ const connectRedis = async()=>{
 const createLimiter = (
   windowMs,
   max,
-  message
+  message,
+  keyGenerator
 )=>{
 
   return rateLimit({
@@ -68,7 +69,9 @@ const createLimiter = (
 
     standardHeaders:true,
 
-    legacyHeaders:false
+    legacyHeaders:false,
+
+    keyGenerator:keyGenerator || undefined
 
   });
 
@@ -92,8 +95,18 @@ const loginLimiter = createLimiter(
 
 const otpLimiter = createLimiter(
   10 * 60 * 1000,
-  5,
+  20,
   "Too many OTP attempts. Try again later."
+);
+
+
+const otpPhoneLimiter = createLimiter(
+  60 * 60 * 1000,
+  3,
+  "Too many OTP requests for this phone. Try again later.",
+  (req)=>{
+    return req.body.phone || req.ip;
+  }
 );
 
 
@@ -101,5 +114,6 @@ const otpLimiter = createLimiter(
 module.exports = {
   generalLimiter,
   loginLimiter,
-  otpLimiter
+  otpLimiter,
+  otpPhoneLimiter
 };
