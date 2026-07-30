@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { loginLimiter, otpLimiter, otpPhoneLimiter } = require("../middleware/rateLimiter");
+const { loginLimiter, loginPhoneLimiter, otpLimiter, otpPhoneLimiter } = require("../middleware/rateLimiter");
 
 const auth = require("../middleware/auth");
 const validate = require("../middleware/validate");
@@ -28,7 +28,16 @@ router.post("/register", validate(registerSchema), registerUser);
 
 
 // Login
-router.post("/login", validate(loginSchema), loginLimiter, (req,res,next)=>{ console.log("USER LOGIN ROUTE HIT"); loginUser(req,res,next); });
+router.post(
+  "/login",
+  validate(loginSchema),
+  loginLimiter,
+  loginPhoneLimiter,
+  (req,res,next)=>{
+    console.log("USER LOGIN ROUTE HIT");
+    loginUser(req,res,next);
+  }
+);
 
 
 // Forgot password

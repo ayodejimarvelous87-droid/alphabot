@@ -13,6 +13,10 @@ const fundWallet = async (req, res) => {
 
     const { phone, amount } = req.body;
 
+    if(!amount || Number(amount) <= 0 || isNaN(Number(amount))){
+      throw new AppError("Invalid funding amount",400);
+    }
+
     const cleanPhone = normalizePhone(phone);
 
 
@@ -205,6 +209,10 @@ const payWallet = async(req,res,next)=>{
       pin
     } = req.body;
 
+
+    if(!amount || Number(amount) <= 0 || isNaN(Number(amount))){
+      throw new AppError("Invalid payment amount",400);
+    }
 
 
     const cleanPhone = normalizePhone(phone);

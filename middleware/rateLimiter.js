@@ -88,8 +88,18 @@ const generalLimiter = createLimiter(
 
 const loginLimiter = createLimiter(
   15 * 60 * 1000,
-  5,
+  15,
   "Too many login attempts. Try again later."
+);
+
+
+const loginPhoneLimiter = createLimiter(
+  15 * 60 * 1000,
+  10,
+  "Too many login attempts for this account. Try again later.",
+  (req)=>{
+    return req.body.phone || req.ip;
+  }
 );
 
 
@@ -115,5 +125,6 @@ module.exports = {
   generalLimiter,
   loginLimiter,
   otpLimiter,
-  otpPhoneLimiter
+  otpPhoneLimiter,
+  loginPhoneLimiter
 };
