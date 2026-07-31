@@ -461,21 +461,48 @@ const loginUser = async (req,res)=>{
 
 
 
-    const passwordMatch = await bcrypt.compare(
+      if(
+        user.loginBlockedUntil &&
+        user.loginBlockedUntil > new Date()
+      ){
 
-      password,
+        throw new AppError(
+          "Too many failed login attempts. Try again later.",
+          429
+        );
 
-      user.password
-
-    );
+      }
 
 
+      const passwordMatch = await bcrypt.compare(
+        password,
+        user.password
+      );
 
-    if(!passwordMatch){
 
-      throw new AppError("Invalid password", 400);
+      if(!passwordMatch){
 
-    }
+        user.failedLoginAttempts =
+          (user.failedLoginAttempts || 0) + 1;
+
+
+        if(user.failedLoginAttempts >= 5){
+
+          user.loginBlockedUntil =
+            new Date(Date.now() + 15 * 60 * 1000);
+
+        }
+
+        await user.save();
+
+        throw new AppError("Invalid password", 400);
+
+      }
+
+
+      user.failedLoginAttempts = 0;
+      user.loginBlockedUntil = null;
+      await user.save();
 
 
 

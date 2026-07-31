@@ -31,8 +31,6 @@ router.post("/register", validate(registerSchema), registerUser);
 router.post(
   "/login",
   validate(loginSchema),
-  loginLimiter,
-  loginPhoneLimiter,
   (req,res,next)=>{
     console.log("USER LOGIN ROUTE HIT");
     loginUser(req,res,next);

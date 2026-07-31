@@ -56,6 +56,8 @@ const fundWallet = async (req, res) => {
 
       amount:Number(amount),
 
+      idempotencyKey,
+
       balanceBefore,
 
       balanceAfter: wallet.balance,
@@ -206,12 +208,28 @@ const payWallet = async(req,res,next)=>{
       phone,
       amount,
       description,
-      pin
+      pin,
+      idempotencyKey
     } = req.body;
 
 
     if(!amount || Number(amount) <= 0 || isNaN(Number(amount))){
       throw new AppError("Invalid payment amount",400);
+    }
+
+    if(idempotencyKey){
+
+      const existingTransaction = await Transaction.findOne({
+        idempotencyKey
+      });
+
+      if(existingTransaction){
+        throw new AppError(
+          "Duplicate payment request",
+          400
+        );
+      }
+
     }
 
 
@@ -302,6 +320,8 @@ const payWallet = async(req,res,next)=>{
       direction:"debit",
 
       amount:Number(amount),
+
+      idempotencyKey,
 
       balanceBefore,
 

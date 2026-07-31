@@ -46,6 +46,16 @@ const userSchema = new mongoose.Schema(
     default:0
   },
 
+  failedLoginAttempts:{
+    type:Number,
+    default:0
+  },
+
+  loginBlockedUntil:{
+    type:Date,
+    default:null
+  },
+
   role:{
     type:String,
     default:"user"
