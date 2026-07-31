@@ -181,6 +181,8 @@ balanceAfter:wallet.balance,
 
 description: reason || "Admin deducted funds",
 
+reference:"ADMIN_DEBIT_" + Date.now() + "_" + Math.random().toString(36).slice(2),
+
 adminId: req.user.id
 
 });
