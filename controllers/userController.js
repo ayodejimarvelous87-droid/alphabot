@@ -428,7 +428,7 @@ const userReferralCode = generateReferralCode();
 
 
 // Login
-const loginUser = async (req,res)=>{
+const loginUser = async (req,res,next)=>{
 
 
     console.log("LOGIN ROUTE HIT");
