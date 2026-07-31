@@ -2,6 +2,8 @@ const AppError = require("../utils/AppError");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 
+const MAX_ADMIN_WALLET_ADJUSTMENT = 500000;
+
 
 // Search wallet
 const searchWallet = async (req, res) => {
@@ -44,6 +46,22 @@ const addFunds = async (req, res) => {
     if(!amount || Number(amount) <= 0){
       throw new AppError(
   "Invalid amount",
+  400
+);
+    }
+
+
+    if(Number(amount) > MAX_ADMIN_WALLET_ADJUSTMENT){
+      throw new AppError(
+  "Admin wallet adjustment limit exceeded",
+  400
+);
+    }
+
+
+    if(!reason || reason.trim().length < 5){
+      throw new AppError(
+  "Reason is required for admin wallet adjustment",
   400
 );
     }
