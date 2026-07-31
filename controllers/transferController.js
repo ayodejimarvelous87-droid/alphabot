@@ -128,9 +128,28 @@ idempotencyKey
 }=req.body;
 
 
+if(Number(amount) <= 0){
+
+throw new AppError("Invalid transfer amount",400);
+
+}
+
+
+if(!idempotencyKey){
+
+throw new AppError("Idempotency key required",400);
+
+}
+
+
 const userPin = await TransactionPin.findOne({
 phone
 });
+
+
+if(!pin){
+  throw new AppError("Transaction PIN is required",400);
+}
 
 
 if(!userPin || !(await bcrypt.compare(pin,userPin.pin))){
