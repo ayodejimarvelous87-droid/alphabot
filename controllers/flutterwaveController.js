@@ -5,7 +5,7 @@ const User = require("../models/User");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
 const axios = require("axios");
-const { recordProviderResult } = require("../services/providerMonitorService");
+const { recordProviderResult, canUseProvider } = require("../services/providerMonitorService");
 const { createNotification } = require("../services/notificationService");
 
 const flw = new Flutterwave(
@@ -61,6 +61,24 @@ const createPayment = async (req, res) => {
 
     };
 
+    const providerAvailable = await canUseProvider({
+      provider:"flutterwave",
+      service:"payments"
+    });
+
+
+    if(!providerAvailable){
+
+      throw new AppError(
+        "Flutterwave service temporarily unavailable. Please try again later.",
+        503
+      );
+
+    }
+
+
+    const flutterwaveStart = Date.now();
+
     const response =
       await axios.post(
         "https://api.flutterwave.com/v3/payments",
@@ -72,6 +90,14 @@ const createPayment = async (req, res) => {
           }
         }
       )
+
+
+    await recordProviderResult({
+      provider:"flutterwave",
+      service:"payments",
+      success:true,
+      responseTime:Date.now() - flutterwaveStart
+    });
 
 
     await Transaction.create({
@@ -90,6 +116,15 @@ const createPayment = async (req, res) => {
 
 
   } catch(error) {
+
+    await recordProviderResult({
+      provider:"flutterwave",
+      service:"payments",
+      success:false,
+      responseTime:0,
+      error:error.response?.data?.message || error.message
+    });
+
 
     console.log(
       "FLW ERROR:",
@@ -295,7 +330,7 @@ throw new AppError("Payment owner mismatch", 400);
 
 
 // Flutterwave webhook
-const flutterwaveWebhook = async (req, res) => {
+const flutterwaveWebhook = async (req, res, next) => {
 
   try {
 
@@ -455,9 +490,7 @@ const flutterwaveWebhook = async (req, res) => {
         throw new AppError("Payment amount mismatch",400);
       }
 
-    const phone = normalizePhone(
-      verified.data.meta.phone
-    );
+    const phone = pending.phone;
 
     const amount = Number(verified.data.amount);
 
@@ -495,6 +528,11 @@ const flutterwaveWebhook = async (req, res) => {
       description: "Flutterwave wallet funding",
       status: "successful"
     });
+
+    pending.status = "successful";
+    pending.flutterwaveId = String(verified.data.id);
+    pending.flutterwaveReference = verified.data.flw_ref;
+    await pending.save();
 
 
     await createNotification(

@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const axios = require("axios");
-const { recordProviderResult } = require("./providerMonitorService");
+const { recordProviderResult, canUseProvider } = require("./providerMonitorService");
 
 const vtuAxios = axios.create({
   timeout:10000
@@ -58,6 +58,22 @@ const getToken = async () => {
 const vtuRequest = async(endpoint,data={})=>{
 
 const startTime = Date.now();
+
+
+const providerAvailable = await canUseProvider({
+  provider:"VTU",
+  service:endpoint
+});
+
+
+if(!providerAvailable){
+
+  throw new Error(
+    "VTU service temporarily unavailable. Please try again later."
+  );
+
+}
+
 
 try{
 

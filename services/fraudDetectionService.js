@@ -38,10 +38,30 @@ const checkFraudLimits = async ({
   );
 
 
+  let dailyLimit =
+    Number(setting.dailyTransactionLimit);
+
+
+  if(type === "bank_transfer"){
+
+    dailyLimit =
+      Number(setting.dailyTransferLimit);
+
+  }
+
+
+  if(type === "withdrawal"){
+
+    dailyLimit =
+      Number(setting.dailyWithdrawalLimit);
+
+  }
+
+
   if(
     dailyTotal + Number(amount)
     >
-    Number(setting.dailyTransactionLimit)
+    dailyLimit
   ){
 
     await auditLogger({

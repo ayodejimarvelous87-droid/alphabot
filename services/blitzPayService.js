@@ -1,6 +1,6 @@
 require("dotenv").config();
 const axios = require("axios");
-const { recordProviderResult } = require("./providerMonitorService");
+const { recordProviderResult, canUseProvider } = require("./providerMonitorService");
 
 const BASE_URL =
 "https://tljnhlhzyntotadxoypz.supabase.co/functions/v1";
@@ -9,6 +9,22 @@ const BASE_URL =
 const blitzRequest = async(endpoint, method="GET", data=null)=>{
 
 const startTime = Date.now();
+
+
+const providerAvailable = await canUseProvider({
+  provider:"blitzpay",
+  service:endpoint
+});
+
+
+if(!providerAvailable){
+
+  throw new Error(
+    "BlitzPay service temporarily unavailable. Please try again later."
+  );
+
+}
+
 
 try{
 

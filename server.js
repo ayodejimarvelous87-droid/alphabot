@@ -77,6 +77,7 @@ const fundingRoutes = require("./routes/fundingRoutes");
 const bankRoutes = require("./routes/bankRoutes");
 const whatsappWebhook = require("./whatsapp/webhook");
 const maintenanceRoutes = require("./routes/maintenanceRoutes");
+const maintenance = require("./middleware/maintenance");
 const referralRoutes = require("./routes/referralRoutes");
 const referralEarningsRoutes = require("./routes/referralEarningsRoutes");
 const referralWithdrawRoutes = require("./routes/referralWithdrawRoutes");
@@ -170,6 +171,26 @@ app.use("/referral-earnings", referralEarningsRoutes);
 app.use("/referral-withdraw", referralWithdrawRoutes);
 
 app.use("/maintenance", maintenanceRoutes);
+
+// Global API freeze protection
+app.use((req,res,next)=>{
+
+  const allowedPaths = [
+    "/flutterwave/webhook",
+    "/vtu/webhook",
+    "/maintenance"
+  ];
+
+  if(
+    allowedPaths.some(path => req.originalUrl.startsWith(path))
+  ){
+    return next();
+  }
+
+  maintenance(req,res,next);
+
+});
+
 
 app.use("/airtime", airtimeRoutes);
 app.use("/data", dataRoutes);

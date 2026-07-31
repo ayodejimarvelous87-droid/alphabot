@@ -99,6 +99,54 @@ err.message
 };
 
 
+
+
+const canUseProvider = async ({
+  provider,
+  service
+}) => {
+
+  const record = await ProviderHealth.findOne({
+    provider,
+    service
+  });
+
+
+  if(!record){
+    return true;
+  }
+
+
+  if(record.status !== "offline"){
+    return true;
+  }
+
+
+  const cooldown = 10 * 60 * 1000;
+
+
+  const lastFailure =
+    record.lastFailure
+      ? new Date(record.lastFailure).getTime()
+      : 0;
+
+
+  if(Date.now() - lastFailure > cooldown){
+
+    console.log(
+      `Circuit breaker half-open: ${provider} ${service}`
+    );
+
+    return true;
+
+  }
+
+
+  return false;
+
+};
+
 module.exports = {
-recordProviderResult
+recordProviderResult,
+canUseProvider
 };

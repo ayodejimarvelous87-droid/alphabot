@@ -115,6 +115,19 @@ router.post("/webhook", async (req,res)=>{
 
 
 
+    if(
+      transaction.status !== "pending" &&
+      transaction.status !== "processing"
+    ){
+
+      return res.status(200).json({
+        success:true,
+        message:"Ignoring callback"
+      });
+
+    }
+
+
     const oldStatus =
       transaction.status;
 

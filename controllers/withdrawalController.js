@@ -32,6 +32,12 @@ throw new AppError("Phone, amount and transaction PIN are required", 400);
 
 }
 
+if(Number(amount) <= 0){
+
+throw new AppError("Invalid withdrawal amount", 400);
+
+}
+
 
 
 // Check transaction PIN
@@ -66,7 +72,7 @@ throw new AppError("Please save withdrawal account first", 400);
 const bankName = user.withdrawBankName;
 const bankCode = user.withdrawBankCode;
 const accountNumber = user.withdrawAccountNumber;
-const accountName = user.withdrawAccountName;
+let accountName = user.withdrawAccountName;
 
 
 // Verify bank account with Flutterwave
