@@ -149,6 +149,25 @@ throw new AppError(
 );
 }
 
+if(Number(amount) > MAX_ADMIN_WALLET_ADJUSTMENT){
+
+throw new AppError(
+  "Admin wallet adjustment limit exceeded",
+  400
+);
+
+}
+
+
+if(!reason || reason.trim().length < 5){
+
+throw new AppError(
+  "Reason is required for admin wallet adjustment",
+  400
+);
+
+}
+
 
 const wallet = await Wallet.findOne({phone});
 
