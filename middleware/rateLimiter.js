@@ -1,4 +1,5 @@
 const rateLimit = require("express-rate-limit");
+const { ipKeyGenerator } = require("express-rate-limit");
 const { RedisStore } = require("rate-limit-redis");
 const { createClient } = require("redis");
 
@@ -98,7 +99,7 @@ const loginPhoneLimiter = createLimiter(
   10,
   "Too many login attempts for this account. Try again later.",
   (req)=>{
-    return req.body.phone || req.ip;
+    return req.body.phone || ipKeyGenerator(req.ip);
   }
 );
 
@@ -115,7 +116,7 @@ const otpPhoneLimiter = createLimiter(
   3,
   "Too many OTP requests for this phone. Try again later.",
   (req)=>{
-    return req.body.phone || req.ip;
+    return req.body.phone || ipKeyGenerator(req.ip);
   }
 );
 
