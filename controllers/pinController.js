@@ -1,7 +1,7 @@
 const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
-const ProfileOTP = require("../models/ProfileOTP");
+const PinOTP = require("../models/PinOTP");
 const User = require("../models/User");
 const sendEmail = require("../services/emailService");
 const normalizePhone = require("../utils/phone");
@@ -27,9 +27,9 @@ throw new AppError(
 
 const otp=Math.floor(100000 + Math.random()*900000).toString();
 
-await ProfileOTP.deleteMany({email:user.email});
+await PinOTP.deleteMany({phone:cleanPhone});
 
-await ProfileOTP.create({
+await PinOTP.create({
 phone:cleanPhone,
 email:user.email,
 otp,
@@ -83,8 +83,20 @@ const setPin = async(req,res)=>{
     const cleanPhone = normalizePhone(req.user.phone);
 
 
-      const otpRecord = await ProfileOTP.findOne({
-        email: user.email,
+      const user = await User.findOne({
+        phone: cleanPhone
+      });
+
+      if(!user){
+        throw new AppError(
+          "User not found",
+          404
+        );
+      }
+
+
+      const otpRecord = await PinOTP.findOne({
+        phone: cleanPhone,
         otp
       });
 
@@ -101,7 +113,7 @@ message:"Too many OTP attempts"
 );
       }
 
-      await ProfileOTP.deleteOne({
+      await PinOTP.deleteOne({
         _id: otpRecord._id
       });
 
