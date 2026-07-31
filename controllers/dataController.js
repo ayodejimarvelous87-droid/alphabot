@@ -2,6 +2,8 @@ const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const Data = require("../models/Data");
+const Profit = require("../models/Profit");
+const DataPrice = require("../models/DataPrice");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");
@@ -13,9 +15,10 @@ checkIdempotency,
 saveIdempotencyKey
 } = require("../utils/idempotency");
 
-const { vtuRequest } = require("../services/vtuService");
+const { vtuRequest, purchaseProduct } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
 const { purchaseData } = require("../services/oplugService");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 
 
@@ -24,7 +27,7 @@ const buyData = async (req,res,next)=>{
 try{
 
 
-const {
+let {
 network,
 plan,
 amount,
@@ -51,8 +54,17 @@ transaction:existingTransaction
 }
 
 
+if(!idempotencyKey){
+throw new AppError("Idempotency key required",400);
+}
 
-if(!network || !plan || !amount){
+
+if(
+!network ||
+!plan ||
+!amount ||
+Number(amount) <= 0
+){
 
 throw new AppError("Network, plan and amount are required", 400);
 
@@ -60,11 +72,44 @@ throw new AppError("Network, plan and amount are required", 400);
 
 
 
+const dataPrice = await DataPrice.findOne({
+  variation_id
+});
+
+
+if(!dataPrice){
+  throw new AppError("Invalid data plan",400);
+}
+
+
+if(
+dataPrice.network &&
+dataPrice.network.toUpperCase() !== network.toUpperCase()
+){
+  throw new AppError("Data plan network mismatch",400);
+}
+
+
+const verifiedAmount = Number(dataPrice.sellingPrice);
+
+
+if(verifiedAmount <= 0){
+  throw new AppError("Invalid data plan price",400);
+}
+
+
+amount = verifiedAmount;
+
+
 const userPhone = normalizePhone(req.user.phone);
 
 const dataPhone =
 normalizePhone(phone || req.user.phone);
 
+
+if(!dataPhone){
+throw new AppError("Invalid phone number",400);
+}
 
 
 const userPin = await TransactionPin.findOne({
@@ -85,6 +130,21 @@ if(!(await bcrypt.compare(pin,userPin.pin))){
 throw new AppError("Incorrect transaction PIN", 400);
 
 }
+
+
+await checkFraudLimits({
+
+phone:userPhone,
+
+amount:Number(amount),
+
+type:"data",
+
+ip:req.ip,
+
+userAgent:req.headers["user-agent"]
+
+});
 
 
 
@@ -200,12 +260,13 @@ providerResponse.msg ||
 
 
 
-providerResponse = await vtuRequest(
-"/api/v2/data",
+providerResponse = await purchaseProduct(
+dataPhone,
 {
-request_id:reference,
-phone:dataPhone,
-});
+variation_id: variation_id || plan,
+network
+}
+);
 
 if(
 providerResponse?.details?.network &&
@@ -289,6 +350,44 @@ throw new AppError("Data purchase failed", 400);
 const data = await Data.create({
 
 phone:dataPhone,
+
+network,
+
+plan,
+
+amount:Number(amount),
+
+reference,
+
+status:"successful"
+
+});
+
+
+const providerCost =
+Number(dataPrice.providerPrice || amount);
+
+
+const profit =
+Number(amount) - providerCost;
+
+
+await Profit.create({
+
+service:"data",
+
+customerAmount:Number(amount),
+
+providerCost,
+
+profit,
+
+source:provider || dataPrice.provider || "provider",
+
+reference,
+
+phone:userPhone
+
 });
 
 
@@ -308,13 +407,13 @@ phone:dataPhone,
   reference,
 
   vtuRequestId:
-    providerResponse.reference ||
-    providerResponse.request_id ||
+    providerResponse?.reference ||
+    providerResponse?.request_id ||
     reference,
 
   vtuOrderId:
-    providerResponse.data?.order ||
-    providerResponse.order_id ||
+    providerResponse?.data?.order ||
+    providerResponse?.order_id ||
     null,
 
   providerResponse: providerResponse,

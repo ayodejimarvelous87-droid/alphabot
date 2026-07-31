@@ -2,6 +2,7 @@ const Recurring = require("../models/Recurring");
 const Wallet = require("../models/wallet");
 const Product = require("../models/Product");
 const Transaction = require("../models/Transaction");
+const { checkFraudLimits } = require("./fraudDetectionService");
 
 const { purchaseProduct } = require("./vtuService");
 
@@ -14,6 +15,7 @@ const processRecurringPayments = async () => {
 
     const payments = await Recurring.find({
       status: "active",
+      processing:false,
       nextRun: {
         $lte: now
       }
@@ -21,6 +23,9 @@ const processRecurringPayments = async () => {
 
 
     for (const payment of payments) {
+
+      payment.processing = true;
+      await payment.save();
 
       const wallet = await Wallet.findOne({
         phone: payment.phone
@@ -52,6 +57,17 @@ const processRecurringPayments = async () => {
       ){
         continue;
       }
+
+
+      await checkFraudLimits({
+
+        phone: payment.phone,
+
+        amount: payment.amount,
+
+        type:"recurring"
+
+      });
 
 
       const result = await purchaseProduct(
@@ -115,6 +131,8 @@ const processRecurringPayments = async () => {
         );
       }
 
+
+      payment.processing = false;
 
       await payment.save();
 

@@ -6,6 +6,7 @@ const { purchaseEPins } = require("../services/vtuService");
 const { createNotification } = require("../services/notificationService");
 const sendEmail = require("../services/emailService");
 const { checkIdempotency } = require("../utils/idempotency");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 const User = require("../models/User");
 
 const normalizePhone = (phone)=>{
@@ -106,6 +107,21 @@ const reference =
 
 
 
+await checkFraudLimits({
+
+phone: buyerPhone,
+
+amount: total,
+
+type:"recharge_pin",
+
+ip:req.ip,
+
+userAgent:req.headers["user-agent"]
+
+});
+
+
 const apiResponse = await purchaseEPins({
 
 network,
@@ -153,16 +169,16 @@ pins,
 reference,
 
       vtuRequestId:
-      providerResponse.reference ||
-      providerResponse.request_id ||
+      apiResponse.reference ||
+      apiResponse.request_id ||
       reference,
 
       vtuOrderId:
-      providerResponse.data?.order ||
-      providerResponse.order_id ||
+      apiResponse.data?.order ||
+      apiResponse.order_id ||
       null,
 
-      providerResponse: providerResponse,
+      apiResponse: apiResponse,
 
 order_id:orderId,
 
@@ -204,16 +220,16 @@ amount:total,
 reference,
 
       vtuRequestId:
-      providerResponse.reference ||
-      providerResponse.request_id ||
+      apiResponse.reference ||
+      apiResponse.request_id ||
       reference,
 
       vtuOrderId:
-      providerResponse.data?.order ||
-      providerResponse.order_id ||
+      apiResponse.data?.order ||
+      apiResponse.order_id ||
       null,
 
-      providerResponse: providerResponse,
+      apiResponse: apiResponse,
 
 balanceBefore,
 

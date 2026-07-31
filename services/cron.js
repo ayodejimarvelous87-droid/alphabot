@@ -9,6 +9,7 @@ const updateFootballPoints = require("./footballPointsService");
 const updateFootballMatches = require("./footballService");
 
 const createFootballRewards = require("./footballRewardService");
+const reconcileWallets = require("./walletReconciliationService");
 
 
 
@@ -141,10 +142,33 @@ error.message
 });
 
 
+/*
+Wallet reconciliation
+Runs every 6 hours
+*/
+
+cron.schedule("0 */6 * * *", async ()=>{
+
+try{
+
+await reconcileWallets();
+
+}catch(error){
+
+console.log(
+"Wallet reconciliation cron error:",
+error.message
+);
+
+}
+
+});
+
 
 console.log("Recurring cron started");
 console.log("Football cron started");
 console.log("Football rewards cron started");
+console.log("Wallet reconciliation cron started");
 
 }
 

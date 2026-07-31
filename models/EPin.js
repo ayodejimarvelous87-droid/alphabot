@@ -34,6 +34,21 @@ type:String,
 default:null
 },
 
+vtuRequestId:{
+type:String,
+default:null
+},
+
+vtuOrderId:{
+type:String,
+default:null
+},
+
+providerResponse:{
+type:Object,
+default:null
+},
+
 status:{
 type:String,
 enum:[

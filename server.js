@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const mongoSanitize = require("express-mongo-sanitize");
 const { generalLimiter } = require("./middleware/rateLimiter");
 const helmet = require("helmet");
 const xss = require("xss");
@@ -16,6 +17,10 @@ const path = require("path");
 const emailTestRoutes = require("./routes/emailTestRoutes");
 const errorHandler = require("./middleware/errorHandler");
 const app = express();
+
+app.disable("x-powered-by");
+
+app.set("trust proxy", 1);
 
 // Global API rate protection
 app.use(generalLimiter);
@@ -43,22 +48,64 @@ app.use(express.json({
 app.use(express.urlencoded({ extended:false }));
 
 // NoSQL injection protection
-
-// XSS protection
 app.use((req,res,next)=>{
+
   if(req.body){
-    req.body = JSON.parse(
-      JSON.stringify(req.body),
-      (key,value)=>{
-        if(typeof value === "string"){
-          return xss(value);
-        }
-        return value;
-      }
-    );
+    req.body = mongoSanitize.sanitize(req.body);
+  }
+
+  if(req.params){
+    req.params = mongoSanitize.sanitize(req.params);
   }
 
   next();
+
+});
+
+// XSS protection
+const cleanXSS = (data)=>{
+  if(!data) return data;
+
+  return JSON.parse(
+    JSON.stringify(data),
+    (key,value)=>{
+      if(typeof value === "string"){
+        return xss(value);
+      }
+
+      return value;
+    }
+  );
+};
+
+
+app.use((req,res,next)=>{
+
+  if(req.body){
+    req.body = cleanXSS(req.body);
+  }
+
+
+  if(req.params){
+    req.params = cleanXSS(req.params);
+  }
+
+
+  if(req.query && Object.keys(req.query).length){
+
+    for(const key of Object.keys(req.query)){
+
+      if(typeof req.query[key] === "string"){
+        req.query[key] = xss(req.query[key]);
+      }
+
+    }
+
+  }
+
+
+  next();
+
 });
 
 app.use(express.static(path.join(__dirname,"public")));
@@ -123,6 +170,26 @@ const transferSettingsRoutes = require("./routes/transferSettingsRoutes");
 const flutterwaveRoutes = require("./routes/flutterwaveRoutes");
 
 
+
+// Global API freeze protection
+app.use((req,res,next)=>{
+
+  const allowedPaths = [
+    "/flutterwave/webhook",
+    "/vtu/webhook",
+    "/maintenance"
+  ];
+
+  if(
+    allowedPaths.some(path => req.originalUrl.startsWith(path))
+  ){
+    return next();
+  }
+
+  maintenance(req,res,next);
+
+});
+
 // Use routes
 
 app.use("/football", footballRoutes);
@@ -172,24 +239,6 @@ app.use("/referral-withdraw", referralWithdrawRoutes);
 
 app.use("/maintenance", maintenanceRoutes);
 
-// Global API freeze protection
-app.use((req,res,next)=>{
-
-  const allowedPaths = [
-    "/flutterwave/webhook",
-    "/vtu/webhook",
-    "/maintenance"
-  ];
-
-  if(
-    allowedPaths.some(path => req.originalUrl.startsWith(path))
-  ){
-    return next();
-  }
-
-  maintenance(req,res,next);
-
-});
 
 
 app.use("/airtime", airtimeRoutes);
@@ -226,6 +275,10 @@ app.get("/api",(req,res)=>{
 });
 
 
+// Error handler (must be after all routes)
+app.use(errorHandler);
+
+
 // Database + Server
 
 const PORT = process.env.PORT || 5000;
@@ -246,8 +299,6 @@ mongoose.connect(process.env.MONGO_URI,{
 
 
   
-app.use(errorHandler);
-
 app.listen(PORT,()=>{
 
     console.log(`AlphaBot API running on port ${PORT}`);

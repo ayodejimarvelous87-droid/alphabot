@@ -13,7 +13,7 @@ const flw = new Flutterwave(
   process.env.FLW_SECRET_KEY
 );
 
-const createPayment = async (req, res) => {
+const createPayment = async (req, res, next) => {
   try {
 
     console.log("FLW USER:", req.user);

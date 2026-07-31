@@ -20,9 +20,12 @@ try{
 const {
 phone,
 amount,
-pin,
-idempotencyKey
+pin
 }=req.body;
+
+
+const idempotencyKey =
+req.headers["idempotency-key"];
 
 
 
@@ -283,7 +286,7 @@ balanceAfter:wallet.balance,
 
 description:"Wallet withdrawal",
 
-status:"successful"
+status:"pending"
 
 });
 

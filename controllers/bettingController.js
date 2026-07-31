@@ -7,6 +7,7 @@ const BettingSetting = require("../models/BettingSetting");
 const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 const { checkIdempotency } = require("../utils/idempotency");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 const {
   verifyCustomer,
@@ -140,6 +141,21 @@ Number(bettingSetting.fee || 0);
 
 const totalAmount =
 Number(amount) + serviceFee;
+
+
+await checkFraudLimits({
+
+phone,
+
+amount:totalAmount,
+
+type:"betting",
+
+ip:req.ip,
+
+userAgent:req.headers["user-agent"]
+
+});
 
 
 if(wallet.balance < totalAmount){

@@ -5,6 +5,7 @@ const TVSubscription = require("../models/TVSubscription");
 const Wallet = require("../models/wallet");
 const TVPlan = require("../models/TVPlan");
 const Transaction = require("../models/Transaction");
+const Profit = require("../models/Profit");
 const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 
@@ -14,6 +15,7 @@ const {
 } = require("../services/vtuService");
 const { purchase, getCablePackages } = require("../services/blitzPayService");
 const { checkIdempotency } = require("../utils/idempotency");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 
 const subscribeTV = async (req, res) => {
@@ -110,6 +112,21 @@ const subscribeTV = async (req, res) => {
 
 
     const chargeAmount = Number(tvPlan.sellingPrice);
+
+
+    await checkFraudLimits({
+
+      phone,
+
+      amount:Number(chargeAmount),
+
+      type:"tv",
+
+      ip:req.ip,
+
+      userAgent:req.headers["user-agent"]
+
+    });
 
 
     if (wallet.balance < chargeAmount) {
@@ -264,6 +281,33 @@ providerResponse.status !== "success"
     });
 
 
+    const providerCost =
+      Number(tvPlan.providerPrice || chargeAmount);
+
+
+    const profit =
+      Number(chargeAmount) - providerCost;
+
+
+    await Profit.create({
+
+      service:"tv",
+
+      customerAmount:Number(chargeAmount),
+
+      providerCost,
+
+      profit,
+
+      source:provider,
+
+      reference,
+
+      phone
+
+    });
+
+
 
     await Transaction.create({
 
@@ -278,13 +322,13 @@ providerResponse.status !== "success"
       reference,
 
       vtuRequestId:
-        providerResponse.reference ||
-        providerResponse.request_id ||
+        providerResponse?.reference ||
+        providerResponse?.request_id ||
         reference,
 
       vtuOrderId:
-        providerResponse.data?.order ||
-        providerResponse.order_id ||
+        providerResponse?.data?.order ||
+        providerResponse?.order_id ||
         null,
 
       providerResponse: providerResponse,

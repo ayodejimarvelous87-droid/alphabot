@@ -118,22 +118,25 @@ const approveFunding = async(req,res)=>{
     const { id } = req.params;
 
 
-    const request = await FundingRequest.findById(id);
+      const request = await FundingRequest.findOneAndUpdate(
+        {
+          _id:id,
+          status:"pending"
+        },
+        {
+          status:"processing"
+        },
+        {
+          new:true
+        }
+      );
 
 
-    if(!request){
+      if(!request){
 
-      throw new AppError("Funding request not found", 404);
+        throw new AppError("Request already processed or not found", 400);
 
-    }
-
-
-
-    if(request.status !== "pending"){
-
-      throw new AppError("Request already processed", 400);
-
-    }
+      }
 
 
 
@@ -177,7 +180,7 @@ const approveFunding = async(req,res)=>{
 
       amount:Number(request.amount),
 
-      reference:request.reference || "manual",
+      reference:request.reference || "FUND-" + Date.now(),
 
       balanceBefore,
 

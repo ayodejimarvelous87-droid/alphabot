@@ -56,15 +56,19 @@ const approveWithdrawal = async (req,res)=>{
     await withdrawal.save();
 
 
-    const transaction = await Transaction.create({
-      phone: withdrawal.phone,
-      type:"withdrawal",
-      direction:"debit",
-      amount: withdrawal.amount,
-      reference: withdrawal.reference,
-      description:"Withdrawal approved",
-      status:"successful"
-    });
+    const transaction = await Transaction.findOneAndUpdate(
+  {
+    reference: withdrawal.reference,
+    type:"withdrawal"
+  },
+  {
+    status:"successful",
+    description:"Withdrawal approved"
+  },
+  {
+    new:true
+  }
+);
 
 
     await createNotification(

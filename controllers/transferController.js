@@ -92,7 +92,7 @@ const getBankBeneficiaries = async(req,res)=>{
 try{
 
 const beneficiaries = await BankBeneficiary.find({
-phone:req.params.phone
+phone:req.user.phone
 });
 
 
@@ -322,26 +322,48 @@ balance:wallet.balance
 
 }catch(error){
 
+const isConfirmedFailure =
+error.response?.data?.status === "error" ||
+error.message === "Transfer failed";
+
+
+if(isConfirmedFailure){
 
 await Wallet.findOneAndUpdate(
-
 {
 phone
 },
-
 {
 $inc:{
 balance:total
 }
 }
-
 );
 
 
 await Transaction.findOneAndUpdate(
 {reference},
-{status:"failed"}
+{
+status:"failed",
+reason:error.message
+}
 );
+
+
+}else{
+
+
+await Transaction.findOneAndUpdate(
+{reference},
+{
+status:"pending",
+reason:"Transfer status unknown - requires verification"
+}
+);
+
+
+}
+
 
 throw error;
 

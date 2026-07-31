@@ -136,6 +136,11 @@ const payWallet = async(req,res,next)=>{
     } = req.body;
 
 
+    if(!idempotencyKey){
+      throw new AppError("Idempotency key required",400);
+    }
+
+
     if(!amount || Number(amount) <= 0 || isNaN(Number(amount))){
       throw new AppError("Invalid payment amount",400);
     }

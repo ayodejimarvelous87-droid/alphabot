@@ -6,6 +6,7 @@ const Transaction = require("../models/Transaction");
 const TransactionPin = require("../models/TransactionPin");
 const { createNotification } = require("../services/notificationService");
 const { checkIdempotency } = require("../utils/idempotency");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 
 const buyExamPin = async(req,res)=>{
@@ -116,6 +117,21 @@ const total = pins.reduce(
 
 
 
+await checkFraudLimits({
+
+phone,
+
+amount:total,
+
+type:"exam_pin",
+
+ip:req.ip,
+
+userAgent:req.headers["user-agent"]
+
+});
+
+
 const wallet = await Wallet.findOne({
 phone
 });
@@ -188,17 +204,6 @@ amount:total,
 
 reference,
 
-      vtuRequestId:
-      providerResponse.reference ||
-      providerResponse.request_id ||
-      reference,
-
-      vtuOrderId:
-      providerResponse.data?.order ||
-      providerResponse.order_id ||
-      null,
-
-      providerResponse: providerResponse,
 
 balanceBefore,
 
@@ -269,31 +274,9 @@ amount:total,
 
 reference,
 
-      vtuRequestId:
-      providerResponse.reference ||
-      providerResponse.request_id ||
-      reference,
-
-      vtuOrderId:
-      providerResponse.data?.order ||
-      providerResponse.order_id ||
-      null,
-
-      providerResponse: providerResponse,
 
 originalReference:reference,
 
-      vtuRequestId:
-      providerResponse.reference ||
-      providerResponse.request_id ||
-      reference,
-
-      vtuOrderId:
-      providerResponse.data?.order ||
-      providerResponse.order_id ||
-      null,
-
-      providerResponse: providerResponse,
 
 service:"exam_pin",
 

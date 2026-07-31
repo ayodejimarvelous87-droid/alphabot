@@ -13,6 +13,7 @@ const getErrorMessage = require("../utils/errorHandler");
 const { purchaseAirtime } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
 const { checkIdempotency } = require("../utils/idempotency");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 
 // Buy airtime
@@ -40,7 +41,16 @@ transaction:existingTransaction
 }
 
 
-if(!network || !amount){
+if(!idempotencyKey){
+throw new AppError("Idempotency key required",400);
+}
+
+
+if(
+!network ||
+!amount ||
+Number(amount) <= 0
+){
 
 throw new AppError("Network and amount are required", 400);
 
@@ -53,6 +63,10 @@ console.log("AUTH USER:", req.user);
 
 const cleanPhone = normalizePhone(phone || req.user.phone);
 
+
+if(!cleanPhone){
+throw new AppError("Invalid phone number",400);
+}
 
 
 const userPin = await TransactionPin.findOne({
@@ -118,6 +132,13 @@ let providerResponse;
 const balanceBefore = wallet.balance;
 
 
+await checkFraudLimits({
+  phone:cleanPhone,
+  amount:Number(amount),
+  type:"airtime",
+  ip:req.ip,
+  userAgent:req.headers["user-agent"]
+});
 
 
 wallet.balance -= Number(amount);
@@ -244,13 +265,13 @@ reference,
   idempotencyKey,
 
 vtuRequestId:
-providerResponse.reference ||
-providerResponse.request_id ||
+providerResponse?.reference ||
+providerResponse?.request_id ||
 reference,
 
 vtuOrderId:
-providerResponse.data?.order ||
-providerResponse.order_id ||
+providerResponse?.data?.order ||
+providerResponse?.order_id ||
 null,
 
 providerResponse: providerResponse,
@@ -312,13 +333,13 @@ source: providerResponse.source || "provider",
 reference,
 
 vtuRequestId:
-providerResponse.reference ||
-providerResponse.request_id ||
+providerResponse?.reference ||
+providerResponse?.request_id ||
 reference,
 
 vtuOrderId:
-providerResponse.data?.order ||
-providerResponse.order_id ||
+providerResponse?.data?.order ||
+providerResponse?.order_id ||
 null,
 
 providerResponse: providerResponse,
@@ -343,13 +364,13 @@ amount:Number(amount),
 reference,
 
 vtuRequestId:
-providerResponse.reference ||
-providerResponse.request_id ||
+providerResponse?.reference ||
+providerResponse?.request_id ||
 reference,
 
 vtuOrderId:
-providerResponse.data?.order ||
-providerResponse.order_id ||
+providerResponse?.data?.order ||
+providerResponse?.order_id ||
 null,
 
 providerResponse: providerResponse,
@@ -382,13 +403,13 @@ source: providerResponse.source || "provider",
 reference,
 
 vtuRequestId:
-providerResponse.reference ||
-providerResponse.request_id ||
+providerResponse?.reference ||
+providerResponse?.request_id ||
 reference,
 
 vtuOrderId:
-providerResponse.data?.order ||
-providerResponse.order_id ||
+providerResponse?.data?.order ||
+providerResponse?.order_id ||
 null,
 
 providerResponse: providerResponse,
@@ -431,13 +452,13 @@ amount:cashback,
 reference,
 
 vtuRequestId:
-providerResponse.reference ||
-providerResponse.request_id ||
+providerResponse?.reference ||
+providerResponse?.request_id ||
 reference,
 
 vtuOrderId:
-providerResponse.data?.order ||
-providerResponse.order_id ||
+providerResponse?.data?.order ||
+providerResponse?.order_id ||
 null,
 
 providerResponse: providerResponse,

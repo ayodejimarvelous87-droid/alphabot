@@ -46,6 +46,11 @@ const recurringSchema = new mongoose.Schema(
     default:"active"
   },
 
+  processing:{
+    type:Boolean,
+    default:false
+  },
+
   nextRun:{
     type:Date,
     required:true

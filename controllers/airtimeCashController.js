@@ -4,6 +4,7 @@ const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
 const SystemSetting = require("../models/SystemSetting");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 const normalizePhone = require("../utils/phone");
 
@@ -95,6 +96,21 @@ if(Number(amount) < 50){
 }
 
 const cleanPhone = normalizePhone(phone);
+
+
+await checkFraudLimits({
+
+phone:cleanPhone,
+
+amount:Number(amount),
+
+type:"airtime_cash",
+
+ip:req.ip,
+
+userAgent:req.headers["user-agent"]
+
+});
 
 
 

@@ -5,6 +5,7 @@ const Electricity = require("../models/Electricity");
 const Wallet = require("../models/wallet");
 const ElectricitySetting = require("../models/ElectricitySetting");
 const Transaction = require("../models/Transaction");
+const Profit = require("../models/Profit");
 const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 
@@ -16,6 +17,7 @@ const {
 
 const { purchase } = require("../services/blitzPayService");
 const { checkIdempotency } = require("../utils/idempotency");
+const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 const payElectricity = async (req, res) => {
 
@@ -116,6 +118,21 @@ const payElectricity = async (req, res) => {
 
     const totalAmount =
       Number(amount) + serviceFee;
+
+
+    await checkFraudLimits({
+
+      phone,
+
+      amount:Number(totalAmount),
+
+      type:"electricity",
+
+      ip:req.ip,
+
+      userAgent:req.headers["user-agent"]
+
+    });
 
 
     if (wallet.balance < totalAmount) {
@@ -219,6 +236,33 @@ const payElectricity = async (req, res) => {
     });
 
 
+    const providerCost =
+      Number(amount);
+
+
+    const profit =
+      Number(totalAmount) - providerCost;
+
+
+    await Profit.create({
+
+      service:"electricity",
+
+      customerAmount:Number(totalAmount),
+
+      providerCost,
+
+      profit,
+
+      source:"provider",
+
+      reference,
+
+      phone
+
+    });
+
+
 
     await Transaction.create({
 
@@ -233,13 +277,13 @@ const payElectricity = async (req, res) => {
       reference,
 
       vtuRequestId:
-        providerResponse.reference ||
-        providerResponse.request_id ||
+        providerResponse?.reference ||
+        providerResponse?.request_id ||
         reference,
 
       vtuOrderId:
-        providerResponse.data?.order ||
-        providerResponse.order_id ||
+        providerResponse?.data?.order ||
+        providerResponse?.order_id ||
         null,
 
       providerResponse: providerResponse,
