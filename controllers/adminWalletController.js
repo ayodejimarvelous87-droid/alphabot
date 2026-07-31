@@ -86,6 +86,8 @@ const addFunds = async (req, res) => {
 
       description: reason || "Admin added funds",
 
+      reference:"ADMIN_CREDIT_" + Date.now() + "_" + Math.random().toString(36).slice(2),
+
       adminId: req.user.id
 
     });
