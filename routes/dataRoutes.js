@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
+const { purchaseLimiter } = require("../middleware/rateLimiter");
 
 const {
 buyData
@@ -14,6 +15,7 @@ buyData
 router.post(
 "/buy",
 auth,
+purchaseLimiter,
 buyData
 );
 

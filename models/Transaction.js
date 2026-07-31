@@ -60,15 +60,13 @@ required:true
 reference:{
 type:String,
 unique:true,
-sparse:true,
-default:null
+sparse:true
 },
 
 flutterwaveId:{
 type:String,
 unique:true,
-sparse:true,
-default:null
+sparse:true
 },
 
 flutterwaveReference:{
@@ -79,15 +77,13 @@ default:null
 vtuOrderId:{
 type:String,
 unique:true,
-sparse:true,
-default:null
+sparse:true
 },
 
 vtuRequestId:{
 type:String,
 unique:true,
-sparse:true,
-default:null
+sparse:true
 },
 
 vtuStatus:{

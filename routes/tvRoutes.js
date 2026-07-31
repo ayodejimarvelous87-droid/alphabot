@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
+const { purchaseLimiter } = require("../middleware/rateLimiter");
 
 const {
   subscribeTV,
@@ -22,6 +23,7 @@ router.get(
 router.post(
   "/subscribe",
   auth,
+  purchaseLimiter,
   subscribeTV
 );
 

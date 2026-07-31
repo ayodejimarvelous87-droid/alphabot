@@ -3,6 +3,7 @@ const router = express.Router();
 
 const auth = require("../middleware/auth");
 const maintenance = require("../middleware/maintenance");
+const { purchaseLimiter } = require("../middleware/rateLimiter");
 
 
 const {
@@ -16,6 +17,7 @@ router.post(
   "/buy",
   auth,
   maintenance,
+  purchaseLimiter,
   buyProduct
 );
 

@@ -4,6 +4,7 @@ const router = express.Router();
 
 
 const auth = require("../middleware/auth");
+const { purchaseLimiter } = require("../middleware/rateLimiter");
 
 
 const {
@@ -17,6 +18,7 @@ const {
 router.post(
     "/pay",
     auth,
+    purchaseLimiter,
     payElectricity
 );
 

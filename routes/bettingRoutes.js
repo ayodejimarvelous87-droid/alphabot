@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
+const { purchaseLimiter } = require("../middleware/rateLimiter");
 
 const {
 fundBetting
@@ -13,6 +14,7 @@ fundBetting
 router.post(
 "/fund",
 auth,
+purchaseLimiter,
 fundBetting
 );
 

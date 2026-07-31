@@ -37,6 +37,7 @@ const connectRedis = async()=>{
 };
 
 
+
 const createLimiter = (
   windowMs,
   max,
@@ -46,9 +47,9 @@ const createLimiter = (
 
   return rateLimit({
 
-    store: new RedisStore({
+    store:new RedisStore({
 
-      sendCommand: async(...args)=>{
+      sendCommand:async(...args)=>{
 
         if(!redisReady){
           await connectRedis();
@@ -121,11 +122,18 @@ const otpPhoneLimiter = createLimiter(
 );
 
 
+const purchaseLimiter = createLimiter(
+  15 * 60 * 1000,
+  30,
+  "Too many purchase attempts. Try again later."
+);
+
 
 module.exports = {
   generalLimiter,
   loginLimiter,
+  loginPhoneLimiter,
   otpLimiter,
   otpPhoneLimiter,
-  loginPhoneLimiter
+  purchaseLimiter
 };

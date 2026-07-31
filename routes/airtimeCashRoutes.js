@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middleware/auth");
-const { otpLimiter } = require("../middleware/rateLimiter");
+const { otpLimiter, purchaseLimiter } = require("../middleware/rateLimiter");
 
 const {
   requestAirtimeCash,
@@ -21,7 +21,7 @@ router.post("/generate-otp", auth, otpLimiter, generateAirtimeOTP);
 
 router.post("/verify-otp", auth, otpLimiter, verifyAirtimeOTP);
 
-router.post("/convert", auth, convertAirtime);
+router.post("/convert", auth, purchaseLimiter, convertAirtime);
 
 
 // History
