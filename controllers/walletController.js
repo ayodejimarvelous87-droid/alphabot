@@ -9,94 +9,17 @@ const normalizePhone = require("../utils/phone");
 
 // Fund wallet
 const fundWallet = async (req, res) => {
-  try {
 
-    const { phone, amount } = req.body;
+  return res.status(410).json({
 
-    if(!amount || Number(amount) <= 0 || isNaN(Number(amount))){
-      throw new AppError("Invalid funding amount",400);
-    }
+    success:false,
 
-    const cleanPhone = normalizePhone(phone);
+    message:
+      "Wallet direct funding has been retired. Use Manual Funding Request or Flutterwave."
 
+  });
 
-    if (req.user.phone !== cleanPhone) {
-      return res.status(403).json({
-        message: "Unauthorized wallet access"
-      });
-    }
-
-
-    let wallet = await Wallet.findOneAndUpdate(
-      {
-        phone: cleanPhone
-      },
-      {
-        $inc:{
-          balance:Number(amount)
-        }
-      },
-      {
-        new:true,
-        upsert:true
-      }
-    );
-
-    const balanceBefore = wallet.balance - Number(amount);
-
-
-
-    await Transaction.create({
-
-      phone: cleanPhone,
-
-      type:"fund",
-
-      direction:"credit",
-
-      amount:Number(amount),
-
-      idempotencyKey,
-
-      balanceBefore,
-
-      balanceAfter: wallet.balance,
-
-      description:"Wallet funding"
-
-    });
-
-
-await auditLogger({
-actor:req.user.id.toString(),
-role:req.user.role,
-action:"WALLET_FUND",
-target:cleanPhone,
-ip:req.ip,
-userAgent:req.headers["user-agent"],
-details:{amount:Number(amount)}
-});
-
-
-    res.json({
-
-      message:"Wallet funded successfully",
-
-      wallet
-
-    });
-
-
-
-  } catch(error){
-
-    next(error);
-
-  }
 };
-
-
-
 
 
 // Check wallet balance
