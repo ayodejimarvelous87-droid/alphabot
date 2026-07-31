@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Admin = require("../models/Admin");
 
 
 const auth = async (req, res, next) => {
@@ -25,12 +26,18 @@ const auth = async (req, res, next) => {
     );
 
 
-    const user = await User.findById(decoded.id);
+    let account;
+
+    if(decoded.role === "admin"){
+      account = await Admin.findById(decoded.id);
+    }else{
+      account = await User.findById(decoded.id);
+    }
 
 
     if(
-      !user ||
-      user.tokenVersion !== decoded.tokenVersion
+      !account ||
+      account.tokenVersion !== decoded.tokenVersion
     ){
 
       return res.status(401).json({
