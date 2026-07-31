@@ -17,3 +17,20 @@ exports.otpSchema = Joi.object({
   phone: Joi.string().trim().required(),
   otp: Joi.string().length(6).required()
 });
+
+
+exports.resetPasswordSchema = Joi.object({
+  email: Joi.string().email().required(),
+  otp: Joi.string().length(6).required(),
+  newPassword: Joi.string().min(6).max(100).required()
+});
+
+exports.sendResetSchema = Joi.object({
+  email: Joi.string().email().required()
+});
+
+
+exports.emailOtpSchema = Joi.object({
+  email: Joi.string().email().required(),
+  otp: Joi.string().length(6).required()
+});

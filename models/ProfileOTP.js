@@ -8,6 +8,12 @@ required:true,
 index:true
 },
 
+email:{
+type:String,
+required:true,
+index:true
+},
+
 otp:{
 type:String,
 required:true

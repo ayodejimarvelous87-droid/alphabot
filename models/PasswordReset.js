@@ -2,14 +2,21 @@ const mongoose = require("mongoose");
 
 const passwordResetSchema = new mongoose.Schema({
 
-phone:{
+email:{
 type:String,
-required:true
+required:true,
+lowercase:true,
+trim:true
 },
 
 otp:{
 type:String,
 required:true
+},
+
+attempts:{
+type:Number,
+default:0
 },
 
 expiresAt:{
@@ -20,7 +27,6 @@ required:true
 },{
 timestamps:true
 });
-
 
 module.exports = mongoose.model(
 "PasswordReset",

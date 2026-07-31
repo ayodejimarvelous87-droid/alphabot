@@ -4,7 +4,7 @@ const { loginLimiter, loginPhoneLimiter, otpLimiter, otpPhoneLimiter } = require
 
 const auth = require("../middleware/auth");
 const validate = require("../middleware/validate");
-const { registerSchema, loginSchema, otpSchema } = require("../validators/authValidator");
+const { registerSchema, loginSchema, otpSchema, emailOtpSchema } = require("../validators/authValidator");
 const {
   registerUser,
   loginUser,
@@ -69,7 +69,7 @@ router.post("/verify-registration-otp", otpLimiter, verifyRegistrationOTP);
 
 router.post("/send-profile-otp", otpLimiter, sendProfileOTP);
 
-router.post("/verify-profile-otp", validate(otpSchema), otpLimiter, verifyProfileOTP);
+router.post("/verify-profile-otp", validate(emailOtpSchema), otpLimiter, verifyProfileOTP);
 
 
 // User profile

@@ -19,33 +19,29 @@ const sendResetOTP = async(req,res,next)=>{
 
 try{
 
-const {phone}=req.body;
+const {email}=req.body;
 
 const user=await User.findOne({
-phone:normalizePhone(phone)
+email:email.toLowerCase().trim()
 });
-
 
 if(!user){
 
-throw new AppError("User not found", 404);
+throw new AppError("User not found",404);
 
 }
-
 
 const otp=Math.floor(
 100000 + Math.random()*900000
 ).toString();
 
-
 await PasswordReset.deleteMany({
-phone:user.phone
+email:user.email
 });
-
 
 await PasswordReset.create({
 
-phone:user.phone,
+email:user.email,
 
 otp,
 
@@ -55,13 +51,11 @@ Date.now()+10*60*1000
 
 });
 
-
-  await sendEmail(
-  user.email,
-  "AlphaBot Password Reset OTP",
-  `Your AlphaBot password reset OTP is ${otp}`
-  );
-
+await sendEmail(
+user.email,
+"AlphaBot Password Reset OTP",
+`Your AlphaBot password reset OTP is ${otp}`
+);
 
 res.json({
 
@@ -69,7 +63,6 @@ message:"OTP sent successfully"
 
 });
 
-
 }catch(error){
 
 next(error);
@@ -77,8 +70,6 @@ next(error);
 }
 
 };
-
-
 
 // Verify reset OTP
 const verifyResetOTP = async(req,res,next)=>{
@@ -86,62 +77,67 @@ const verifyResetOTP = async(req,res,next)=>{
 try{
 
 const {
-phone,
+email,
 otp,
 newPassword
 }=req.body;
 
+const cleanEmail=email.toLowerCase().trim();
 
 const reset=await PasswordReset.findOne({
 
-phone:normalizePhone(phone),
+email:cleanEmail,
 
 otp
 
 });
 
-
 if(!reset){
 
-throw new AppError("Invalid OTP", 400);
+throw new AppError("Invalid OTP",400);
 
 }
 
+if(reset.attempts >= 5){
+
+throw new AppError("Too many OTP attempts",429);
+
+}
 
 if(reset.expiresAt < new Date()){
 
-throw new AppError("OTP expired", 400);
+throw new AppError("OTP expired",400);
 
 }
 
-
 const user=await User.findOne({
 
-phone:normalizePhone(phone)
+email:cleanEmail
 
 });
 
+if(!user){
+
+throw new AppError("User not found",404);
+
+}
 
 user.password=await bcrypt.hash(
 newPassword,
 10
 );
 
-
 await user.save();
-
 
 await PasswordReset.deleteOne({
 _id:reset._id
 });
-
 
 res.json({
 
 message:"Password reset successful"
 
 });
-
 
 }catch(error){
 
@@ -150,7 +146,6 @@ next(error);
 }
 
 };
-
 
 // Generate referral code
 const generateReferralCode = () => {
@@ -184,7 +179,7 @@ const hashedPassword = await bcrypt.hash(password,10);
 
 const otp=Math.floor(100000 + Math.random()*900000).toString();
 
-await RegistrationOTP.deleteMany({phone:cleanPhone});
+await RegistrationOTP.deleteMany({email:email.toLowerCase().trim()});
 
 await RegistrationOTP.create({
 name,
@@ -802,22 +797,27 @@ const changePassword = async (req,res)=>{
 const sendProfileOTP = async(req,res,next)=>{
 try{
 
-const {phone}=req.body;
+const {email}=req.body;
+
+const cleanEmail=email.toLowerCase().trim();
 
 const user = await User.findOne({
-phone:normalizePhone(phone)
+email:cleanEmail
 });
 
 if(!user){
-throw new AppError("User not found", 404);
+throw new AppError("User not found",404);
 }
 
 const otp=Math.floor(100000 + Math.random()*900000).toString();
 
-await ProfileOTP.deleteMany({phone:user.phone});
+await ProfileOTP.deleteMany({
+email:cleanEmail
+});
 
 await ProfileOTP.create({
 phone:user.phone,
+email:cleanEmail,
 otp,
 expiresAt:new Date(Date.now()+10*60*1000)
 });
@@ -828,50 +828,77 @@ user.email,
 `Your AlphaBot profile verification OTP is ${otp}`
 );
 
-res.json({message:"Profile OTP sent successfully"});
+res.json({
+message:"Profile OTP sent successfully"
+});
 
 }catch(error){
 next(error);
 }
-};
 
+};
 
 
 const verifyProfileOTP = async(req,res,next)=>{
 try{
 
-const {phone,otp}=req.body;
+const {
+email,
+otp
+}=req.body;
+
+const cleanEmail=email.toLowerCase().trim();
 
 const verify = await ProfileOTP.findOne({
-phone:normalizePhone(phone),
+email:cleanEmail,
 otp
 });
 
 if(!verify){
-throw new AppError("Invalid OTP", 400);
+
+throw new AppError("Invalid OTP",400);
+
+}
+
+if(verify.attempts >= 5){
+
+throw new AppError("Too many OTP attempts",429);
+
 }
 
 if(verify.expiresAt < new Date()){
-throw new AppError("OTP expired", 400);
+
+throw new AppError("OTP expired",400);
+
 }
 
-
-const user = await User.findOne({phone:normalizePhone(phone)});
+const user = await User.findOne({
+email:cleanEmail
+});
 
 if(user){
-  user.emailVerified = true;
-  await user.save();
+
+user.emailVerified = true;
+
+await user.save();
+
 }
 
-await ProfileOTP.deleteOne({_id:verify._id});
+await ProfileOTP.deleteOne({
+_id:verify._id
+});
 
-res.json({message:"Profile verified successfully"});
+res.json({
+message:"Profile verified successfully"
+});
 
 }catch(error){
-next(error);
-}
-};
 
+next(error);
+
+}
+
+};
 
 
 const saveWithdrawAccount = async(req,res,next)=>{

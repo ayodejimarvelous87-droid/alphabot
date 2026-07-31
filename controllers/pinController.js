@@ -12,8 +12,6 @@ const sendPinOTP = async(req,res)=>{
 console.log("SEND PIN OTP REQUEST:", req.body, req.user);
 try{
 
-const {phone}=req.body;
-
 const cleanPhone = normalizePhone(req.user.phone);
 
 const user = await User.findOne({
@@ -29,10 +27,11 @@ throw new AppError(
 
 const otp=Math.floor(100000 + Math.random()*900000).toString();
 
-await ProfileOTP.deleteMany({phone:cleanPhone});
+await ProfileOTP.deleteMany({email:user.email});
 
 await ProfileOTP.create({
 phone:cleanPhone,
+email:user.email,
 otp,
 expiresAt:new Date(Date.now()+10*60*1000)
 });
@@ -85,7 +84,7 @@ const setPin = async(req,res)=>{
 
 
       const otpRecord = await ProfileOTP.findOne({
-        phone: cleanPhone,
+        email: user.email,
         otp
       });
 
