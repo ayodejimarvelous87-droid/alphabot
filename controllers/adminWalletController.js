@@ -13,79 +13,50 @@ const searchWallet = async (req, res) => {
 
     const wallet = await Wallet.findOne({ phone });
 
-
     if (!wallet) {
-      throw new AppError(
-  "Wallet not found",
-  404
-);
+      throw new AppError("Wallet not found", 404);
     }
-
 
     res.json(wallet);
 
-
-  } catch(error){
+  } catch(error) {
 
     res.status(500).json({
-      message: error.message
+      message:error.message
     });
 
   }
 };
 
 
-
-// Add funds manually
+// Add funds
 const addFunds = async (req, res) => {
   try {
 
-    const { phone, amount, reason } = req.body;
-
+    const { phone, amount } = req.body;
 
     if(!amount || Number(amount) <= 0){
-      throw new AppError(
-  "Invalid amount",
-  400
-);
+      throw new AppError("Invalid amount",400);
     }
-
 
     if(Number(amount) > MAX_ADMIN_WALLET_ADJUSTMENT){
       throw new AppError(
-  "Admin wallet adjustment limit exceeded",
-  400
-);
+        "Admin wallet adjustment limit exceeded",
+        400
+      );
     }
 
-
-    if(!reason || reason.trim().length < 5){
-      throw new AppError(
-  "Reason is required for admin wallet adjustment",
-  400
-);
-    }
-
-
-    const wallet = await Wallet.findOne({ phone });
-
+    const wallet = await Wallet.findOne({phone});
 
     if(!wallet){
-      throw new AppError(
-  "Wallet not found",
-  404
-);
+      throw new AppError("Wallet not found",404);
     }
-
 
     const balanceBefore = wallet.balance;
 
-
     wallet.balance += Number(amount);
 
-
     await wallet.save();
-
 
 
     await Transaction.create({
@@ -102,24 +73,20 @@ const addFunds = async (req, res) => {
 
       balanceAfter:wallet.balance,
 
-      description: reason || "Admin added funds",
+      description:"Admin added funds",
 
-      reference:"ADMIN_CREDIT_" + Date.now() + "_" + Math.random().toString(36).slice(2),
+      reference:
+      "ADMIN_CREDIT_" + Date.now(),
 
-      adminId: req.user.id
+      adminId:req.user.id
 
     });
-
 
 
     res.json({
-
       message:"Funds added successfully",
-
       wallet
-
     });
-
 
 
   }catch(error){
@@ -133,125 +100,93 @@ const addFunds = async (req, res) => {
 
 
 
-
-// Deduct funds manually
+// Deduct funds
 const deductFunds = async (req,res)=>{
+  try{
 
-try{
-
-const { phone, amount, reason } = req.body;
-
-
-if(!amount || Number(amount) <= 0){
-throw new AppError(
-  "Invalid amount",
-  400
-);
-}
-
-if(Number(amount) > MAX_ADMIN_WALLET_ADJUSTMENT){
-
-throw new AppError(
-  "Admin wallet adjustment limit exceeded",
-  400
-);
-
-}
+    const { phone, amount } = req.body;
 
 
-if(!reason || reason.trim().length < 5){
-
-throw new AppError(
-  "Reason is required for admin wallet adjustment",
-  400
-);
-
-}
+    if(!amount || Number(amount)<=0){
+      throw new AppError("Invalid amount",400);
+    }
 
 
-const wallet = await Wallet.findOne({phone});
+    if(Number(amount)>MAX_ADMIN_WALLET_ADJUSTMENT){
+      throw new AppError(
+        "Admin wallet adjustment limit exceeded",
+        400
+      );
+    }
 
 
-if(!wallet){
-
-throw new AppError(
-  "Wallet not found",
-  404
-);
-
-}
+    const wallet = await Wallet.findOne({phone});
 
 
-
-if(wallet.balance < Number(amount)){
-
-throw new AppError(
-  "Insufficient balance",
-  400
-);
-
-}
+    if(!wallet){
+      throw new AppError("Wallet not found",404);
+    }
 
 
-
-const balanceBefore = wallet.balance;
-
-
-wallet.balance -= Number(amount);
-
-
-await wallet.save();
+    if(wallet.balance < Number(amount)){
+      throw new AppError(
+        "Insufficient balance",
+        400
+      );
+    }
 
 
-
-await Transaction.create({
-
-phone,
-
-type:"admin_debit",
-
-direction:"debit",
-
-amount:Number(amount),
-
-balanceBefore,
-
-balanceAfter:wallet.balance,
-
-description: reason || "Admin deducted funds",
-
-reference:"ADMIN_DEBIT_" + Date.now() + "_" + Math.random().toString(36).slice(2),
-
-adminId: req.user.id
-
-});
+    const balanceBefore = wallet.balance;
 
 
+    wallet.balance -= Number(amount);
 
-res.json({
-
-message:"Funds deducted successfully",
-
-wallet
-
-});
+    await wallet.save();
 
 
+    await Transaction.create({
 
-}catch(error){
+      phone,
 
-res.status(500).json({
-message:error.message
-});
+      type:"admin_debit",
 
-}
+      direction:"debit",
 
+      amount:Number(amount),
+
+      balanceBefore,
+
+      balanceAfter:wallet.balance,
+
+      description:"Admin deducted funds",
+
+      reference:
+      "ADMIN_DEBIT_" + Date.now(),
+
+      adminId:req.user.id
+
+    });
+
+
+    res.json({
+      message:"Funds deducted successfully",
+      wallet
+    });
+
+
+  }catch(error){
+
+    res.status(500).json({
+      message:error.message
+    });
+
+  }
 };
 
 
 
 module.exports = {
-searchWallet,
-addFunds,
-deductFunds
+  searchWallet,
+  addFunds,
+  deductFunds
 };

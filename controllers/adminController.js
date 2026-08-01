@@ -6,6 +6,24 @@ const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
 const Withdrawal = require("../models/Withdrawal");
 const SystemSetting = require("../models/SystemSetting");
+const Airtime = require("../models/Airtime");
+const AirtimeCash = require("../models/AirtimeCash");
+const Data = require("../models/Data");
+const Electricity = require("../models/Electricity");
+const TVSubscription = require("../models/TVSubscription");
+const Betting = require("../models/Betting");
+const EPin = require("../models/EPin");
+const FundingRequest = require("../models/FundingRequest");
+const Beneficiary = require("../models/Beneficiary");
+const BankBeneficiary = require("../models/BankBeneficiary");
+const DeviceToken = require("../models/DeviceToken");
+const AIConversation = require("../models/AIConversation");
+const AIUsage = require("../models/AIUsage");
+const Recurring = require("../models/Recurring");
+const Profit = require("../models/Profit");
+const TransactionPin = require("../models/TransactionPin");
+const UserState = require("../models/UserState");
+const ProfileOTP = require("../models/ProfileOTP");
 
 
 // Get all users
@@ -448,21 +466,81 @@ const deleteUser = async(req,res)=>{
 
 try{
 
-const user = await User.findOneAndDelete({
-phone:req.params.phone
-});
+const phone = req.params.phone;
 
+console.log("ADMIN DELETING USER:", phone);
+
+
+const user = await User.findOne({phone});
 
 if(!user){
-throw new AppError(
-  "User not found",
-  404
-);
+  throw new AppError(
+    "User not found",
+    404
+  );
 }
 
 
+await Promise.all([
+
+User.deleteOne({phone}),
+
+Wallet.deleteOne({phone}),
+
+Order.deleteMany({phone}),
+
+Transaction.deleteMany({phone}),
+
+Notification.deleteMany({phone}),
+
+Withdrawal.deleteMany({phone}),
+
+Airtime.deleteMany({phone}),
+
+AirtimeCash.deleteMany({phone}),
+
+Data.deleteMany({phone}),
+
+Electricity.deleteMany({phone}),
+
+TVSubscription.deleteMany({phone}),
+
+Betting.deleteMany({phone}),
+
+EPin.deleteMany({phone}),
+
+FundingRequest.deleteMany({phone}),
+
+Beneficiary.deleteMany({
+$or:[
+{phone},
+{beneficiary_phone:phone}
+]
+}),
+
+BankBeneficiary.deleteMany({phone}),
+
+DeviceToken.deleteMany({phone}),
+
+AIConversation.deleteMany({phone}),
+
+AIUsage.deleteMany({phone}),
+
+Recurring.deleteMany({phone}),
+
+Profit.deleteMany({phone}),
+
+TransactionPin.deleteMany({phone}),
+
+UserState.deleteMany({phone}),
+
+ProfileOTP.deleteMany({phone})
+
+]);
+
+
 res.json({
-message:"User deleted"
+message:"User and all related data deleted"
 });
 
 
@@ -475,6 +553,8 @@ message:error.message
 }
 
 };
+
+
 
 
 
