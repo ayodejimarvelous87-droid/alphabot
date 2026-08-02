@@ -10,7 +10,6 @@ const xss = require("xss");
 const startCron = require("./services/cron");
 const startOTPCleanup = require("./services/otpCleanup");
 const { startFlutterwaveCron } = require("./services/flutterwaveCron");
-const { initializeAirtimeInventory } = require("./services/airtimeInventoryService");
 require("./services/recurringService");
 const path = require("path");
 
@@ -165,7 +164,6 @@ const adminElectricityRoutes = require("./routes/adminElectricityRoutes");
 const adminBettingRoutes = require("./routes/adminBettingRoutes");
 const adminRecurringRoutes = require("./routes/adminRecurringRoutes");
 const adminTransferRoutes = require("./routes/adminTransferRoutes");
-const adminAirtimeInventoryRoutes = require("./routes/adminAirtimeInventoryRoutes");
 const transferSettingsRoutes = require("./routes/transferSettingsRoutes");
 const flutterwaveRoutes = require("./routes/flutterwaveRoutes");
 
@@ -261,7 +259,6 @@ app.use("/settings", settingsRoutes);
 
 app.use("/admin/exam-pin", adminExamPinRoutes);
 app.use("/admin/airtime-cash", adminAirtimeCashRoutes);
-app.use("/admin/airtime-inventory", adminAirtimeInventoryRoutes);
 
 app.use("/epin", ePinRoutes);
 app.use("/transfer", transferRoutes);
@@ -295,7 +292,7 @@ mongoose.connect(process.env.MONGO_URI,{
   startCron();
   startOTPCleanup();
   startFlutterwaveCron();
-  initializeAirtimeInventory();
+
 
 
   

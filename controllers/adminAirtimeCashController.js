@@ -1,6 +1,5 @@
 const AppError = require("../utils/AppError");
 const AirtimeCash = require("../models/AirtimeCash");
-const AirtimeInventory = require("../models/AirtimeInventory");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");

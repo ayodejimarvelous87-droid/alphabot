@@ -1,5 +1,4 @@
 const AirtimeCash = require("../models/AirtimeCash");
-const AirtimeInventory = require("../models/AirtimeInventory");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("./notificationService");
@@ -28,27 +27,6 @@ phone:request.phone
 if(!wallet){
 throw new Error("Wallet not found");
 }
-
-
-const inventory = await AirtimeInventory.findOne({
-network:request.network.toUpperCase()
-});
-
-
-if(!inventory){
-throw new Error("Airtime inventory not found");
-}
-
-
-inventory.storedAmount += Number(request.amount);
-
-
-if(inventory.storedAmount > inventory.limit){
-throw new Error("Airtime inventory limit exceeded");
-}
-
-
-await inventory.save();
 
 
 const balanceBefore = wallet.balance;

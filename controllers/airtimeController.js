@@ -3,7 +3,6 @@ const bcrypt = require("bcryptjs");
 const AirtimeOverride = require("../models/AirtimeOverride");
 const TransactionPin = require("../models/TransactionPin");
 const Airtime = require("../models/Airtime");
-const AirtimeInventory = require("../models/AirtimeInventory");
 const Profit = require("../models/Profit");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
@@ -158,31 +157,6 @@ await wallet.save();
 try{
 
 
-const inventory = await AirtimeInventory.findOne({
-network: network.toUpperCase()
-});
-
-
-if(
-inventory &&
-inventory.storedAmount >= Number(amount)
-){
-
-inventory.storedAmount -= Number(amount);
-
-await inventory.save();
-
-
-providerResponse = {
-code:"success",
-source:"inventory",
-data:{
-amount_charged:Number(amount)
-}
-};
-
-
-}else{
 
 
 try {
@@ -245,7 +219,6 @@ throw new Error("Blitz airtime provider failed");
 
 }
 
-}
 
 
 }catch(error){
