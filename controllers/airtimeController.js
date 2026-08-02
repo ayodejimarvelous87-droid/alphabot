@@ -269,10 +269,6 @@ providerResponse?.reference ||
 providerResponse?.request_id ||
 reference,
 
-vtuOrderId:
-providerResponse?.data?.order ||
-providerResponse?.order_id ||
-null,
 
 providerResponse: providerResponse,
 
@@ -337,10 +333,6 @@ providerResponse?.reference ||
 providerResponse?.request_id ||
 reference,
 
-vtuOrderId:
-providerResponse?.data?.order ||
-providerResponse?.order_id ||
-null,
 
 providerResponse: providerResponse,
 
@@ -368,10 +360,6 @@ providerResponse?.reference ||
 providerResponse?.request_id ||
 reference,
 
-vtuOrderId:
-providerResponse?.data?.order ||
-providerResponse?.order_id ||
-null,
 
 providerResponse: providerResponse,
 
@@ -407,10 +395,6 @@ providerResponse?.reference ||
 providerResponse?.request_id ||
 reference,
 
-vtuOrderId:
-providerResponse?.data?.order ||
-providerResponse?.order_id ||
-null,
 
 providerResponse: providerResponse,
 
@@ -456,10 +440,6 @@ providerResponse?.reference ||
 providerResponse?.request_id ||
 reference,
 
-vtuOrderId:
-providerResponse?.data?.order ||
-providerResponse?.order_id ||
-null,
 
 providerResponse: providerResponse,
 
