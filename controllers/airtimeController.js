@@ -329,7 +329,7 @@ status:"successful"
 
 
 
-await Transaction.create({
+const transaction = await Transaction.create({
 
 phone:userPhone,
 
@@ -452,7 +452,9 @@ userPhone,
 
 `₦${Number(amount).toLocaleString()} ${network} airtime purchased.`,
 
-"success"
+"success",
+
+transaction._id
 
 );
 
