@@ -55,26 +55,33 @@ throw new AppError("Network and amount are required", 400);
 }
 
 
-// Use authenticated user's phone
+// Separate wallet owner phone from airtime destination phone
 
 console.log("AUTH USER:", req.user);
 
-const cleanPhone = normalizePhone(req.user.phone);
+const userPhone = normalizePhone(req.user.phone);
+const airtimePhone = normalizePhone(phone);
 
 
-if(!cleanPhone){
-throw new AppError("Invalid phone number",400);
+if(!userPhone){
+throw new AppError("Invalid user phone number",400);
+}
+
+
+if(!airtimePhone){
+throw new AppError("Invalid recipient phone number",400);
 }
 
 
 console.log({
 jwtPhone: req.user.phone,
 bodyPhone: phone,
-cleanPhone
+userPhone,
+airtimePhone
 });
 
 const userPin = await TransactionPin.findOne({
-phone: cleanPhone
+phone: userPhone
 });
 
 
@@ -94,7 +101,7 @@ throw new AppError("Incorrect transaction PIN", 400);
 
 
 const wallet = await Wallet.findOne({
-phone: cleanPhone
+phone: userPhone
 });
 
 
@@ -162,7 +169,7 @@ try {
 
 providerResponse = await purchaseAirtime({
 
-phone: cleanPhone,
+phone: airtimePhone,
 
 network,
 
