@@ -69,6 +69,12 @@ throw new AppError("Invalid phone number",400);
 }
 
 
+console.log({
+jwtPhone: req.user.phone,
+bodyPhone: phone,
+cleanPhone
+});
+
 const userPin = await TransactionPin.findOne({
 phone: cleanPhone
 });
