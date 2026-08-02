@@ -144,7 +144,7 @@ const balanceBefore = wallet.balance;
 
 
 await checkFraudLimits({
-  phone:cleanPhone,
+  phone:userPhone,
   amount:Number(amount),
   type:"airtime",
   ip:req.ip,
@@ -206,7 +206,7 @@ type:"airtime",
 
 network,
 
-phone:cleanPhone,
+phone:userPhone,
 
 amount:Number(amount)
 
@@ -238,7 +238,7 @@ await wallet.save();
 
 await Transaction.create({
 
-phone:cleanPhone,
+phone:userPhone,
 
 type:"refund",
 
@@ -275,7 +275,7 @@ status:"successful"
 
 
 await createNotification(
-  cleanPhone,
+  userPhone,
   "Airtime Purchase Failed",
   `Your ₦${Number(amount).toLocaleString()} has been refunded to your wallet.`,
   "warning"
@@ -300,7 +300,7 @@ const profit = Number(amount) - providerCost;
 
 const airtime = await Airtime.create({
 
-phone:cleanPhone,
+phone:userPhone,
 
 network,
 
@@ -331,7 +331,7 @@ status:"successful"
 
 await Transaction.create({
 
-phone:cleanPhone,
+phone:userPhone,
 
 type:"airtime",
 
@@ -385,7 +385,7 @@ reference,
 providerResponse: providerResponse,
 
 
-phone:cleanPhone
+phone:userPhone
 
 });
 
@@ -411,7 +411,7 @@ await wallet.save();
 
 await Transaction.create({
 
-phone:cleanPhone,
+phone:userPhone,
 
 type:"cashback",
 
@@ -446,7 +446,7 @@ status:"successful"
 
 await createNotification(
 
-cleanPhone,
+userPhone,
 
 "Airtime Purchase Successful",
 
