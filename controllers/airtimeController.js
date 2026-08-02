@@ -61,7 +61,7 @@ throw new AppError("Network and amount are required", 400);
 
 console.log("AUTH USER:", req.user);
 
-const cleanPhone = normalizePhone(phone || req.user.phone);
+const cleanPhone = normalizePhone(req.user.phone);
 
 
 if(!cleanPhone){
