@@ -27,6 +27,10 @@ const { network, amount, pin, phone } = req.body;
 const idempotencyKey =
 req.headers["idempotency-key"];
 
+if(!idempotencyKey){
+throw new AppError("Idempotency key required",400);
+}
+
 const existingTransaction =
 await checkIdempotency(idempotencyKey);
 
@@ -37,11 +41,6 @@ message:"Transaction already processed",
 transaction:existingTransaction
 });
 
-}
-
-
-if(!idempotencyKey){
-throw new AppError("Idempotency key required",400);
 }
 
 
