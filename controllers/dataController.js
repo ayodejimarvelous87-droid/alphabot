@@ -4,6 +4,7 @@ const TransactionPin = require("../models/TransactionPin");
 const Data = require("../models/Data");
 const Profit = require("../models/Profit");
 const DataPrice = require("../models/DataPrice");
+const ProductOverride = require("../models/ProductOverride");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { createNotification } = require("../services/notificationService");
@@ -72,8 +73,8 @@ throw new AppError("Network, plan and amount are required", 400);
 
 
 
-const dataPrice = await DataPrice.findOne({
-  variation_id
+const dataPrice = await ProductOverride.findOne({
+  productId: String(variation_id)
 });
 
 
@@ -87,6 +88,11 @@ dataPrice.network &&
 dataPrice.network.toUpperCase() !== network.toUpperCase()
 ){
   throw new AppError("Data plan network mismatch",400);
+}
+
+
+if(dataPrice.active === false){
+  throw new AppError("Data plan unavailable",400);
 }
 
 
@@ -277,6 +283,8 @@ throw new Error(`OPLUG network mismatch: requested ${network}, returned ${provid
 
 
 
+console.log("VTU RESPONSE:", JSON.stringify(providerResponse,null,2));
+
 if(
 !providerResponse ||
 providerResponse.code !== "success"
@@ -292,6 +300,8 @@ throw new Error("VTU data purchase failed");
 
 
 }catch(error){
+console.log("REAL DATA ERROR:", error.message);
+console.log("REAL DATA ERROR OBJECT:", JSON.stringify(error, null, 2));
 
 
 // Refund
@@ -340,7 +350,9 @@ await createNotification(
 
 
 
-throw new AppError("Data purchase failed", 400);
+console.log("DATA PURCHASE ERROR:", error.message);
+console.log("DATA PURCHASE FULL ERROR:", JSON.stringify(error.response?.data || error,null,2));
+throw new AppError(error.message || "Data purchase failed", 400);
 
 }
 
@@ -462,6 +474,8 @@ providerResponse
 
 
 }catch(error){
+console.log("REAL DATA ERROR:", error.message);
+console.log("REAL DATA ERROR OBJECT:", JSON.stringify(error, null, 2));
 
 
 console.log(
