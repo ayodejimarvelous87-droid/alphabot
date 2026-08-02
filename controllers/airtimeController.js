@@ -171,6 +171,7 @@ amount:Number(amount),
 request_id:reference
 
 });
+console.log("VTU AIRTIME RESPONSE:", JSON.stringify(providerResponse, null, 2));
 
 
 if(
