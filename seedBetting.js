@@ -3,14 +3,13 @@ require("dotenv").config();
 
 const BettingSetting = require("./models/BettingSetting");
 
-
 const services = [
-"bet9ja",
-"sportybet",
-"1xbet",
-"betking"
+  "Bet9ja",
+  "SportyBet",
+  "1xBet",
+  "BetKing",
+  "BetWay"
 ];
-
 
 async function seed(){
 
@@ -18,13 +17,10 @@ try{
 
 await mongoose.connect(process.env.MONGO_URI);
 
-
 for(const service of services){
 
 await BettingSetting.findOneAndUpdate(
-{
-service
-},
+{ service },
 {
 service,
 fee:0,
@@ -38,11 +34,9 @@ new:true
 
 }
 
-
 console.log("Betting settings seeded");
 
 process.exit();
-
 
 }catch(error){
 
@@ -53,6 +47,5 @@ process.exit(1);
 }
 
 }
-
 
 seed();
