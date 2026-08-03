@@ -23,6 +23,11 @@ type:Number,
 required:true
 },
 
+reference:{
+type:String,
+default:null
+},
+
 
 status:{
 type:String,

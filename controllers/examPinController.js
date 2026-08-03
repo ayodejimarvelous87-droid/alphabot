@@ -179,11 +179,15 @@ await wallet.save();
 let purchasedPins=[];
 
 
+reference = "EXAM-" + Date.now();
+
+
 for(const item of pins){
 
 item.status="used";
 item.usedBy=phone;
 item.usedAt=new Date();
+item.reference = reference;
 
 await item.save();
 
@@ -206,10 +210,6 @@ user.email,
 );
 
 }
-
-
-reference = "EXAM-" + Date.now();
-
 
 
 await Transaction.create({
