@@ -222,24 +222,25 @@ throw new Error(`OPLUG network mismatch: requested ${network}, returned ${provid
 
 
 
-if(
-!providerResponse ||
-providerResponse.success !== true
-){
+  console.log("BLITZPAY RAW RESPONSE:", JSON.stringify(providerResponse, null, 2));
+console.log("BLITZPAY RESPONSE:", JSON.stringify(providerResponse, null, 2));
+  console.log("BLITZPAY RAW RESPONSE:", JSON.stringify(providerResponse, null, 2));
 
-throw new Error("BlitzPay data purchase failed");
+if(!providerResponse || providerResponse.success !== true){
+ throw new Error(providerResponse?.error || providerResponse?.message || "BlitzPay data purchase failed");
+}
 
 }
 
 
 
-}else if(provider === "oplug"){
+else if(provider === "oplug"){
 
 console.log("DATA OPLUG BUY:", {network, variation_id, provider});
 console.log("OPLUG REQUEST BEFORE PURCHASE:", {network, variation_id, dataPhone});
 providerResponse = await purchaseData({
 network,
-planId: variation_id,
+planId: dataPrice.providerPlanId || variation_id,
 phone:dataPhone
 });
 
@@ -365,11 +366,11 @@ throw new AppError(error.message || "Data purchase failed", 400);
 
 
 const data = await Data.create({
+  plan: variation_id || plan,
 
 phone:dataPhone,
 
 network,
-
 plan,
 
 amount:Number(dataPrice.providerPrice),
@@ -399,7 +400,7 @@ providerCost,
 
 profit,
 
-source:provider || dataPrice.provider || "provider",
+source:"provider",
 
 reference,
 

@@ -13,6 +13,11 @@ const productOverrideSchema = new mongoose.Schema(
     default:""
   },
 
+  providerPlanId:{
+    type:String,
+    default:""
+  },
+
   network:{
     type:String,
     default:""

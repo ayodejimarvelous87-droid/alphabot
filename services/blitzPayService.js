@@ -68,30 +68,21 @@ responseTime:Date.now()-startTime
 return response.data;
 
 
-}catch(error){
+  }catch(error){
 
+    await recordProviderResult({
+      provider:"blitzpay",
+      service:endpoint,
+      success:false,
+      responseTime:Date.now()-startTime,
+      error: JSON.stringify(error.response?.data || error.message)
+    });
 
-await recordProviderResult({
-provider:"blitzpay",
-service:endpoint,
-success:false,
-responseTime:Date.now()-startTime,
-error:error.response?.data?.message || error.message
-});
+    console.log("BLITZPAY FULL ERROR:", JSON.stringify(error.response?.data || error.message, null, 2));
 
-
-console.log(
-"BlitzPay error:",
-error.response?.data || error.message
-);
-
-
-throw error;
-
-}
-
+    throw error;
+  }
 };
-
 
 const getBalance = async()=>{
 

@@ -118,7 +118,8 @@ item.network?.toUpperCase() === network.toUpperCase()
 
 return {
 ...plan,
-id: plan.plan_id
+id: plan.id,
+plan_id: plan.plan_id
 };
 
 });
