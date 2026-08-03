@@ -6,10 +6,17 @@ const Transaction = require("../models/Transaction");
 const TransactionPin = require("../models/TransactionPin");
 const { createNotification } = require("../services/notificationService");
 const { checkIdempotency } = require("../utils/idempotency");
+const User = require("../models/User");
+const sendEmail = require("../services/emailService");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
 
 
 const buyExamPin = async(req,res)=>{
+
+let phone;
+let total = 0;
+let reference = "";
+let balanceBefore = 0;
 
 try{
 
@@ -39,7 +46,7 @@ transaction:existingTransaction
 
 
 
-const phone = req.user.phone;
+phone = req.user.phone;
 
 
 if(!exam || !quantity || !pin){
@@ -110,7 +117,7 @@ throw new AppError(
 
 
 
-const total = pins.reduce(
+total = pins.reduce(
 (sum,item)=>sum + item.price,
 0
 );
@@ -159,7 +166,7 @@ throw new AppError(
 
 
 
-const balanceBefore = wallet.balance;
+balanceBefore = wallet.balance;
 
 
 wallet.balance -= total;
@@ -185,8 +192,23 @@ purchasedPins.push(item.pin);
 }
 
 
+const user = await User.findOne({
+phone
+});
 
-const reference = "EXAM-" + Date.now();
+
+if(user?.email && purchasedPins.length > 0){
+
+await sendEmail(
+user.email,
+"Your Exam PIN Purchase",
+`Your ${exam} PIN code(s):\n\n${purchasedPins.join("\n")}\n\nThank you for using AlphaBot.`
+);
+
+}
+
+
+reference = "EXAM-" + Date.now();
 
 
 
