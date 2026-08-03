@@ -237,6 +237,13 @@ return await vtuPublicGet("/api/v2/variations/tv");
 };
 
 
+const getElectricityVariations = async()=>{
+
+return await vtuPublicGet("/api/v2/electricity");
+
+};
+
+
 const verifyCustomer = async({customer_id,service_id,variation_id})=>{
 
 return await vtuRequest("/api/v2/verify-customer",{
@@ -314,6 +321,7 @@ module.exports = {
   purchaseAirtime,
     purchaseProduct,
     getTVVariations,
+    getElectricityVariations,
     verifyCustomer,
     purchaseTV,
     purchaseElectricity,

@@ -29,7 +29,7 @@ provider:
 plan.provider || plan.service_name || "Unknown",
 
 variation_id:
-plan.variation_id || plan.id,
+plan.variation_id || plan.id || plan.code,
 
 name:
 plan.name || plan.package || "TV Plan",
