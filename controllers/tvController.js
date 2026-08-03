@@ -183,7 +183,7 @@ const subscribeTV = async (req, res) => {
 
             package_code: packageCode,
 
-            amount: Number(amount)
+            amount: Number(chargeAmount)
 
           });
 
