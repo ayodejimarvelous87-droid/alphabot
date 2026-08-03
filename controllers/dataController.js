@@ -62,14 +62,14 @@ throw new AppError("Idempotency key required",400);
 
 if(
 !network ||
-!plan ||
-!amount ||
-Number(amount) <= 0
+!variation_id
 ){
-
-throw new AppError("Network, plan and amount are required", 400);
-
+throw new AppError(
+"Network and variation_id are required",
+400
+);
 }
+
 
 
 
@@ -290,7 +290,12 @@ if(
 providerResponse.code !== "success"
 ){
 
-throw new Error("VTU data purchase failed");
+throw new Error(
+providerResponse?.message?.message ||
+providerResponse?.message ||
+providerResponse?.error ||
+"VTU data purchase failed"
+);
 
 }
 
