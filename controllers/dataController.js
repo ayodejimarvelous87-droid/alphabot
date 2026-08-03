@@ -76,6 +76,7 @@ throw new AppError(
 const dataPrice = await ProductOverride.findOne({
   productId: String(variation_id)
 });
+  console.log("DATAPRICE DEBUG:", dataPrice);
 
 
 if(!dataPrice){
@@ -95,16 +96,14 @@ if(dataPrice.active === false){
   throw new AppError("Data plan unavailable",400);
 }
 
+const customerAmount = Number(dataPrice.sellingPrice);
+const providerAmount = Number(dataPrice.providerPrice);
 
-const verifiedAmount = Number(dataPrice.sellingPrice);
-
-
-if(verifiedAmount <= 0){
+if(customerAmount <= 0 || providerAmount <= 0){
   throw new AppError("Invalid data plan price",400);
 }
 
-
-amount = verifiedAmount;
+amount = customerAmount;
 
 
 const userPhone = normalizePhone(req.user.phone);
@@ -142,7 +141,7 @@ await checkFraudLimits({
 
 phone:userPhone,
 
-amount:Number(amount),
+amount:Number(dataPrice.providerPrice),
 
 type:"data",
 
@@ -203,12 +202,13 @@ if(provider === "blitzpay"){
 
 
 
+console.log("BLITZPAY AMOUNT CHECK:", {variation_id, amount, network});
   providerResponse = await purchase({
   type:"data",
   network,
   phone:dataPhone,
   package_id: variation_id || plan,
-  amount:Number(amount)
+  amount:Number(dataPrice.providerPrice)
   });
 
 if(
@@ -325,7 +325,7 @@ type:"refund",
 
 direction:"credit",
 
-amount:Number(amount),
+amount:Number(dataPrice.providerPrice),
 
 reference,
 
@@ -372,7 +372,7 @@ network,
 
 plan,
 
-amount:Number(amount),
+amount:Number(dataPrice.providerPrice),
 
 reference,
 
@@ -419,7 +419,7 @@ phone:userPhone
 
   direction:"debit",
 
-  amount:Number(amount),
+  amount:Number(dataPrice.providerPrice),
 
   reference,
 
