@@ -263,7 +263,12 @@ epinStatus === "successful" ? "success" : "info"
 
 res.json({
 
-message:"ePIN purchase successful",
+message:
+epinStatus === "successful"
+? "ePIN purchase successful"
+: "ePIN order is processing",
+
+status: epinStatus,
 
 epin,
 
