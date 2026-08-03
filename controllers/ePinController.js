@@ -29,7 +29,6 @@ const buyEPin = async(req,res)=>{
 try{
 
 const {
-phone,
 network,
 amount,
 quantity
@@ -55,13 +54,10 @@ transaction:existingTransaction
 
 
 
-const cleanPhone = normalizePhone(phone);
-
-
-if(!cleanPhone || !network || !amount || !quantity){
+if(!network || !amount || !quantity){
 
 throw new AppError(
-  "Phone, network, amount and quantity are required",
+  "Network, amount and quantity are required",
   400
 );
 
@@ -156,7 +152,7 @@ await wallet.save();
 
 const epin = await EPin.create({
 
-phone:cleanPhone,
+phone:buyerPhone,
 
 network,
 
@@ -207,7 +203,7 @@ if(user?.email && pins.length > 0){
 
 await Transaction.create({
 
-phone:cleanPhone,
+phone:buyerPhone,
 
 type:"recharge_pin",
 
@@ -245,7 +241,7 @@ status:"successful"
 
 await createNotification(
 
-cleanPhone,
+buyerPhone,
 
 "ePIN Purchase",
 
