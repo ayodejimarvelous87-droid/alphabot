@@ -144,7 +144,7 @@ const balanceBefore = wallet.balance;
 
 
 await checkFraudLimits({
-  phone:userPhone,
+  phone:airtimePhone,
   amount:Number(amount),
   type:"airtime",
   ip:req.ip,
@@ -206,7 +206,7 @@ type:"airtime",
 
 network,
 
-phone:userPhone,
+phone:airtimePhone,
 
 amount:Number(amount)
 
