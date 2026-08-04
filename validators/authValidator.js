@@ -5,7 +5,9 @@ exports.registerSchema = Joi.object({
   phone: Joi.string().trim().min(10).max(15).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).max(100).required(),
-  referralCode: Joi.string().allow("", null)
+  referralCode: Joi.string().allow("", null),
+  partner: Joi.string().allow("", null),
+  ref: Joi.string().allow("", null)
 });
 
 exports.loginSchema = Joi.object({

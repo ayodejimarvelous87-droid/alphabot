@@ -4,7 +4,13 @@ const notificationSchema = new mongoose.Schema(
   {
     phone: {
       type: String,
-      required: true
+      default: null
+    },
+
+    blogPartner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "BlogPartner",
+      default: null
     },
 
     title: {

@@ -8,7 +8,8 @@ const createNotification = async (
   title,
   message,
   type = "info",
-  transactionId = null
+  transactionId = null,
+  blogPartner = null
 ) => {
 
   try {
@@ -19,7 +20,8 @@ const createNotification = async (
       title,
       message,
       type,
-      transactionId
+      transactionId,
+      blogPartner
     });
 
 

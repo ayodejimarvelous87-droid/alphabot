@@ -525,6 +525,13 @@ const loginUser = async (req,res,next)=>{
 
       }
 
+    if(user.status === "deleted"){
+      return res.status(403).json({
+        message:"Account deleted"
+      });
+    }
+
+
 
       const passwordMatch = await bcrypt.compare(
         password,
@@ -1055,6 +1062,39 @@ next(error);
 }
 };
 
+
+
+const deleteOwnAccount = async (req,res)=>{
+  try{
+
+    const phone = req.user.phone;
+
+    const User = require("../models/User");
+
+    await User.findOneAndUpdate(
+      {phone},
+      {
+        status:"deleted",
+        deletedAt:new Date()
+      }
+    );
+
+    res.json({
+      success:true,
+      message:"Account deleted successfully"
+    });
+
+  }catch(error){
+
+    res.status(500).json({
+      success:false,
+      message:error.message
+    });
+
+  }
+};
+
+
 module.exports = {
 
   registerUser,
@@ -1079,6 +1119,7 @@ module.exports = {
     sendRegistrationOTP,
     verifyRegistrationOTP,
   saveWithdrawAccount,
+  deleteOwnAccount,
 
   getWithdrawAccount,
 

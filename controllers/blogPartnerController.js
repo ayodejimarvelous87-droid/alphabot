@@ -16,9 +16,15 @@ try{
 const {
 name,
 email,
-password,
-code
+password
 }=req.body;
+
+const generatedCode =
+name.replace(/\s+/g,"")
+.toUpperCase()
+.slice(0,8)
++
+Math.floor(1000 + Math.random() * 9000);
 
 
 const existing = await BlogPartner.findOne({email});
@@ -41,7 +47,7 @@ const partner = await BlogPartner.create({
 name,
 email,
 password:hashed,
-code:code.toUpperCase(),
+code:generatedCode,
 emailOtp:otp,
 emailOtpExpires:new Date(Date.now() + 10 * 60 * 1000)
 
@@ -158,28 +164,6 @@ $sum:"$amount"
 }
 ]);
 
-const totalPurchases = await BlogCommission.countDocuments({
-blogPartner: partner._id
-});
-
-
-const referralRevenue = await BlogCommission.aggregate([
-{
-$match:{
-blogPartner: partner._id
-}
-},
-{
-$group:{
-_id:null,
-total:{
-$sum:"$transactionAmount"
-}
-}
-}
-]);
-
-
 const clicks = await BlogReferralClick.countDocuments({
 blogPartner: partner._id
 });
@@ -217,11 +201,6 @@ clicks,
 conversions,
 
 conversionRate,
-
-totalPurchases,
-
-referralRevenue: referralRevenue[0]?.total || 0,
-
 status: partner.status
 
 });
@@ -463,7 +442,7 @@ try{
 const {code}=req.params;
 
 const partner = await BlogPartner.findOne({
-code:code.toUpperCase(),
+code:generatedCode,
 status:"active"
 });
 
@@ -550,6 +529,92 @@ message:error.message
 };
 
 
+
+const changePartnerPassword = async(req,res)=>{
+try{
+
+const {oldPassword,newPassword}=req.body;
+
+const partner = await BlogPartner.findById(
+req.blogPartner._id
+);
+
+if(!partner){
+return res.status(404).json({
+message:"Partner not found"
+});
+}
+
+const match = await bcrypt.compare(
+oldPassword,
+partner.password
+);
+
+if(!match){
+return res.status(400).json({
+message:"Old password incorrect"
+});
+}
+
+partner.password = await bcrypt.hash(newPassword,10);
+
+await partner.save();
+
+res.json({
+message:"Password changed successfully"
+});
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const updatePartnerEmail = async(req,res)=>{
+try{
+
+const {email}=req.body;
+
+const exists = await BlogPartner.findOne({
+email
+});
+
+if(exists){
+return res.status(400).json({
+message:"Email already in use"
+});
+}
+
+const partner = await BlogPartner.findById(
+req.blogPartner._id
+);
+
+partner.email=email;
+partner.emailVerified=false;
+
+await partner.save();
+
+res.json({
+message:"Email updated. Please verify your new email."
+});
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
 module.exports={
 createPartner,
 getPartner,
@@ -558,6 +623,8 @@ getPayoutHistory,
 getLeaderboard,
 loginPartner,
 updatePayoutDetails,
+changePartnerPassword,
+updatePartnerEmail,
 trackReferralClick,
 verifyBlogEmail
 };

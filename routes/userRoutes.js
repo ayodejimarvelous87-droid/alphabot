@@ -19,6 +19,7 @@ const {
   verifyRegistrationOTP,
   saveWithdrawAccount,
   getWithdrawAccount,
+  deleteOwnAccount,
   verifyProfileOTP,
 } = require("../controllers/userController");
 
@@ -110,3 +111,12 @@ router.get(
 
 
 module.exports = router;
+
+
+// Delete own account
+router.delete(
+  "/delete-account",
+  auth,
+  deleteOwnAccount
+);
+

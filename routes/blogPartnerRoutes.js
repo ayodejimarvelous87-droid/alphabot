@@ -49,6 +49,20 @@ blogPartnerAuth,
 updatePayoutDetails
 );
 
+
+router.put(
+"/change-password",
+blogPartnerAuth,
+changePartnerPassword
+);
+
+
+router.put(
+"/update-email",
+blogPartnerAuth,
+updatePartnerEmail
+);
+
 // admin creates partner
 router.post(
 "/create",

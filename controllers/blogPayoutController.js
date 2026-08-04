@@ -1,6 +1,8 @@
 const BlogPartner = require("../models/BlogPartner");
 const BlogPayout = require("../models/BlogPayout");
 const BlogCommission = require("../models/BlogCommission");
+const { createNotification } = require("../services/notificationService");
+const sendEmail = require("../services/emailService");
 
 
 
@@ -76,6 +78,27 @@ partner.lastPayoutDate = new Date();
 partner.payoutReminderSent = false;
 
 await partner.save();
+
+
+await createNotification(
+null,
+"Payout Completed",
+`Your AlphaBot blog partner payout of ₦${amount} has been completed.`,
+"payout",
+null,
+partner._id
+);
+
+
+await sendEmail(
+partner.email,
+"AlphaBot Blog Partner Payout Completed",
+`Hello ${partner.name},
+
+Your blog partner payout of ₦${amount} has been marked as paid.
+
+Thank you for partnering with AlphaBot.`
+);
 
 
 res.json({
