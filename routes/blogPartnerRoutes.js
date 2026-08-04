@@ -8,6 +8,8 @@ getPayoutHistory,
 getLeaderboard,
 loginPartner,
 updatePayoutDetails,
+changePartnerPassword,
+updatePartnerEmail,
 trackReferralClick,
 verifyBlogEmail
 }=require("../controllers/blogPartnerController");
