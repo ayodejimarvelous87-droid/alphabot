@@ -1,5 +1,6 @@
 const AppError = require("../utils/AppError");
 const EPin = require("../models/EPin");
+const { addBlogCommission } = require("../services/blogCommissionService");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { purchaseEPins } = require("../services/vtuService");
@@ -235,6 +236,14 @@ description:`${network} recharge PIN purchase`,
 
 status:"successful"
 
+});
+
+
+await addBlogCommission({
+  phone:buyerPhone,
+  amount:Number(total),
+  reference,
+  service:"recharge_pin"
 });
 
 

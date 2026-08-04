@@ -16,6 +16,7 @@ const {
 const { purchase, getCablePackages } = require("../services/blitzPayService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
+const { addBlogCommission } = require("../services/blogCommissionService");
 
 
 const subscribeTV = async (req, res) => {
@@ -341,6 +342,14 @@ providerResponse.status !== "success"
 
       status: "successful"
 
+    });
+
+
+    await addBlogCommission({
+      phone,
+      amount:Number(chargeAmount),
+      reference,
+      service:"tv"
     });
 
 

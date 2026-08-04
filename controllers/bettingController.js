@@ -8,6 +8,7 @@ const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
+const { addBlogCommission } = require("../services/blogCommissionService");
 
 const {
   verifyCustomer,
@@ -268,6 +269,14 @@ balanceAfter:wallet.balance,
 description:`Betting wallet funding for ${service_id}`,
 status:"successful"
 
+});
+
+
+await addBlogCommission({
+  phone,
+  amount:Number(amount),
+  reference,
+  service:"betting"
 });
 
 

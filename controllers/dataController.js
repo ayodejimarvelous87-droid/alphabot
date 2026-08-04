@@ -20,6 +20,7 @@ const { vtuRequest, purchaseProduct } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
 const { purchaseData } = require("../services/oplugService");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
+const { addBlogCommission } = require("../services/blogCommissionService");
 
 
 
@@ -379,6 +380,14 @@ reference,
 
 status:"successful"
 
+});
+
+
+await addBlogCommission({
+  phone:userPhone,
+  amount:Number(amount),
+  reference,
+  service:"data"
 });
 
 

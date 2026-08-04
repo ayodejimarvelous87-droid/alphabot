@@ -1,6 +1,7 @@
 const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
 const ExamPin = require("../models/ExamPin");
+const { addBlogCommission } = require("../services/blogCommissionService");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const TransactionPin = require("../models/TransactionPin");
@@ -235,6 +236,14 @@ description:`${exam} PIN purchase`,
 
 status:"successful"
 
+});
+
+
+await addBlogCommission({
+  phone,
+  amount:Number(total),
+  reference,
+  service:"exam_pin"
 });
 
 

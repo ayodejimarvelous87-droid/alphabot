@@ -13,6 +13,7 @@ const { purchaseAirtime } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
+const { addBlogCommission } = require("../services/blogCommissionService");
 
 
 // Buy airtime
@@ -325,6 +326,14 @@ providerResponse: providerResponse,
 
 status:"successful"
 
+});
+
+
+await addBlogCommission({
+  phone:userPhone,
+  amount:Number(amount),
+  reference,
+  service:"airtime"
 });
 
 

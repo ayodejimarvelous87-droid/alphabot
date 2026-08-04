@@ -1,0 +1,563 @@
+const BlogPartner = require("../models/BlogPartner");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const BlogCommission = require("../models/BlogCommission");
+const BlogReferralClick = require("../models/BlogReferralClick");
+const BlogPayout = require("../models/BlogPayout");
+const sendEmail = require("../services/emailService");
+
+
+// Admin create blog partner
+const createPartner = async(req,res)=>{
+
+try{
+
+const {
+name,
+email,
+password,
+code
+}=req.body;
+
+
+const existing = await BlogPartner.findOne({email});
+
+if(existing){
+return res.status(400).json({
+message:"Partner already exists"
+});
+}
+
+
+const hashed = await bcrypt.hash(password,10);
+
+const otp = Math.floor(
+100000 + Math.random() * 900000
+).toString();
+
+const partner = await BlogPartner.create({
+
+name,
+email,
+password:hashed,
+code:code.toUpperCase(),
+emailOtp:otp,
+emailOtpExpires:new Date(Date.now() + 10 * 60 * 1000)
+
+});
+
+await sendEmail(
+email,
+"Verify your AlphaBot Blog Partner account",
+`Your verification code is: ${otp}
+
+This code expires in 10 minutes.`
+);
+
+res.json({
+message:"Verification code sent to your email. Verify your account before logging in."
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+// Partner profile
+const getPartner = async(req,res)=>{
+
+try{
+
+const partner = await BlogPartner.findById(
+req.params.id
+).select("-password");
+
+
+if(!partner){
+return res.status(404).json({
+message:"Partner not found"
+});
+}
+
+
+res.json(partner);
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+const getDashboard = async(req,res)=>{
+
+try{
+
+const partner = await BlogPartner.findById(req.blogPartner._id)
+.select("-password");
+
+if(!partner){
+return res.status(404).json({
+message:"Partner not found"
+});
+}
+
+
+const users = await User.countDocuments({
+blogPartner: partner._id
+});
+
+
+const earnings = await BlogCommission.aggregate([
+{
+$match:{
+blogPartner: partner._id
+}
+},
+{
+$group:{
+_id:null,
+total:{
+$sum:"$amount"
+}
+}
+}
+]);
+
+
+const pendingPayout = await BlogCommission.aggregate([
+{
+$match:{
+blogPartner: partner._id,
+createdAt:{
+$gte: partner.lastPayoutDate
+}
+}
+},
+{
+$group:{
+_id:null,
+total:{
+$sum:"$amount"
+}
+}
+}
+]);
+
+const totalPurchases = await BlogCommission.countDocuments({
+blogPartner: partner._id
+});
+
+
+const referralRevenue = await BlogCommission.aggregate([
+{
+$match:{
+blogPartner: partner._id
+}
+},
+{
+$group:{
+_id:null,
+total:{
+$sum:"$transactionAmount"
+}
+}
+}
+]);
+
+
+const clicks = await BlogReferralClick.countDocuments({
+blogPartner: partner._id
+});
+
+const conversions = await BlogReferralClick.countDocuments({
+blogPartner: partner._id,
+converted:true
+});
+
+const conversionRate = clicks === 0
+? 0
+: Number(((conversions / clicks) * 100).toFixed(2));
+
+
+res.json({
+
+name:partner.name,
+
+code:partner.code,
+
+users,
+
+totalEarned: earnings[0]?.total || 0,
+
+pendingPayout: pendingPayout[0]?.total || 0,
+
+bankName: partner.bankName || "",
+accountNumber: partner.accountNumber || "",
+accountName: partner.accountName || "",
+
+referralLink: `${process.env.FRONTEND_URL || ""}/register?ref=${partner.code}`,
+
+clicks,
+
+conversions,
+
+conversionRate,
+
+totalPurchases,
+
+referralRevenue: referralRevenue[0]?.total || 0,
+
+status: partner.status
+
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const getPayoutHistory = async(req,res)=>{
+
+try{
+
+const history = await BlogPayout.find({
+blogPartner:req.blogPartner._id
+})
+.sort({
+createdAt:-1
+});
+
+res.json(history);
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+const getLeaderboard = async(req,res)=>{
+
+try{
+
+const leaderboard = await BlogPartner.aggregate([
+
+{
+$match:{
+status:"active"
+}
+},
+
+{
+$lookup:{
+from:"users",
+localField:"_id",
+foreignField:"blogPartner",
+as:"users"
+}
+},
+
+{
+$project:{
+name:1,
+code:1,
+users:{
+$size:"$users"
+},
+totalEarned:1
+}
+},
+
+{
+$sort:{
+users:-1
+}
+}
+
+]);
+
+
+res.json(leaderboard);
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const loginPartner = async(req,res)=>{
+
+try{
+
+const {
+email,
+password
+}=req.body;
+
+
+const partner = await BlogPartner.findOne({
+email
+});
+
+
+if(!partner){
+
+return res.status(400).json({
+message:"Invalid login details"
+});
+
+}
+
+
+const valid = await bcrypt.compare(
+password,
+partner.password
+);
+
+
+if(!valid){
+
+return res.status(400).json({
+message:"Invalid login details"
+});
+
+}
+
+
+const token = jwt.sign(
+
+{
+id:partner._id,
+role:"blogPartner"
+},
+
+process.env.JWT_SECRET,
+
+{
+expiresIn:"7d"
+}
+
+);
+
+
+res.json({
+
+message:"Login successful",
+
+token,
+
+partner:{
+id:partner._id,
+name:partner.name,
+code:partner.code,
+status:partner.status
+}
+
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const updatePayoutDetails = async(req,res)=>{
+
+try{
+
+const {
+bankName,
+accountNumber,
+accountName
+}=req.body;
+
+
+const partner = req.blogPartner;
+
+
+if(!partner){
+return res.status(404).json({
+message:"Partner not found"
+});
+}
+
+
+partner.bankName = bankName || partner.bankName;
+partner.accountNumber = accountNumber || partner.accountNumber;
+partner.accountName = accountName || partner.accountName;
+
+
+await partner.save();
+
+
+res.json({
+
+message:"Payout details updated",
+
+bankName:partner.bankName,
+accountNumber:partner.accountNumber,
+accountName:partner.accountName
+
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+
+
+const trackReferralClick = async(req,res)=>{
+try{
+
+const {code}=req.params;
+
+const partner = await BlogPartner.findOne({
+code:code.toUpperCase(),
+status:"active"
+});
+
+if(!partner){
+return res.status(404).json({
+message:"Invalid referral link"
+});
+}
+
+await BlogReferralClick.create({
+code:partner.code,
+blogPartner:partner._id,
+ip:req.ip,
+userAgent:req.headers["user-agent"]
+});
+
+res.json({
+message:"Tracked",
+redirect:`${process.env.FRONTEND_URL}/register?ref=${partner.code}`
+});
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+
+const verifyBlogEmail = async(req,res)=>{
+
+try{
+
+const {email, otp}=req.body;
+
+const partner = await BlogPartner.findOne({email});
+
+if(!partner){
+return res.status(404).json({
+message:"Partner not found"
+});
+}
+
+if(partner.emailVerified){
+return res.json({
+message:"Email already verified"
+});
+}
+
+if(
+partner.emailOtp !== otp ||
+!partner.emailOtpExpires ||
+partner.emailOtpExpires < new Date()
+){
+return res.status(400).json({
+message:"Invalid or expired OTP"
+});
+}
+
+partner.emailVerified = true;
+partner.emailOtp = null;
+partner.emailOtpExpires = null;
+partner.status = "active";
+
+await partner.save();
+
+res.json({
+message:"Email verified successfully"
+});
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+module.exports={
+createPartner,
+getPartner,
+getDashboard,
+getPayoutHistory,
+getLeaderboard,
+loginPartner,
+updatePayoutDetails,
+trackReferralClick,
+verifyBlogEmail
+};

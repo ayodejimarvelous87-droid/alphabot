@@ -88,6 +88,12 @@ const userSchema = new mongoose.Schema(
     default:null
   },
 
+  blogPartner:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"BlogPartner",
+    default:null
+  },
+
 
   referralEarnings:{
     type:Number,

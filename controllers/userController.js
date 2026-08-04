@@ -1,6 +1,8 @@
 const auditLogger = require("../services/auditLogger");
 const AppError = require("../utils/AppError");
 const User = require("../models/User");
+const BlogPartner = require("../models/BlogPartner");
+const BlogReferralClick = require("../models/BlogReferralClick");
 const Wallet = require("../models/wallet");
 const PasswordReset = require("../models/PasswordReset");
 const bcrypt = require("bcryptjs");
@@ -238,6 +240,12 @@ balance:0
 });
 }
 
+
+console.log("BLOG PARTNER DEBUG:", {
+  blogCode,
+  validBlogPartner
+});
+
 const userReferralCode = generateReferralCode();
 
 let validReferralCode=null;
@@ -284,17 +292,21 @@ next(error);
 
 
 // Register
-const registerUser = async (req, res) => {
+const registerUser = async (req, res, next) => {
 
   try {
 
 
-    const {
+    console.log("REGISTER BODY:", req.body);
+
+const {
       name,
       phone,
       email,
       password,
-      referralCode
+      referralCode,
+      partner,
+      ref
     } = req.body;
 
 
@@ -365,6 +377,44 @@ validReferralCode = referralCode;
 
 }
 
+let validBlogPartner = null;
+
+const blogCode = partner || ref;
+
+if(blogCode){
+
+const blog = await BlogPartner.findOne({
+  code: blogCode.toUpperCase(),
+  status:"active"
+});
+
+if(blog){
+  validBlogPartner = blog._id;
+
+  await BlogReferralClick.findOneAndUpdate(
+    {
+      blogPartner: blog._id,
+      code: blogCode.toUpperCase(),
+      converted:false
+    },
+    {
+      converted:true
+    },
+    {
+      sort:{
+        createdAt:-1
+      }
+    }
+  );
+}
+
+}
+
+console.log("BLOG PARTNER DEBUG:", {
+  blogCode,
+  validBlogPartner
+});
+
 const userReferralCode = generateReferralCode();
 
 
@@ -382,7 +432,9 @@ const userReferralCode = generateReferralCode();
 
       referralCode: userReferralCode,
 
-      referredBy: validReferralCode
+      referredBy: validReferralCode,
+
+      blogPartner: validBlogPartner
 
     });
 

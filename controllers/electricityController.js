@@ -18,6 +18,7 @@ const {
 const { purchase } = require("../services/blitzPayService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
+const { addBlogCommission } = require("../services/blogCommissionService");
 
 const payElectricity = async (req, res) => {
 
@@ -233,6 +234,14 @@ const payElectricity = async (req, res) => {
 
       status: "successful"
 
+    });
+
+
+    await addBlogCommission({
+      phone,
+      amount:Number(totalAmount),
+      reference,
+      service:"electricity"
     });
 
 
