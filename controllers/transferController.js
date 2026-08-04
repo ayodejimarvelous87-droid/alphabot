@@ -376,7 +376,10 @@ throw error;
 }catch(error){
 
 res.status(500).json({
-message:error.response?.data || error.message
+message:
+typeof error.response?.data === "object"
+? error.response.data.message || JSON.stringify(error.response.data)
+: error.response?.data || error.message
 });
 
 }
