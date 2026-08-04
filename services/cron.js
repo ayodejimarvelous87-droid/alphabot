@@ -5,6 +5,7 @@ processRecurringPayments
 } = require("./recurringService");
 
 const updateFootballPoints = require("./footballPointsService");
+const reconcileTransfers = require("./transferReconciliation");
 
 const updateFootballMatches = require("./footballService");
 
@@ -157,6 +158,30 @@ await reconcileWallets();
 
 console.log(
 "Wallet reconciliation cron error:",
+error.message
+);
+
+}
+
+});
+
+
+
+/*
+Bank transfer reconciliation
+Runs every 2 minutes
+*/
+
+cron.schedule("*/2 * * * *", async ()=>{
+
+try{
+
+await reconcileTransfers();
+
+}catch(error){
+
+console.log(
+"Transfer reconciliation cron error:",
 error.message
 );
 

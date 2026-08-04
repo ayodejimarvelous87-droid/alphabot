@@ -293,7 +293,8 @@ await Transaction.findOneAndUpdate(
 {reference},
 {
 status:"successful",
-flutterwaveId:String(transferResponse.data.data?.id || "")
+flutterwaveId:String(transferResponse.data.data?.id || ""),
+providerResponse:transferResponse.data
 }
 );
 
@@ -345,7 +346,8 @@ await Transaction.findOneAndUpdate(
 {reference},
 {
 status:"failed",
-reason:error.message
+reason:error.message,
+providerResponse:error.response?.data || null
 }
 );
 
