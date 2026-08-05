@@ -264,7 +264,8 @@ email:verify.email,
 password:verify.password,
 emailVerified:true,
 referralCode:userReferralCode,
-referredBy:validReferralCode
+referredBy:validReferralCode,
+blogPartner:validBlogPartner
 });
 
 await RegistrationOTP.deleteOne({_id:verify._id});
