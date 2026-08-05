@@ -11,6 +11,7 @@ const startCron = require("./services/cron");
 const startOTPCleanup = require("./services/otpCleanup");
 const { startFlutterwaveCron } = require("./services/flutterwaveCron");
 const { startBlogPayoutReminderCron } = require("./services/blogPayoutReminderCron");
+const { startBlogCommissionUnlockCron } = require("./services/blogCommissionUnlockCron");
 require("./services/recurringService");
 const path = require("path");
 
@@ -169,6 +170,7 @@ const transferSettingsRoutes = require("./routes/transferSettingsRoutes");
 const flutterwaveRoutes = require("./routes/flutterwaveRoutes");
 const blogPartnerRoutes = require("./routes/blogPartnerRoutes");
 const blogPayoutRoutes = require("./routes/blogPayoutRoutes");
+const wakeRoutes = require("./routes/wakeRoutes");
 
 
 
@@ -267,6 +269,7 @@ app.use("/epin", ePinRoutes);
 app.use("/transfer", transferRoutes);
 app.use("/blog-partner", blogPartnerRoutes);
 app.use("/blog-payout", blogPayoutRoutes);
+app.use("/wake", wakeRoutes);
 app.use("/beneficiary", beneficiaryRoutes);
 
 
@@ -298,6 +301,7 @@ mongoose.connect(process.env.MONGO_URI,{
   startOTPCleanup();
   startFlutterwaveCron();
   startBlogPayoutReminderCron();
+  startBlogCommissionUnlockCron();
 
 
 

@@ -65,6 +65,11 @@ const systemSettingSchema = new mongoose.Schema({
     default:50
   },
 
+    providerMinimumBalance:{
+      type:Number,
+      default:500
+    },
+
   electricityProfit:{
     type:Number,
     default:50

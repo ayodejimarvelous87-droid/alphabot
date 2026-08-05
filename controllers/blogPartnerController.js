@@ -5,7 +5,9 @@ const User = require("../models/User");
 const BlogCommission = require("../models/BlogCommission");
 const BlogReferralClick = require("../models/BlogReferralClick");
 const BlogPayout = require("../models/BlogPayout");
+const WeeklyBlogPayout = require("../models/WeeklyBlogPayout");
 const sendEmail = require("../services/emailService");
+const PasswordReset = require("../models/PasswordReset");
 
 
 // Admin create blog partner
@@ -138,27 +140,8 @@ blogPartner: partner._id
 const earnings = await BlogCommission.aggregate([
 {
 $match:{
-blogPartner: partner._id
-}
-},
-{
-$group:{
-_id:null,
-total:{
-$sum:"$amount"
-}
-}
-}
-]);
-
-
-const pendingPayout = await BlogCommission.aggregate([
-{
-$match:{
 blogPartner: partner._id,
-createdAt:{
-$gte: partner.lastPayoutDate
-}
+status:"available"
 }
 },
 {
@@ -170,6 +153,16 @@ $sum:"$amount"
 }
 }
 ]);
+
+
+const pendingPayout = await WeeklyBlogPayout.findOne({
+blogPartner: partner._id,
+status:"pending_admin_payment"
+})
+.sort({
+createdAt:-1
+});
+
 
 const clicks = await BlogReferralClick.countDocuments({
 blogPartner: partner._id
@@ -195,8 +188,8 @@ users,
 
 totalEarned: earnings[0]?.total || 0,
 
-pendingPayout: pendingPayout[0]?.total || 0,
-
+pendingPayout:
+pendingPayout?.commissionAmount || 0,
 bankName: partner.bankName || "",
 accountNumber: partner.accountNumber || "",
 accountName: partner.accountName || "",
@@ -229,11 +222,12 @@ const getPayoutHistory = async(req,res)=>{
 
 try{
 
-const history = await BlogPayout.find({
-blogPartner:req.blogPartner._id
+const history = await WeeklyBlogPayout.find({
+blogPartner:req.blogPartner._id,
+status:"paid"
 })
 .sort({
-createdAt:-1
+paidAt:-1
 });
 
 res.json(history);
@@ -278,7 +272,6 @@ code:1,
 users:{
 $size:"$users"
 },
-totalEarned:1
 }
 },
 
@@ -622,6 +615,147 @@ message:error.message
 };
 
 
+
+const sendPartnerResetOTP = async(req,res)=>{
+try{
+
+const {email}=req.body;
+
+const partner = await BlogPartner.findOne({
+email:email.toLowerCase().trim()
+});
+
+if(!partner){
+return res.status(404).json({
+message:"Partner not found"
+});
+}
+
+const otp = Math.floor(
+100000 + Math.random()*900000
+).toString();
+
+
+await PasswordReset.deleteMany({
+email:partner.email
+});
+
+
+await PasswordReset.create({
+email:partner.email,
+otp,
+expiresAt:new Date(
+Date.now()+10*60*1000
+)
+});
+
+
+await sendEmail(
+partner.email,
+"AlphaBot Partner Password Reset OTP",
+`Your AlphaBot partner password reset OTP is ${otp}`
+);
+
+
+res.json({
+message:"OTP sent successfully"
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const verifyPartnerResetOTP = async(req,res)=>{
+
+try{
+
+const {
+email,
+otp,
+newPassword
+}=req.body;
+
+
+const cleanEmail=email.toLowerCase().trim();
+
+
+const reset=await PasswordReset.findOne({
+email:cleanEmail,
+otp
+});
+
+
+if(!reset){
+
+return res.status(400).json({
+message:"Invalid OTP"
+});
+
+}
+
+
+if(reset.expiresAt < new Date()){
+
+return res.status(400).json({
+message:"OTP expired"
+});
+
+}
+
+
+const partner=await BlogPartner.findOne({
+email:cleanEmail
+});
+
+
+if(!partner){
+
+return res.status(404).json({
+message:"Partner not found"
+});
+
+}
+
+
+partner.password=await bcrypt.hash(
+newPassword,
+10
+);
+
+
+await partner.save();
+
+
+await PasswordReset.deleteOne({
+_id:reset._id
+});
+
+
+res.json({
+message:"Password reset successful"
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
 module.exports={
 createPartner,
 getPartner,
@@ -633,5 +767,7 @@ updatePayoutDetails,
 changePartnerPassword,
 updatePartnerEmail,
 trackReferralClick,
-verifyBlogEmail
+verifyBlogEmail,
+verifyPartnerResetOTP,
+sendPartnerResetOTP
 };

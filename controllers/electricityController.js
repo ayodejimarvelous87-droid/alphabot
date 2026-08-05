@@ -323,7 +323,30 @@ const payElectricity = async (req, res) => {
 
 
 
-    res.json({
+    
+if(user?.email){
+
+  try{
+
+    await sendEmail(
+      user.email,
+      "Electricity Payment Successful",
+      `Your ${disco} electricity payment was successful.`
+    );
+
+  }catch(emailError){
+
+    console.log(
+      "Electricity email failed:",
+      emailError.message
+    );
+
+  }
+
+}
+
+
+res.json({
 
       message: "Electricity payment successful",
 

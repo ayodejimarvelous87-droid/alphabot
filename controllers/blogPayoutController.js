@@ -1,6 +1,5 @@
 const BlogPartner = require("../models/BlogPartner");
-const BlogPayout = require("../models/BlogPayout");
-const BlogCommission = require("../models/BlogCommission");
+const WeeklyBlogPayout = require("../models/WeeklyBlogPayout");
 const { createNotification } = require("../services/notificationService");
 const sendEmail = require("../services/emailService");
 
@@ -10,100 +9,71 @@ const markBlogPaid = async(req,res)=>{
 
 try{
 
-const {
-partnerId
-}=req.body;
+const {id}=req.params;
 
 
-const partner = await BlogPartner.findById(partnerId);
+const payout = await WeeklyBlogPayout.findById(id);
 
 
-if(!partner){
+if(!payout){
+
 return res.status(404).json({
-message:"Partner not found"
+message:"Weekly payout not found"
 });
+
 }
 
 
-const pending = await BlogCommission.aggregate([
+if(payout.status==="paid"){
 
-{
-$match:{
-blogPartner:partner._id,
-createdAt:{
-$gte:partner.lastPayoutDate
-}
-}
-},
-
-{
-$group:{
-_id:null,
-total:{
-$sum:"$amount"
-}
-}
-}
-
-]);
-
-
-const amount = pending[0]?.total || 0;
-
-
-if(amount <= 0){
 return res.status(400).json({
-message:"No pending payout"
+message:"Already paid"
 });
+
 }
 
 
-const payout = await BlogPayout.create({
+const partner = await BlogPartner.findById(
+payout.blogPartner
+);
 
-blogPartner:partner._id,
+payout.status="paid";
+payout.paidAt=new Date();
 
-amount,
+await payout.save();
 
-periodStart:partner.lastPayoutDate,
-
-periodEnd:new Date(),
-
-reference:"PAYOUT-"+Date.now()
-
-});
-
-
-partner.lastPayoutDate = new Date();
-
-partner.payoutReminderSent = false;
-
-await partner.save();
 
 
 await createNotification(
 null,
-"Payout Completed",
-`Your AlphaBot blog partner payout of ₦${amount} has been completed.`,
+"Blog payout completed",
+`Your AlphaBot blog payout of ₦${payout.commissionAmount} has been paid.`,
 "payout",
 null,
-partner._id
+payout.blogPartner
 );
 
+if(partner?.email){
 
 await sendEmail(
 partner.email,
-"AlphaBot Blog Partner Payout Completed",
-`Hello ${partner.name},
+"AlphaBot Blog Payout Completed",
+`
+Hello ${partner.name},
 
-Your blog partner payout of ₦${amount} has been marked as paid.
+Your AlphaBot blog payout of ₦${payout.commissionAmount} has been marked as paid.
 
-Thank you for partnering with AlphaBot.`
+Thank you for partnering with AlphaBot.
+`
 );
+
+}
+
 
 
 res.json({
 
-message:"Partner payout completed",
+message:"Weekly blog payout marked as paid",
 
 payout
 
@@ -125,80 +95,19 @@ const getPendingPayouts = async(req,res)=>{
 
 try{
 
-const partners = await BlogPartner.aggregate([
-
-{
-$match:{
-status:"active"
-}
-},
-
-{
-$lookup:{
-from:"blogcommissions",
-let:{
-partnerId:"$_id",
-lastDate:"$lastPayoutDate"
-},
-pipeline:[
-{
-$match:{
-$expr:{
-$and:[
-{
-$eq:[
-"$blogPartner",
-"$$partnerId"
-]
-},
-{
-$gte:[
-"$createdAt",
-"$$lastDate"
-]
-}
-]
-}
-}
-},
-{
-$group:{
-_id:null,
-total:{
-$sum:"$amount"
-}
-}
-}
-],
-as:"pending"
-}
-},
-
-{
-$project:{
-name:1,
-code:1,
-bankName:1,
-accountNumber:1,
-accountName:1,
-pendingPayout:{
-$ifNull:[
-{
-$arrayElemAt:[
-"$pending.total",
-0
-]
-},
-0
-]
-}
-}
-}
-
-]);
+const payouts = await WeeklyBlogPayout.find({
+status:"pending_admin_payment"
+})
+.populate(
+"blogPartner",
+"name code bankName accountNumber accountName"
+)
+.sort({
+createdAt:-1
+});
 
 
-res.json(partners);
+res.json(payouts);
 
 
 }catch(error){
@@ -210,8 +119,6 @@ message:error.message
 }
 
 };
-
-
 
 
 const getPayoutHistory = async(req,res)=>{

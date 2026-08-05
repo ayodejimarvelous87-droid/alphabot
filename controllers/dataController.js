@@ -20,6 +20,7 @@ const { vtuRequest, purchaseProduct } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
 const { purchaseData } = require("../services/oplugService");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
+const { checkProviderBalance } = require("../services/providerGuard");
 const { addBlogCommission } = require("../services/blogCommissionService");
 
 
@@ -198,6 +199,8 @@ let providerResponse;
 
 try{
 
+
+await checkProviderBalance(provider);
 
 if(provider === "blitzpay"){
 
@@ -472,6 +475,29 @@ userPhone,
 
 );
 
+
+
+
+if(user?.email){
+
+  try{
+
+    await sendEmail(
+      user.email,
+      "Data Purchase Successful",
+      `Your ${network} data plan purchase was successful.`
+    );
+
+  }catch(emailError){
+
+    console.log(
+      "Data email failed:",
+      emailError.message
+    );
+
+  }
+
+}
 
 
 res.json({

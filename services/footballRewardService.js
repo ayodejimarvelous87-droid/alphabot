@@ -121,44 +121,8 @@ continue;
 }
 
 
-const wallet=await Wallet.findOne({
-phone:user.phone
-});
-
-
-if(!wallet){
-
-continue;
-
-}
-
-
-const balanceBefore=wallet.balance;
-
-
-wallet.balance += reward.amount;
-
-await wallet.save();
-
-
-await Transaction.create({
-
-phone:user.phone,
-
-type:"football_reward",
-
-direction:"credit",
-
-amount:reward.amount,
-
-balanceBefore,
-
-balanceAfter:wallet.balance,
-
-description:"Football prediction weekly reward"
-
-});
-
+  // Automatic football reward payment disabled.
+  // Admin will process football rewards manually.
 
 await FootballReward.create({
 
@@ -170,7 +134,7 @@ rewardType:"wallet",
 
 amount:reward.amount,
 
-status:"paid",
+status:"pending",
 
 week
 

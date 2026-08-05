@@ -707,7 +707,8 @@ const {
 maintenanceMode,
 announcement,
 referralPercentage,
-airtimeCashMode
+airtimeCashMode,
+providerMinimumBalance
 }=req.body;
 
 
@@ -735,6 +736,11 @@ setting.referralPercentage = Number(referralPercentage);
 
 if(airtimeCashMode !== undefined)
 setting.airtimeCashMode = airtimeCashMode;
+
+if(providerMinimumBalance !== undefined)
+setting.providerMinimumBalance = Number(providerMinimumBalance);
+
+
 
 
 await setting.save();

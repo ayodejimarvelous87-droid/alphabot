@@ -410,7 +410,30 @@ const getTVPlans = async (req, res) => {
 
     const plans = await getCablePackages();
 
-    res.json({
+    
+if(user?.email){
+
+  try{
+
+    await sendEmail(
+      user.email,
+      "TV Subscription Successful",
+      `Your TV subscription purchase was successful.`
+    );
+
+  }catch(emailError){
+
+    console.log(
+      "TV email failed:",
+      emailError.message
+    );
+
+  }
+
+}
+
+
+res.json({
       success: true,
       plans
     });

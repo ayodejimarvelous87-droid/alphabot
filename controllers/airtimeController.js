@@ -11,9 +11,11 @@ const normalizePhone = require("../utils/phone");
 const getErrorMessage = require("../utils/errorHandler");
 const { purchaseAirtime } = require("../services/vtuService");
 const { purchase } = require("../services/blitzPayService");
+const { checkProviderBalance } = require("../services/providerGuard");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
 const { addBlogCommission } = require("../services/blogCommissionService");
+const sendEmail = require("../services/emailService");
 
 
 // Buy airtime
@@ -173,6 +175,8 @@ try{
 
 try {
 
+await checkProviderBalance("vtu");
+
 providerResponse = await purchaseAirtime({
 
 phone: airtimePhone,
@@ -217,6 +221,11 @@ phone:airtimePhone,
 amount:Number(amount)
 
 });
+
+  console.log(
+  "BLITZ AIRTIME RESPONSE:",
+  JSON.stringify(providerResponse, null, 2)
+  );
 
 
 if(
@@ -474,7 +483,30 @@ transaction._id
 
 
 
+if(user?.email){
+
+  try{
+
+    await sendEmail(
+      user.email,
+      "Airtime Purchase Successful",
+      `Your ₦${Number(amount).toLocaleString()} ${network} airtime purchase was successful.`
+    );
+
+  }catch(emailError){
+
+    console.log(
+      "Airtime email failed:",
+      emailError.message
+    );
+
+  }
+
+}
+
+
 res.json({
+
 
 message:"Airtime purchase successful",
 

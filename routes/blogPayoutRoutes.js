@@ -32,8 +32,8 @@ getPayoutHistory
 
 
 // admin marks partner payout completed
-router.post(
-"/pay",
+router.put(
+"/pay/:id",
 auth,
 admin,
 markBlogPaid

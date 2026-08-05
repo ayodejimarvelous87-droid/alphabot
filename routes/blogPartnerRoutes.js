@@ -11,7 +11,9 @@ updatePayoutDetails,
 changePartnerPassword,
 updatePartnerEmail,
 trackReferralClick,
-verifyBlogEmail
+verifyBlogEmail,
+sendPartnerResetOTP,
+verifyPartnerResetOTP
 }=require("../controllers/blogPartnerController");
 
 const router = express.Router();
@@ -24,6 +26,19 @@ router.post(
 "/verify-email",
 verifyBlogEmail
 );
+
+
+// partner password reset
+router.post(
+"/send-reset-otp",
+sendPartnerResetOTP
+);
+
+router.post(
+"/verify-reset-otp",
+verifyPartnerResetOTP
+);
+
 
 // partner login
 router.post(

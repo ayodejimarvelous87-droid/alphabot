@@ -3,6 +3,8 @@ const FundRequest = require("../models/FundRequest");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const Notification = require("../models/Notification");
+const User = require("../models/User");
+const sendEmail = require("../services/emailService");
 
 // User creates funding request
 const createFundRequest = async(req,res,next)=>{
@@ -123,6 +125,22 @@ message:`Your wallet has been credited with ₦${request.amount}.`,
 type:"success",
 transactionId: transaction._id
 });
+
+const user = await User.findOne({
+phone: request.phone
+});
+
+if(user?.email){
+await sendEmail(
+user.email,
+"AlphaBot Wallet Funded Successfully",
+`Your wallet funding request of ₦${request.amount} has been approved successfully.
+
+Your wallet has been credited.
+
+Thank you for using AlphaBot.`
+);
+}
 
 
 res.json({

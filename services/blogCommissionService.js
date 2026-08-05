@@ -1,81 +1,94 @@
+
 const User = require("../models/User");
 const BlogPartner = require("../models/BlogPartner");
-const BlogCommission = require("../models/BlogCommission");
+const BlogWeeklyCommission = require("../models/BlogWeeklyCommission");
+
+
+function getWeek(){
+
+const d=new Date();
+
+const year=d.getFullYear();
+
+const week=Math.ceil(
+(
+(
+d - new Date(year,0,1)
+)/86400000 + 1
+)/7
+);
+
+return `${year}-${week}`;
+
+}
 
 
 const addBlogCommission = async({
 phone,
-amount,
-reference,
-service
+amount
 })=>{
 
 try{
 
-const user = await User.findOne({
-phone
-});
-
+const user=await User.findOne({phone});
 
 if(!user || !user.blogPartner){
 return;
 }
 
 
-const blog = await BlogPartner.findById(
+const blog=await BlogPartner.findById(
 user.blogPartner
 );
 
 
-if(!blog || blog.status !== "active"){
+if(!blog || blog.status!=="active"){
 return;
 }
 
 
-const existing = await BlogCommission.findOne({
-reference
-});
+const week=getWeek();
 
 
-if(existing){
-return;
-}
-
-
-const commission =
-(Number(amount) * Number(blog.commissionRate || 0)) / 100;
-
-
-await BlogCommission.create({
+let earning =
+await BlogWeeklyCommission.findOne({
 
 blogPartner:blog._id,
-
-user:user._id,
-
-reference,
-
-amount:commission,
-
-transactionAmount:Number(amount),
-
-service:service || "unknown",
-
-transactionReference:reference
+week
 
 });
 
 
-blog.totalEarned =
-Number(blog.totalEarned || 0) + commission;
+if(!earning){
+
+earning =
+await BlogWeeklyCommission.create({
+
+blogPartner:blog._id,
+week
+
+});
+
+}
 
 
-await blog.save();
+earning.totalSales += Number(amount);
+
+
+earning.commission =
+(
+earning.totalSales *
+Number(blog.commissionRate || 30)
+)/100;
+
+
+await earning.save();
 
 
 }catch(error){
 
 console.log(
-"Blog commission error:",
+"Weekly blog commission error:",
 error.message
 );
 
