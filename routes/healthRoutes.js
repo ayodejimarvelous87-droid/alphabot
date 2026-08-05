@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
+const { getRedisStatus } = require("../middleware/rateLimiter");
 
 router.get("/", (req,res)=>{
 
@@ -18,7 +19,7 @@ router.get("/", (req,res)=>{
 
     database: mongoStatus,
 
-    redis: "not configured",
+    redis: getRedisStatus(),
 
     service:"AlphaBot API",
 

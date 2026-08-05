@@ -145,5 +145,9 @@ module.exports = {
   loginPhoneLimiter,
   otpLimiter,
   otpPhoneLimiter,
-  purchaseLimiter
+  purchaseLimiter,
+  redisClient,
+  getRedisStatus:()=>{
+    return redisClient.isOpen ? "connected" : "disconnected";
+  }
 };
