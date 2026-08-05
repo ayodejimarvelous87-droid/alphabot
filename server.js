@@ -171,6 +171,7 @@ const flutterwaveRoutes = require("./routes/flutterwaveRoutes");
 const blogPartnerRoutes = require("./routes/blogPartnerRoutes");
 const blogPayoutRoutes = require("./routes/blogPayoutRoutes");
 const wakeRoutes = require("./routes/wakeRoutes");
+const healthRoutes = require("./routes/healthRoutes");
 
 
 
@@ -270,6 +271,7 @@ app.use("/transfer", transferRoutes);
 app.use("/blog-partner", blogPartnerRoutes);
 app.use("/blog-payout", blogPayoutRoutes);
 app.use("/wake", wakeRoutes);
+app.use("/health", healthRoutes);
 app.use("/beneficiary", beneficiaryRoutes);
 
 
