@@ -2,6 +2,8 @@ const User = require("../models/User");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const Profit = require("../models/Profit");
+const oplugService = require("../services/oplugService");
+const blitzPayService = require("../services/blitzPayService");
 
 const getDashboard = async(req,res)=>{
 
@@ -18,6 +20,57 @@ startToday.getMonth(),
 
 
 const totalUsers = await User.countDocuments();
+
+
+let masterWallet = {
+  oplug: 0,
+  blitzpay: 0,
+  vtu: 0
+};
+
+
+// Oplug balance
+try {
+
+  const balance = await oplugService.getBalance();
+
+  masterWallet.oplug =
+    Number(
+      balance.data?.balance ||
+      balance.balance ||
+      0
+    );
+
+} catch(error){
+
+  console.log(
+    "OPLUG BALANCE ERROR:",
+    error.message
+  );
+
+}
+
+
+// BlitzPay balance
+try {
+
+  const balance = await blitzPayService.getBalance();
+
+  masterWallet.blitzpay =
+    Number(
+      balance.data?.balance ||
+      balance.balance ||
+      0
+    );
+
+} catch(error){
+
+  console.log(
+    "BLITZPAY BALANCE ERROR:",
+    error.message
+  );
+
+}
 
 
 const wallets = await Wallet.find();
@@ -185,6 +238,8 @@ res.json({
 totalUsers,
 
 walletBalance,
+
+masterWallet,
 
 todaySales,
 
