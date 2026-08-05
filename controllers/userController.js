@@ -401,7 +401,7 @@ validReferralCode = referralCode;
 
 let validBlogPartner = null;
 
-const blogCode = partner || ref;
+const blogCode = partner || ref || referralCode;
 
 if(blogCode){
 
