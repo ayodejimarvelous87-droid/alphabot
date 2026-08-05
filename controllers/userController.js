@@ -241,10 +241,7 @@ balance:0
 }
 
 
-console.log("BLOG PARTNER DEBUG:", {
-  blogCode,
-  validBlogPartner
-});
+
 
 const userReferralCode = generateReferralCode();
 
@@ -410,10 +407,7 @@ if(blog){
 
 }
 
-console.log("BLOG PARTNER DEBUG:", {
-  blogCode,
-  validBlogPartner
-});
+
 
 const userReferralCode = generateReferralCode();
 
