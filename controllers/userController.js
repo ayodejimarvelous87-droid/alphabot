@@ -165,6 +165,12 @@ try{
 
 const {name,phone,email,password,referralCode,partner,ref}=req.body;
 
+console.log("REG OTP DATA:", {
+  referralCode,
+  partner,
+  ref
+});
+
 if(!name || !phone || !email || !password){
 throw new AppError("All fields are required", 400);
 }
