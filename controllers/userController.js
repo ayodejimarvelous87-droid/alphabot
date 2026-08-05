@@ -266,7 +266,7 @@ validReferralCode=verify.referralCode;
 
 let validBlogPartner = null;
 
-const blogCode = verify.partner || verify.ref;
+const blogCode = verify.partner || verify.ref || verify.referralCode;
 
 if(blogCode){
 
