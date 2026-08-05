@@ -88,7 +88,8 @@ vtuPlans.forEach(plan=>{
 
 if(
 !plan.data_plan || plan.type ||
-!plan.service_name ||
+!plan.network ||
+  plan.service_name ||
 plan.availability === "Unavailable"
 ){
 return;
@@ -229,9 +230,9 @@ allPlans.forEach(plan=>{
 
 
 let network =
-plan.service_name ||
-plan.network ||
-"Other";
+  plan.network ||
+  plan.service_name ||
+  "Other";
 
 network = network.toString().trim().toLowerCase();
 
