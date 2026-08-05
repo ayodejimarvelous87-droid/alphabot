@@ -27,6 +27,10 @@ referralCode:{
 type:String
 },
 
+partner:{
+type:String
+},
+
 otp:{
 type:String,
 required:true
