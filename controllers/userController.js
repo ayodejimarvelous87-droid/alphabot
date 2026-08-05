@@ -257,6 +257,23 @@ validReferralCode=verify.referralCode;
 }
 }
 
+let validBlogPartner = null;
+
+const blogCode = verify.partner || verify.ref;
+
+if(blogCode){
+
+const blog = await BlogPartner.findOne({
+code: blogCode.toUpperCase(),
+status:"active"
+});
+
+if(blog){
+validBlogPartner = blog._id;
+}
+
+}
+
 const user = await User.create({
 name:verify.name,
 phone:cleanPhone,
