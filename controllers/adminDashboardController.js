@@ -4,6 +4,7 @@ const Transaction = require("../models/Transaction");
 const Profit = require("../models/Profit");
 const oplugService = require("../services/oplugService");
 const blitzPayService = require("../services/blitzPayService");
+const vtuService = require("../services/vtuService");
 
 const getDashboard = async(req,res)=>{
 
@@ -71,6 +72,34 @@ try {
   );
 
 }
+
+
+
+  // VTU balance
+  try {
+
+    const balance = await vtuService.getBalance();
+
+    console.log(
+      "VTU DASHBOARD BALANCE RESPONSE:",
+      balance
+    );
+
+    masterWallet.vtu =
+      Number(
+        balance.data?.balance ||
+        balance.balance ||
+        0
+      );
+
+  } catch(error){
+
+    console.log(
+      "VTU BALANCE ERROR:",
+      error.message
+    );
+
+  }
 
 
 const wallets = await Wallet.find();

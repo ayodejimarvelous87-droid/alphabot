@@ -176,6 +176,14 @@ const vtuGet = async(endpoint)=>{
 
 
 
+
+const getBalance = async()=>{
+
+  return await vtuGet("/api/v2/balance");
+
+};
+
+
 const purchaseAirtime = async ({
   phone,
   network,
@@ -314,6 +322,7 @@ order_id
 
 
 module.exports = {
+  getBalance,
   getToken,
   vtuRequest,
   vtuGet,
