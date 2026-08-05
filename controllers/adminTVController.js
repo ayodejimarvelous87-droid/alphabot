@@ -16,41 +16,45 @@ let plans = await TVPlan.find()
 .sort({provider:1});
 
 
-if(plans.length === 0){
-
 const providerPlans = await getCablePackages();
 
 
 for(const plan of providerPlans){
 
-await TVPlan.create({
+const variationId =
+plan.variation_id || plan.id || plan.code;
 
+
+const providerPrice =
+Number(plan.amount || plan.price || 0);
+
+
+await TVPlan.findOneAndUpdate(
+{
+variation_id: variationId
+},
+{
+$set:{
 provider:
 plan.provider || plan.service_name || "Unknown",
-
-variation_id:
-plan.variation_id || plan.id || plan.code,
 
 name:
 plan.name || plan.package || "TV Plan",
 
-providerPrice:
-Number(plan.amount || plan.price || 0),
-
-sellingPrice:
-Number(plan.amount || plan.price || 0),
-
-active:true
-
-});
+providerPrice
+}
+},
+{
+upsert:true,
+new:true
+}
+);
 
 }
 
 
 plans = await TVPlan.find()
 .sort({provider:1});
-
-}
 
 
 res.json(plans);
@@ -84,6 +88,14 @@ throw new AppError(
   "TV plan not found",
   404
 );
+
+}
+
+
+if(req.body.providerPrice !== undefined){
+
+  plan.providerPrice =
+  Number(req.body.providerPrice);
 
 }
 

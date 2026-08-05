@@ -49,6 +49,8 @@ const createLimiter = (
 
     store:new RedisStore({
 
+        prefix: "alphabot_rl:",
+
       sendCommand:async(...args)=>{
 
         if(!redisReady){
@@ -73,7 +75,15 @@ const createLimiter = (
 
     legacyHeaders:false,
 
-    keyGenerator:keyGenerator || undefined
+      validate: {
+        singleCount: false
+      },
+
+      keyGenerator:
+        keyGenerator ||
+        ((req)=>{
+          return ipKeyGenerator(req.ip);
+        })
 
   });
 

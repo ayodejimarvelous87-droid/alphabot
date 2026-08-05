@@ -12,6 +12,7 @@ const recordProviderResult = async ({
 try{
 
 let record = await ProviderHealth.findOne({
+
   provider,
   service
 });
@@ -106,10 +107,26 @@ const canUseProvider = async ({
   service
 }) => {
 
-  const record = await ProviderHealth.findOne({
-    provider,
-    service
-  });
+  let record;
+
+  try {
+
+    record = await ProviderHealth.findOne({
+
+      provider,
+      service
+    });
+
+  } catch(error) {
+
+    console.log(
+      "Provider health check skipped:",
+      error.message
+    );
+
+    return true;
+
+  }
 
 
   if(!record){

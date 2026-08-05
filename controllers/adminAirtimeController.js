@@ -1,4 +1,5 @@
 const AirtimeOverride = require("../models/AirtimeOverride");
+const { getAirtimePlans } = require("../services/airtimePlanService");
 
 
 // Get airtime settings
@@ -6,9 +7,36 @@ const getAirtimePrices = async(req,res)=>{
 
 try{
 
-const data = await AirtimeOverride.find();
+const overrides = await AirtimeOverride.find();
 
-res.json(data);
+const plans = await getAirtimePlans();
+
+const merged = plans.map(plan=>{
+
+const override = overrides.find(
+item=>item.network === plan.network
+);
+
+return {
+...plan,
+sellingPrice:
+override?.sellingPrice ||
+plan.providerPrice,
+
+profit:
+Number(
+override?.sellingPrice ||
+plan.providerPrice
+) - Number(plan.providerPrice),
+
+active:
+override?.active !== false
+
+};
+
+});
+
+res.json(merged);
 
 
 }catch(error){
@@ -22,13 +50,17 @@ message:error.message
 };
 
 
-
 // Update airtime network price
 const updateAirtimePrice = async(req,res)=>{
 
 try{
 
 const {network}=req.params;
+
+
+const discount = Number(
+req.body.discount || 0
+);
 
 
 const providerPrice = Number(
@@ -53,6 +85,7 @@ network:network.toUpperCase()
 {
 network:network.toUpperCase(),
 providerPrice,
+discount,
 sellingPrice,
 profit,
 active:req.body.active !== false

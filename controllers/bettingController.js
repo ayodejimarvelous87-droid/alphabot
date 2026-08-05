@@ -71,7 +71,13 @@ throw new AppError(
 
 
 const userPin = await TransactionPin.findOne({
-phone
+  phone:{
+    $in:[
+      req.user.phone,
+      phone,
+      "+234" + phone.replace(/^0/,"")
+    ]
+  }
 });
 
 
@@ -110,10 +116,14 @@ throw new AppError(
 }
 
 
+
+
 const bettingSetting =
-await BettingSetting.findOne({
-service: service_id
-});
+  await BettingSetting.findOne({
+    service:{
+      $regex: new RegExp("^" + service_id + "$", "i")
+    }
+  });
 
 
 if(!bettingSetting){
@@ -206,11 +216,17 @@ amount:Number(amount),
 request_id:reference
 });
 
+  console.log(
+    "BET FUND RESPONSE:",
+    JSON.stringify(providerResponse,null,2)
+  );
 if(!providerResponse || providerResponse.code !== "success"){
 throw new Error("Bet funding failed");
 }
 
 }catch(err){
+
+  
 
 wallet.balance += totalAmount;
 
@@ -235,11 +251,12 @@ description:"Automatic refund - Betting failed",
 status:"successful"
 });
 
-throw new AppError(
-"Bet funding failed",
-400
-);
-
+  throw new AppError(
+    err.response?.data?.message ||
+    err.message ||
+    "Bet funding failed",
+    err.response?.data?.data?.status || 400
+  );
 }
 
 
@@ -312,11 +329,18 @@ error.response?.data || error.message
 );
 
 
-res.status(500).json({
+  res.status(
+    error.statusCode ||
+    error.response?.data?.data?.status ||
+    500
+  ).json({
 
-message:"Betting service error"
+    message:
+      error.response?.data?.message ||
+      error.message ||
+      "Betting service error"
 
-});
+  });
 
 }
 
@@ -324,6 +348,29 @@ message:"Betting service error"
 
 
 
+
+const getAvailableBettingServices = async(req,res)=>{
+
+try{
+
+const services = await BettingSetting.find({
+active:true
+}).select("service");
+
+res.json(services);
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
 module.exports = {
-fundBetting
+fundBetting,
+getAvailableBettingServices
 };

@@ -6,9 +6,16 @@ const auth = require("../middleware/auth");
 const { purchaseLimiter } = require("../middleware/rateLimiter");
 
 const {
-fundBetting
+fundBetting,
+getAvailableBettingServices
 } = require("../controllers/bettingController");
 
+
+
+router.get(
+"/services",
+getAvailableBettingServices
+);
 
 
 router.post(

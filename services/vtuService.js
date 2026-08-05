@@ -4,10 +4,24 @@ const axios = require("axios");
 const { recordProviderResult, canUseProvider } = require("./providerMonitorService");
 
 const vtuAxios = axios.create({
-  timeout:10000
+  timeout:30000
 });
 
 let token = null;
+
+
+const normalizeVTUService = (service) => {
+
+  const map = {
+    "1xbet": "1xBet",
+    "bet9ja": "Bet9ja",
+    "betking": "BetKing",
+    "sportybet": "SportyBet"
+  };
+
+  return map[String(service).toLowerCase()] || service;
+
+};
 
 
 const getToken = async () => {
@@ -18,6 +32,7 @@ const getToken = async () => {
 
 
   try {
+
 
     const response = await vtuAxios.post(
       `${process.env.VTU_BASE_URL}/jwt-auth/v1/token`,
@@ -35,7 +50,6 @@ const getToken = async () => {
 
     token = response.data.token;
 
-    console.log("VTU token generated successfully");
 
     return token;
 
@@ -78,6 +92,8 @@ if(!providerAvailable){
 try{
 
 const accessToken = await getToken();
+
+data.service_id = normalizeVTUService(data.service_id);
 
 const response = await vtuAxios.post(
 `${process.env.VTU_BASE_URL}${endpoint}`,

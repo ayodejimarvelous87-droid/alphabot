@@ -132,6 +132,11 @@ if(airtimeSetting && airtimeSetting.active === false){
 throw new AppError("This airtime network is currently unavailable", 400);
 }
 
+const discount = Number(airtimeSetting?.discount || 0);
+
+const providerAmount =
+Number(amount) - (Number(amount) * discount / 100);
+
 
 
 
