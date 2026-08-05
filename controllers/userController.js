@@ -163,7 +163,7 @@ const generateReferralCode = () => {
 const sendRegistrationOTP = async(req,res,next)=>{
 try{
 
-const {name,phone,email,password,referralCode}=req.body;
+const {name,phone,email,password,referralCode,partner,ref}=req.body;
 
 if(!name || !phone || !email || !password){
 throw new AppError("All fields are required", 400);
@@ -189,6 +189,7 @@ phone:cleanPhone,
 email,
 password:hashedPassword,
 referralCode,
+partner: partner || ref,
 otp,
 expiresAt:new Date(Date.now()+10*60*1000)
 });
