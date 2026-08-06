@@ -181,7 +181,11 @@ app.use((req,res,next)=>{
   const allowedPaths = [
     "/flutterwave/webhook",
     "/vtu/webhook",
-    "/maintenance"
+    "/maintenance",
+    "/health",
+    "/wake",
+    "/health",
+    "/wake"
   ];
 
   if(

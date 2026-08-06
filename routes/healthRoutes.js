@@ -1,14 +1,20 @@
 const express = require("express");
 const router = express.Router();
+
+const startTime = Date.now();
 const mongoose = require("mongoose");
 const { getRedisStatus } = require("../middleware/rateLimiter");
 
-router.get("/", (req,res)=>{
+router.get("/", async(req,res)=>{
+
+  const requestStart = Date.now();
 
   const mongoStatus =
     mongoose.connection.readyState === 1
       ? "connected"
       : "disconnected";
+
+  const redisStatus = getRedisStatus();
 
   res.json({
 
@@ -19,11 +25,15 @@ router.get("/", (req,res)=>{
 
     database: mongoStatus,
 
-    redis: getRedisStatus(),
+    redis: redisStatus,
 
     service:"AlphaBot API",
 
-    time:new Date()
+    responseTime: `${Date.now() - requestStart}ms`,
+
+    uptime: `${Math.floor(process.uptime())} seconds`,
+
+      time:new Date()
 
   });
 

@@ -38,6 +38,33 @@ const connectRedis = async()=>{
 
 
 
+
+const checkRedisStatus = async()=>{
+
+  try{
+
+    if(!redisClient.isOpen){
+      return "disconnected";
+    }
+
+    await Promise.race([
+      redisClient.ping(),
+      new Promise((_, reject)=>
+        setTimeout(()=>reject(new Error("Redis timeout")),2000)
+      )
+    ]);
+
+    return "connected";
+
+  }catch(error){
+
+    return "disconnected";
+
+  }
+
+};
+
+
 const createLimiter = (
   windowMs,
   max,
@@ -149,5 +176,6 @@ module.exports = {
   redisClient,
   getRedisStatus:()=>{
     return redisClient.isOpen ? "connected" : "disconnected";
-  }
+  },
+  checkRedisStatus
 };
