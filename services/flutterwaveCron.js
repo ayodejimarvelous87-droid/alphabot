@@ -29,11 +29,11 @@ async function findFlutterwaveTransaction(tx_ref){
   }catch(error){
 
     console.log(
-      "Flutterwave lookup error:",
-      error.response?.data || error.message
+      "Flutterwave lookup temporary failure:",
+      error.response?.status || error.message
     );
 
-    throw error;
+    return null;
 
   }
 
