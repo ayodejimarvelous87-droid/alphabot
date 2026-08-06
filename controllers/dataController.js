@@ -159,6 +159,13 @@ const wallet = await Wallet.findOne({
 phone:userPhone
 });
 
+console.log("WALLET FOUND DEBUG:", {
+ userPhone,
+ walletFound: !!wallet,
+ walletPhone: wallet?.phone,
+ walletBalance: wallet?.balance
+});
+
 
 if(!wallet){
 
