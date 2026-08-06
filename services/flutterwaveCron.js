@@ -53,14 +53,15 @@ function startFlutterwaveCron(){
 
 
       const pending = await Transaction.find({
-        type:"fund",
-        status:{
-          $in:["pending","successful"]
-        },
-        walletCredited:{
-          $ne:true
-        }
-      });
+          type:"fund",
+          status:{
+            $in:["pending","successful"]
+          },
+          description:"Flutterwave wallet funding pending",
+          walletCredited:{
+            $ne:true
+          }
+        });
 
 
       for(const payment of pending){
