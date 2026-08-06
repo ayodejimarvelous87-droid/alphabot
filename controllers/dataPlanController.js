@@ -236,7 +236,10 @@ const existingIds = new Set(allPlans.filter(p=>p.provider==="oplug").map(p=>p.va
 
 savedOplug.forEach(plan=>{
 if(!existingIds.has(plan.variation_id)){
-allPlans.push(plan);
+allPlans.push({
+...plan,
+display_price:calculateSellingPrice(plan.price)
+});
 }
 });
 
