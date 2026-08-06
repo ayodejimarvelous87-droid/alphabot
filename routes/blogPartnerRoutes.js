@@ -3,6 +3,8 @@ const express = require("express");
 const {
 createPartner,
 getAllPartners,
+adminUpdatePartner,
+getPartnerUsers,
 getPartner,
 getDashboard,
 getPayoutHistory,
@@ -19,6 +21,8 @@ verifyPartnerResetOTP
 
 const router = express.Router();
 const blogPartnerAuth = require("../middleware/blogPartnerAuth");
+const auth = require("../middleware/auth");
+const admin = require("../middleware/admin");
 
 
 
@@ -88,6 +92,22 @@ router.get(
 getAllPartners
 );
 
+
+// admin update partner
+router.put(
+"/admin/:id",
+adminUpdatePartner
+);
+
+
+
+
+router.get(
+"/admin/:id/users",
+auth,
+admin,
+getPartnerUsers
+);
 
 // admin creates partner
 router.post(

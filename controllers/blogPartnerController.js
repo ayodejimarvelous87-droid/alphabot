@@ -112,6 +112,80 @@ message:error.message
 };
 
 
+
+
+// Admin update blog partner
+const adminUpdatePartner = async(req,res)=>{
+
+try{
+
+const partner = await BlogPartner.findById(req.params.id);
+
+if(!partner){
+return res.status(404).json({
+message:"Partner not found"
+});
+}
+
+
+const {
+status,
+commissionRate
+}=req.body;
+
+
+if(status){
+partner.status=status;
+}
+
+
+if(commissionRate !== undefined){
+partner.commissionRate=Number(commissionRate);
+}
+
+
+await partner.save();
+
+
+res.json({
+message:"Partner updated",
+partner
+});
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
+const getPartnerUsers = async(req,res)=>{
+
+try{
+
+const users = await User.find({
+blogPartner:req.params.id
+})
+.select("name phone email createdAt");
+
+res.json(users);
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
 // Partner profile
 const getPartner = async(req,res)=>{
 
@@ -122,6 +196,26 @@ req.params.id
 ).select("-password");
 
 
+const earnings = await BlogCommission.aggregate([
+{
+$match:{
+blogPartner: partner._id
+}
+},
+{
+$group:{
+_id:null,
+totalGenerated:{
+$sum:"$transactionAmount"
+},
+totalCommission:{
+$sum:"$amount"
+}
+}
+}
+]);
+
+
 if(!partner){
 return res.status(404).json({
 message:"Partner not found"
@@ -129,7 +223,11 @@ message:"Partner not found"
 }
 
 
-res.json(partner);
+res.json({
+...partner.toObject(),
+totalGenerated: earnings[0]?.totalGenerated || 0,
+totalCommission: earnings[0]?.totalCommission || 0
+});
 
 
 }catch(error){
@@ -784,6 +882,7 @@ message:error.message
 module.exports={
 createPartner,
 getAllPartners,
+adminUpdatePartner,
 getPartner,
 getDashboard,
 getPayoutHistory,
@@ -792,6 +891,7 @@ loginPartner,
 updatePayoutDetails,
 changePartnerPassword,
 updatePartnerEmail,
+getPartnerUsers,
 trackReferralClick,
 verifyBlogEmail,
 verifyPartnerResetOTP,

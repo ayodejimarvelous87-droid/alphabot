@@ -5,6 +5,17 @@ function shouldReply(message){
 
 const text = message.toLowerCase();
 
+const mentionTriggers = [
+"goalmaster",
+"goal master",
+"@goalmaster",
+"@goal master"
+];
+
+if(mentionTriggers.some(word=>text.includes(word))){
+return true;
+}
+
 const triggers = [
 
 "football",
