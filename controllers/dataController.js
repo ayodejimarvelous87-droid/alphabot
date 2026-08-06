@@ -168,6 +168,16 @@ throw new AppError("Wallet not found", 404);
 
 
 
+console.log("WALLET CHECK DEBUG:", {
+  userPhone,
+  walletPhone: wallet?.phone,
+  walletBalance: wallet?.balance,
+  amount,
+  customerAmount,
+  variation_id,
+  provider
+});
+
 if(wallet.balance < Number(amount)){
 
 throw new AppError("Insufficient balance", 400);
