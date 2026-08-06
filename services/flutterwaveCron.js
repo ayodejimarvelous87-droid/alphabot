@@ -57,7 +57,9 @@ function startFlutterwaveCron(){
         status:{
           $in:["pending","successful"]
         },
-        walletCredited:false
+        walletCredited:{
+          $ne:true
+        }
       });
 
 
