@@ -85,7 +85,7 @@ function startFlutterwaveCron(){
 
           if(alreadyCredited){
 
-            payment.status="completed";
+            payment.status="successful";
             await payment.save();
 
             continue;
@@ -133,7 +133,7 @@ function startFlutterwaveCron(){
 
           payment.description = "Flutterwave wallet funding completed";
 
-          payment.status = "completed";
+          payment.status = "successful";
 
 
           if(payment.notificationSent !== true){
