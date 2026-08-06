@@ -224,6 +224,13 @@ if(provider === "blitzpay"){
 
 
 console.log("BLITZPAY AMOUNT CHECK:", {variation_id, amount, network});
+  console.log("BLITZPAY DATA REQUEST:", {
+    type:"data",
+    network,
+    phone:dataPhone,
+    package_id: variation_id || plan,
+    amount:Number(dataPrice.providerPrice)
+  });
   providerResponse = await purchase({
   type:"data",
   network,
