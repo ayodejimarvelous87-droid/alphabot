@@ -6,7 +6,8 @@ const auth=require("../middleware/auth");
 
 const {
 addBeneficiary,
-getBeneficiaries
+getBeneficiaries,
+deleteBeneficiary
 }=require("../controllers/beneficiaryController");
 
 
@@ -21,6 +22,13 @@ router.get(
 "/all",
 auth,
 getBeneficiaries
+);
+
+
+router.delete(
+"/:id",
+auth,
+deleteBeneficiary
 );
 
 

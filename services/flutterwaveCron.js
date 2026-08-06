@@ -3,6 +3,8 @@ const axios = require("axios");
 
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const User = require("../models/User");
+const sendEmail = require("../services/emailService");
 const { createNotification } = require("../services/notificationService");
 
 
@@ -77,8 +79,7 @@ function startFlutterwaveCron(){
 
 
           const alreadyCredited = await Transaction.findOne({
-            reference: payment.reference,
-            description:"Flutterwave Cron Funding"
+            reference: payment.reference
           });
 
 
@@ -109,54 +110,69 @@ function startFlutterwaveCron(){
           const balanceBefore = wallet.balance;
 
 
-          wallet.balance += Number(tx.amount);
+          payment.flutterwaveId = String(tx.id);
 
-          await wallet.save();
+          payment.flutterwaveReference = tx.flw_ref;
+
+          payment.balanceBefore = balanceBefore;
+
+          payment.balanceAfter = balanceBefore + Number(tx.amount);
+
+          const transaction = payment;
 
 
-          const transaction = await Transaction.create({
+          if(payment.walletCredited !== true){
 
-            phone:payment.phone,
+            wallet.balance += Number(tx.amount);
 
-            type:"fund",
+            await wallet.save();
 
-            direction:"credit",
+            payment.walletCredited = true;
 
-            amount:Number(tx.amount),
+          }
 
-            reference:payment.reference,
+          payment.description = "Flutterwave wallet funding completed";
 
-            flutterwaveId:String(tx.id),
+          payment.status = "completed";
 
-            flutterwaveReference:tx.flw_ref,
 
-            balanceBefore,
+          if(payment.notificationSent !== true){
 
-            balanceAfter:wallet.balance,
+            await createNotification(
+              payment.phone,
+              "Wallet Funded",
+              `Your wallet has been funded successfully with ₦${Number(tx.amount).toLocaleString()}.`,
+              "success",
+              transaction._id
+            );
 
-            description:"Flutterwave Cron Funding",
+            payment.notificationSent = true;
 
-            status:"successful"
+          }
 
+
+          const user = await User.findOne({
+            phone: payment.phone
           });
 
 
-          await createNotification(
-            payment.phone,
-            "Wallet Funded",
-            `Your wallet has been funded successfully with ₦${Number(tx.amount).toLocaleString()}.`,
-            "success",
-            transaction._id
-          );
+          if(user?.email && payment.emailSent !== true){
 
+            await sendEmail(
+              user.email,
+              "Wallet Funded Successfully",
+              `Your AlphaBot wallet has been funded successfully with ₦${Number(tx.amount).toLocaleString()}.`
+            );
 
-          payment.status="completed";
+            payment.emailSent = true;
 
-          payment.flutterwaveId=String(tx.id);
+          }
 
-          payment.flutterwaveReference=tx.flw_ref;
 
           await payment.save();
+
+
+
 
 
           console.log(

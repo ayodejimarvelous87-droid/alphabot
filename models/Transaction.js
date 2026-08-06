@@ -115,6 +115,25 @@ sparse:true
 },
 
 
+
+walletCredited:{
+  type:Boolean,
+  default:false
+},
+
+
+notificationSent:{
+  type:Boolean,
+  default:false
+},
+
+emailSent:{
+  type:Boolean,
+  default:false
+},
+
+
+
 reason:{
 type:String,
 default:null

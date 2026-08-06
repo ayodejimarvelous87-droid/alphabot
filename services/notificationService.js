@@ -43,16 +43,30 @@ const createNotification = async (
     }
 
 
-    // Send Firebase push notification
-    if(device?.token){
+    // Send Firebase push notification (best effort)
+    try{
 
-      await sendPushNotification(
-        device.token,
-        title,
-        message
+      if(device?.token){
+
+        await sendPushNotification(
+          device.token,
+          title,
+          message
+        );
+
+      }
+
+    }catch(pushError){
+
+      console.log(
+        "Push notification failed:",
+        pushError.message
       );
 
     }
+
+
+    return true;
 
 
   } catch(error){
@@ -61,6 +75,8 @@ const createNotification = async (
       "Notification Error:",
       error.message
     );
+
+    throw error;
 
   }
 
