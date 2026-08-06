@@ -81,6 +81,23 @@ function startFlutterwaveCron(){
               continue;
             }
               
+            const existingFlutterwave = await Transaction.findOne({
+              flutterwaveId:String(tx.id)
+            });
+
+
+            if(existingFlutterwave && String(existingFlutterwave._id) !== String(payment._id)){
+
+              console.log(
+                "Skipping duplicate Flutterwave transaction:",
+                tx.id
+              );
+
+              continue;
+
+            }
+
+
             if(payment.walletCredited === true){
 
               continue;
