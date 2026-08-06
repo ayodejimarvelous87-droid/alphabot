@@ -483,12 +483,12 @@ transaction._id
 
 
 
-if(user?.email){
+if(req.user?.email){
 
   try{
 
     await sendEmail(
-      user.email,
+      req.user.email,
       "Airtime Purchase Successful",
       `Your ₦${Number(amount).toLocaleString()} ${network} airtime purchase was successful.`
     );
