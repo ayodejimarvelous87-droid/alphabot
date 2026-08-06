@@ -87,9 +87,8 @@ const vtuPlans = vtuResponse.data || [];
 vtuPlans.forEach(plan=>{
 
 if(
-!plan.data_plan || plan.type ||
-!plan.network ||
-  plan.service_name ||
+!plan.data_plan ||
+!plan.service_name ||
 plan.availability === "Unavailable"
 ){
 return;
