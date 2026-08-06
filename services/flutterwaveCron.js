@@ -54,8 +54,10 @@ function startFlutterwaveCron(){
 
       const pending = await Transaction.find({
         type:"fund",
-        status:"pending",
-        description:"Flutterwave wallet funding pending"
+        status:{
+          $in:["pending","successful"]
+        },
+        walletCredited:false
       });
 
 
@@ -67,29 +69,21 @@ function startFlutterwaveCron(){
             payment.reference
           );
 
-
-          if(!tx){
-            continue;
-          }
-
-
-          if(tx.status !== "successful"){
-            continue;
-          }
+            if(!tx){
+              continue;
+            }
 
 
-          const alreadyCredited = await Transaction.findOne({
-            reference: payment.reference
-          });
+            if(tx.status !== "successful"){
+              continue;
+            }
+              
+            if(payment.walletCredited === true){
 
+              continue;
 
-          if(alreadyCredited){
+            }
 
-            payment.status="successful";
-            await payment.save();
-
-            continue;
-          }
 
 
           let wallet = await Wallet.findOne({
