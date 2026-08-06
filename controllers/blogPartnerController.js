@@ -87,6 +87,31 @@ message:error.message
 
 
 
+
+// Admin get all blog partners
+const getAllPartners = async(req,res)=>{
+
+try{
+
+const partners = await BlogPartner.find()
+.select("-password")
+.sort({createdAt:-1});
+
+
+res.json(partners);
+
+
+}catch(error){
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
 // Partner profile
 const getPartner = async(req,res)=>{
 
@@ -758,6 +783,7 @@ message:error.message
 
 module.exports={
 createPartner,
+getAllPartners,
 getPartner,
 getDashboard,
 getPayoutHistory,

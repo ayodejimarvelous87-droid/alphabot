@@ -48,9 +48,11 @@ try{
 
 const messages = await FootballChat.find()
 .sort({
-createdAt:1
+createdAt:-1
 })
 .limit(100);
+
+messages.reverse();
 
 
 const formattedMessages = messages.map(chat=>({

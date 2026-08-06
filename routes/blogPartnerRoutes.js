@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
 createPartner,
+getAllPartners,
 getPartner,
 getDashboard,
 getPayoutHistory,
@@ -79,6 +80,14 @@ router.put(
 blogPartnerAuth,
 updatePartnerEmail
 );
+
+
+// admin get all blog partners
+router.get(
+"/all",
+getAllPartners
+);
+
 
 // admin creates partner
 router.post(
