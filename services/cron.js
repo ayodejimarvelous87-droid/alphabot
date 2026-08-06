@@ -10,6 +10,7 @@ const reconcileTransfers = require("./transferReconciliation");
 const updateFootballMatches = require("./footballService");
 
 const createFootballRewards = require("./footballRewardService");
+const runFootballIdleChat = require("./footballIdleChatService");
 const reconcileWallets = require("./walletReconciliationService");
 
 
@@ -141,6 +142,30 @@ error.message
 }
 
 });
+
+
+/*
+Football idle chat
+Runs every 5 minutes
+*/
+
+cron.schedule("*/5 * * * *", async ()=>{
+
+try{
+
+await runFootballIdleChat();
+
+}catch(error){
+
+console.log(
+"Football idle chat cron error:",
+error.message
+);
+
+}
+
+});
+
 
 
 /*

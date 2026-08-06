@@ -4,6 +4,7 @@ const router = express.Router();
 const FootballMatch = require("../models/FootballMatch");
 const Prediction = require("../models/Prediction");
 const getCurrentWeek = require("../utils/getCurrentWeek");
+const auth = require("../middleware/auth");
 
 
 // Get matches
@@ -41,15 +42,16 @@ message:error.message
 
 
 // Submit prediction
-router.post("/predict", async(req,res)=>{
+router.post("/predict", auth, async(req,res)=>{
 
 try{
 
 const {
-userId,
 matchId,
 choice
 }=req.body;
+
+const userId = req.user.id;
 
 const todayStart = new Date();
 todayStart.setHours(0,0,0,0);
@@ -61,7 +63,7 @@ createdAt:{$gte:todayStart}
 
 if(todayPredictions >= 20){
 return res.status(400).json({
-message:"Daily prediction limit reached (10 per day)"
+message:"Daily prediction limit reached (20 per day)"
 });
 }
 
@@ -73,7 +75,10 @@ message:"Match not found"
 });
 }
 
-if(new Date(match.matchDate) <= new Date()){
+if(
+new Date(match.matchDate) <= new Date() ||
+match.status === "IN_PLAY"
+){
 return res.status(400).json({
 message:"Prediction closed"
 });

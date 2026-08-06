@@ -242,6 +242,30 @@ if(footballMinimumWins !== undefined)
 setting.footballMinimumWins = Number(footballMinimumWins);
 
 
+if(req.body.footballAIEnabled !== undefined)
+setting.footballAIEnabled = Boolean(req.body.footballAIEnabled);
+
+
+if(req.body.footballIdleChatEnabled !== undefined)
+setting.footballIdleChatEnabled = Boolean(req.body.footballIdleChatEnabled);
+
+
+if(req.body.footballIdleChatInterval !== undefined)
+setting.footballIdleChatInterval = Number(req.body.footballIdleChatInterval);
+
+
+if(req.body.footballAnalystStyle !== undefined)
+setting.footballAnalystStyle = req.body.footballAnalystStyle;
+
+
+if(req.body.goalMasterStyle !== undefined)
+setting.goalMasterStyle = req.body.goalMasterStyle;
+
+
+if(req.body.footballGoalMasterStyle !== undefined)
+setting.footballGoalMasterStyle = req.body.footballGoalMasterStyle;
+
+
 await setting.save();
 
 

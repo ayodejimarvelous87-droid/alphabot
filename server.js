@@ -12,6 +12,7 @@ const startOTPCleanup = require("./services/otpCleanup");
 const { startFlutterwaveCron } = require("./services/flutterwaveCron");
 const { startBlogPayoutReminderCron } = require("./services/blogPayoutReminderCron");
 const { startBlogCommissionUnlockCron } = require("./services/blogCommissionUnlockCron");
+const { connectRedis } = require("./services/redisService");
 require("./services/recurringService");
 const path = require("path");
 
@@ -154,6 +155,7 @@ const aiRoutes = require("./routes/aiRoutes");
 const footballRoutes = require("./routes/footballRoutes");
 const footballPredictionRoutes = require("./routes/footballPredictionRoutes");
 const footballRewardRoutes = require("./routes/footballRewardRoutes");
+const footballChatRoutes = require("./routes/footballChatRoutes");
 const ePinRoutes = require("./routes/ePinRoutes");
 const footballAdminRoutes = require("./routes/footballAdminRoutes");
 const adminDataPriceRoutes = require("./routes/adminDataPriceRoutes");
@@ -203,6 +205,7 @@ app.use((req,res,next)=>{
 app.use("/football", footballRoutes);
 app.use("/football", footballPredictionRoutes);
 app.use("/football/rewards", footballRewardRoutes);
+app.use("/football/chat", footballChatRoutes);
 app.use("/football/admin", footballAdminRoutes);
 app.use("/ai", aiRoutes);
 app.use("/test-email", emailTestRoutes);
@@ -308,6 +311,7 @@ mongoose.connect(process.env.MONGO_URI,{
   startFlutterwaveCron();
   startBlogPayoutReminderCron();
   startBlogCommissionUnlockCron();
+  connectRedis();
 
 
 

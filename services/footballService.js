@@ -92,7 +92,12 @@ awayLogo:match.awayTeam.crest,
 
 matchDate:match.utcDate,
 
-status:match.status,
+status:
+match.status === "LIVE"
+?
+"IN_PLAY"
+:
+match.status,
 
 result,
 

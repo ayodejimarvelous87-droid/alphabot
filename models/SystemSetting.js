@@ -55,6 +55,36 @@ const systemSettingSchema = new mongoose.Schema({
     default:10
   },
 
+  footballAIEnabled:{
+    type:Boolean,
+    default:true
+  },
+
+  footballIdleChatEnabled:{
+    type:Boolean,
+    default:true
+  },
+
+  footballIdleChatInterval:{
+    type:Number,
+    default:30
+  },
+
+  footballAnalystStyle:{
+    type:String,
+    default:"balanced"
+  },
+
+  goalMasterStyle:{
+    type:String,
+    default:"hype"
+  },
+
+  footballGoalMasterStyle:{
+    type:String,
+    default:"hype"
+  },
+
   airtimeProfit:{
     type:Number,
     default:20

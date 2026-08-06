@@ -6,6 +6,7 @@ const Order = require("../models/Order");
 const Transaction = require("../models/Transaction");
 const TransactionPin = require("../models/TransactionPin");
 const User = require("../models/User");
+const SystemSetting = require("../models/SystemSetting");
 const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 
@@ -206,7 +207,15 @@ const buyProduct = async (req, res) => {
 
           if(referrerWallet){
 
-            const reward = Math.floor(product.price * 0.01);
+            const setting = await SystemSetting.findOne();
+
+const referralPercentage = Number(
+  setting?.referralPercentage ?? 1
+);
+
+const reward = Math.floor(
+  product.price * (referralPercentage / 100)
+);
 
 
             if(reward > 0){

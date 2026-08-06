@@ -125,12 +125,12 @@ const getPayoutHistory = async(req,res)=>{
 
 try{
 
-const history = await BlogPayout.find({
+const history = await WeeklyBlogPayout.find({
 status:"paid"
 })
 .populate(
 "blogPartner",
-"name code"
+"name code email"
 )
 .sort({
 paidAt:-1
