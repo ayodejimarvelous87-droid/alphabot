@@ -14,6 +14,30 @@ const categoriesList = [
 "Standard"
 ];
 
+function calculateSellingPrice(cost){
+  cost = Number(cost);
+
+  let price;
+
+  if(cost <= 500){
+    price = cost + 22;
+  }
+
+  else if(cost <= 2000){
+    price = cost + 52;
+  }
+
+  else if(cost <= 5000){
+    price = cost + 102;
+  }
+
+  else{
+    price = cost + (cost * 0.02) + 2;
+  }
+
+  return Math.round(price);
+}
+
 
 const formatCategory = (plan)=>{
 
@@ -101,7 +125,7 @@ service_name: plan.service_name,
 name: plan.data_plan,
 price: Number(plan.reseller_price),
 provider:"vtu",
-display_price:Number(plan.reseller_price) + Number(profit)
+display_price:calculateSellingPrice(plan.reseller_price)
 });
 
 });
@@ -148,7 +172,7 @@ allPlans.push({
 ...plan,
 service_name: plan.network,
 provider:"blitzpay",
-display_price:Number(plan.price) + Number(profit)
+display_price:calculateSellingPrice(plan.price)
 });
 
 });
@@ -183,7 +207,7 @@ name: `${plan.network} ${plan.datasize}`,
 price:Number(plan.price),
 provider:"oplug",
 variation_id:plan.id,
-display_price:Number(plan.price) + Number(profit),
+display_price:calculateSellingPrice(plan.price),
 validity:`${plan.day} Days`
 });
 
