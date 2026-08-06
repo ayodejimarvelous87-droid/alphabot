@@ -162,7 +162,10 @@ const otpPhoneLimiter = createLimiter(
 const purchaseLimiter = createLimiter(
   15 * 60 * 1000,
   30,
-  "Too many purchase attempts. Try again later."
+  "Too many purchase attempts. Try again later.",
+  (req)=>{
+    return req.user?.phone || ipKeyGenerator(req.ip);
+  }
 );
 
 
