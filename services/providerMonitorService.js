@@ -1,4 +1,5 @@
 const ProviderHealth = require("../models/ProviderHealth");
+const mongoose = require("mongoose");
 
 
 const recordProviderResult = async ({
@@ -11,7 +12,11 @@ const recordProviderResult = async ({
 
 try{
 
-let record = await ProviderHealth.findOne({
+if(mongoose.connection.readyState !== 1){
+  return;
+}
+
+  let record = await ProviderHealth.findOne({
 
   provider,
   service
@@ -111,7 +116,11 @@ const canUseProvider = async ({
 
   try {
 
-    record = await ProviderHealth.findOne({
+    if(mongoose.connection.readyState !== 1){
+        return true;
+      }
+
+      record = await ProviderHealth.findOne({
 
       provider,
       service

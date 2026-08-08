@@ -40,6 +40,12 @@ payout.blogPartner
 payout.status="paid";
 payout.paidAt=new Date();
 
+if(partner){
+  partner.lastPayoutDate = new Date();
+  partner.payoutReminderSent = false;
+  await partner.save();
+}
+
 await payout.save();
 
 

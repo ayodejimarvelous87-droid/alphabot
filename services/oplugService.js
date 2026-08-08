@@ -27,11 +27,15 @@ if(!providerAvailable){
 try{
 
 const config = {
-headers:{
-Authorization:`Bearer ${process.env.OPLUG_API_KEY}`,
-"Content-Type":"application/json"
-}
+  headers:{
+  "Content-Type":"application/json"
+  }
 };
+
+if(process.env.OPLUG_API_KEY){
+  config.headers.Authorization =
+  `Bearer ${process.env.OPLUG_API_KEY}`;
+}
 
 
 let response;
@@ -99,34 +103,37 @@ const getBalance = async()=>{
 
 const getDataPlans = async(network)=>{
 
-const plans = await oplugRequest(
-`/vtu/data-plans?network=${network}`
-);
-
 try{
 
 const services = await oplugRequest("/vtu/services");
 
 const servicePlans = services.data?.data?.[network] || [];
 
-return plans.map(plan=>{
+return servicePlans.map(plan=>({
 
-const match = servicePlans.find(item=>
-Number(item.api_price) === Number(plan.price) &&
-item.network?.toUpperCase() === network.toUpperCase()
-);
-
-return {
-...plan,
 id: plan.id,
-plan_id: plan.plan_id
-};
+providerPlanId: plan.id,
+plan_id: plan.id,
+network: plan.network,
+type: plan.id.includes("gifting") ? "GIFTING" :
+      plan.id.includes("sme") ? "SME" :
+      plan.id.includes("awoof") ? "AWOOF" :
+      "DATA",
 
-});
+datasize: plan.size !== "N/A" ? plan.size : "DATA",
+
+day: plan.validity || "30 Days",
+
+name: `${plan.network} DATA PLAN`,
+price: plan.api_price
+
+}));
 
 }catch(error){
 
-return plans;
+console.log("OPLUG GET PLANS ERROR:", error.message);
+
+return [];
 
 }
 
@@ -138,22 +145,23 @@ const purchaseData = async(data)=>{
 let phone = data.phone || data.phoneNumber;
 
 if(phone.startsWith("+234")){
-phone = "0" + phone.slice(4);
+  phone = "0" + phone.slice(4);
 }
 
 console.log("FINAL OPLUG PURCHASE:", {
-network:data.network,
-planId:data.planId || data.plan,
-phoneNumber:phone
+  network:data.network,
+  planId:data.planId || data.plan,
+  phoneNumber:phone
 });
+
 return await oplugRequest(
-"/vtu/data",
-"POST",
-{
-network:data.network,
-planId:data.planId || data.plan,
-phoneNumber:phone
-}
+  "/vtu/data",
+  "POST",
+  {
+    network:data.network,
+    planId:data.planId || data.plan,
+    phoneNumber:phone
+  }
 );
 
 };
@@ -162,15 +170,15 @@ phoneNumber:phone
 const checkTransaction = async(reference)=>{
 
 return await oplugRequest(
-`/vtu/status/${reference}`
+  `/vtu/status/${reference}`
 );
 
 };
 
 
 module.exports = {
-getBalance,
-getDataPlans,
-purchaseData,
-checkTransaction
+  getBalance,
+  getDataPlans,
+  purchaseData,
+  checkTransaction
 };
