@@ -725,6 +725,8 @@ message:error.message
 
 const updateSystemSettings = async(req,res)=>{
 
+console.log("SYSTEM SETTINGS UPDATE BODY:", req.body);
+
 try{
 
 const {
