@@ -70,7 +70,7 @@ const createPayment = async (req, res, next) => {
     if(!providerAvailable){
 
       throw new AppError(
-        "Flutterwave service temporarily unavailable. Please try again later.",
+        "Service temporarily unavailable. Please try again shortly.",
         503
       );
 

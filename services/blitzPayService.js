@@ -20,7 +20,7 @@ const providerAvailable = await canUseProvider({
 if(!providerAvailable){
 
   throw new Error(
-    "BlitzPay service temporarily unavailable. Please try again later."
+    "Service temporarily unavailable. Please try again shortly."
   );
 
 }
