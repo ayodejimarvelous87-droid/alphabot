@@ -25,7 +25,8 @@ matchDate:{
 $gt:new Date()
 }
 })
-.sort({matchDate:1});
+.sort({matchDate:1})
+.limit(100);
 
 res.json(matches);
 

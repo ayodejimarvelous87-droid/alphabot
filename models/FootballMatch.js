@@ -76,6 +76,11 @@ default:null
 });
 
 
+footballMatchSchema.index({
+  status:1,
+  matchDate:1
+});
+
 module.exports = mongoose.model(
 "FootballMatch",
 footballMatchSchema
