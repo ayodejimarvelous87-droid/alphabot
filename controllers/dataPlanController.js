@@ -2,6 +2,8 @@ const { vtuPublicGet } = require("../services/vtuService");
 const { getPlans } = require("../services/blitzPayService");
 const { getDataPlans: getOplugPlans } = require("../services/oplugService");
 const SystemSetting = require("../models/SystemSetting");
+const DataPlanCache = require("../models/DataPlanCache");
+const ProductOverride = require("../models/ProductOverride");
 const savedPlans = require("../plans.json");
 
 
@@ -82,9 +84,148 @@ return "Standard";
 
 
 
+const DATA_PLANS_CACHE_TTL = 5 * 60 * 1000;
+
+const DATA_PLANS_CACHE_KEY = "data-plans";
+
+let dataPlansRefreshing = false;
+
+const getCachedDataPlans = async()=>{
+
+  try{
+
+    // The Express server connects MongoDB during startup.
+    // Never create another MongoDB connection here.
+    if(DataPlanCache.db.readyState !== 1){
+      console.log(
+        "⚠️ MongoDB is not connected - cache unavailable"
+      );
+      return null;
+    }
+
+    return await DataPlanCache.findOne({
+      key:DATA_PLANS_CACHE_KEY
+    }).lean();
+
+  }catch(error){
+
+    console.log(
+      "Data plans cache read error:",
+      error.message
+    );
+
+    return null;
+  }
+
+};
+
+
+const saveDataPlansCache = async(data, providers)=>{
+
+  try{
+
+    // Use the existing Express/Mongoose connection.
+    if(DataPlanCache.db.readyState !== 1){
+
+      console.log(
+        "⚠️ MongoDB is not connected - cache not saved"
+      );
+
+      return false;
+    }
+
+    await DataPlanCache.findOneAndUpdate(
+      {
+        key:DATA_PLANS_CACHE_KEY
+      },
+      {
+        $set:{
+          data,
+          providers,
+          updatedAt:new Date()
+        },
+        $setOnInsert:{
+          key:DATA_PLANS_CACHE_KEY
+        }
+      },
+      {
+        upsert:true,
+        new:true,
+        setDefaultsOnInsert:true
+      }
+    );
+
+    console.log(
+      "✅ Data plans persistent cache updated"
+    );
+
+    return true;
+
+  }catch(error){
+
+    console.log(
+      "Data plans cache save error:",
+      error.message
+    );
+
+    return false;
+  }
+
+};
+
+
 const getDataPlans = async(req,res)=>{
 
 try{
+
+  const cached = await getCachedDataPlans();
+
+  if(cached && !req?._skipDataPlansCache){
+
+    const cacheAge =
+      Date.now() - new Date(cached.updatedAt).getTime();
+
+    // Fresh cache.
+    if(cacheAge < DATA_PLANS_CACHE_TTL){
+
+      return res.json(cached.data);
+
+    }
+
+    // Stale-while-revalidate.
+    if(!dataPlansRefreshing){
+
+      dataPlansRefreshing = true;
+
+      // Refresh completely in the background.
+      // The cached response is returned immediately to the user.
+      Promise.resolve()
+        .then(()=>getDataPlans(
+          {_skipDataPlansCache:true},
+          {
+            json:()=>{}
+          }
+        ))
+        .catch(error=>{
+
+          console.log(
+            "Background data-plan refresh error:",
+            error.message
+          );
+
+        })
+        .finally(()=>{
+
+          dataPlansRefreshing = false;
+
+        });
+
+    }
+
+    // Never make the user wait for provider APIs.
+    return res.json(cached.data);
+
+  }
 
 
 const setting = await SystemSetting.findOne();
@@ -96,97 +237,241 @@ const profit = setting?.dataProfit || 0;
 let allPlans = [];
 
 
-// VTU.ng plans
+// Fetch all provider plans concurrently.
+// A provider failure is preserved as a rejected result so we can
+// safely fall back to its previous persistent cache.
 
-try{
+const ProductOverride = require("../models/ProductOverride");
 
-const vtuResponse = await vtuPublicGet(
-"/api/v2/variations/data"
-);
+const [
+  vtuResult,
+  blitzResult,
+  oplugResult
+] = await Promise.allSettled([
 
+  // VTU.ng
+  (async()=>{
+    try{
 
-const vtuPlans = vtuResponse.data || [];
+      const response = await vtuPublicGet(
+        "/api/v2/variations/data"
+      );
 
+      return {
+        plans:response.data || [],
+        failed:false
+      };
 
-vtuPlans.forEach(plan=>{
+    }catch(error){
 
-if(
-!plan.data_plan ||
-!plan.service_name ||
-plan.availability === "Unavailable"
-){
-return;
-}
+      console.log(
+        "VTU plans error:",
+        error.message
+      );
 
-allPlans.push({
-...plan,
-network: plan.service_name,
-service_name: plan.service_name,
-name: plan.data_plan,
-price: Number(plan.reseller_price),
-provider:"vtu",
-display_price:calculateSellingPrice(plan.reseller_price)
-});
+      throw error;
+    }
+  })(),
 
-});
+  // BlitzPay
+  (async()=>{
+    try{
 
+      const response = await getPlans();
 
-}catch(error){
+      return {
+        plans:response.plans || [],
+        failed:false
+      };
 
-console.log(
-"VTU plans error:",
-error.message
-);
+    }catch(error){
 
-}
+      console.log(
+        "BlitzPay plans error:",
+        error.message
+      );
 
+      throw error;
+    }
+  })(),
 
+  // OPLUG - fetch all networks concurrently.
+  // If any network fails, treat Oplug as partially failed and
+  // retain the previous Oplug cache rather than replacing it
+  // with an incomplete provider result.
+  (async()=>{
 
-// BlitzPay plans
-try{
-  const blitzResponse = await getPlans();
-  const blitzPlans = blitzResponse.plans || [];
-  const currentBlitzIds = new Set();
+    const networks = [
+      "MTN",
+      "AIRTEL",
+      "GLO",
+      "9MOBILE"
+    ];
 
-  for(const plan of blitzPlans){
+    const results = await Promise.allSettled(
+      networks.map(async network=>{
 
-    if(
-      !plan.id ||
-      !plan.name ||
-      !plan.network ||
-      Number(plan.price) <= 0 ||
-      plan.available === false
-    ){
-      return;
+        try{
+
+          const plans =
+            await getOplugPlans(network);
+
+          return plans || [];
+
+        }catch(error){
+
+          console.log(
+            `OPLUG ${network} plans error:`,
+            error.message
+          );
+
+          throw error;
+        }
+
+      })
+    );
+
+    const failed =
+      results.some(
+        result=>result.status === "rejected"
+      );
+
+    if(failed){
+
+      throw new Error(
+        "One or more OPLUG networks failed"
+      );
+
     }
 
-    const variationId = String(plan.id);
+    return {
+      plans:results.flatMap(
+        result=>result.value || []
+      ),
+      failed:false
+    };
 
-    currentBlitzIds.add(variationId);
+  })()
 
-    const providerPrice = Number(plan.price);
-    const sellingPrice = calculateSellingPrice(providerPrice);
+]);
 
-    allPlans.push({
-      ...plan,
-      variation_id: variationId,
-      service_name: plan.network,
-      name: plan.name,
-      network: plan.network,
-      provider:"blitzpay",
-      providerPrice,
-      sellingPrice,
-      display_price:sellingPrice
-    });
+// =========================
+// Process VTU plans
+// =========================
 
-    try{
-      const ProductOverride = require("../models/ProductOverride");
+const vtuFailed =
+  vtuResult.status !== "fulfilled";
 
-      await ProductOverride.findOneAndUpdate(
-        {
-          productId:variationId
-        },
-        {
+const vtuPlans =
+  vtuResult.status === "fulfilled"
+    ? (vtuResult.value?.plans || [])
+    : [];
+
+if(vtuFailed && cached?.providers?.vtu){
+
+  console.log(
+    "⚠️ VTU failed - using previous cached VTU plans"
+  );
+
+  allPlans.push(
+    ...cached.providers.vtu
+  );
+
+}else{
+
+  vtuPlans.forEach(plan=>{
+
+  if(
+    !plan.data_plan ||
+    !plan.service_name ||
+    plan.availability === "Unavailable"
+  ){
+    return;
+  }
+
+  allPlans.push({
+    ...plan,
+    network:plan.service_name,
+    service_name:plan.service_name,
+    name:plan.data_plan,
+    price:Number(plan.reseller_price),
+    provider:"vtu",
+    display_price:
+      calculateSellingPrice(plan.reseller_price)
+  });
+
+});
+
+}
+
+
+// =========================
+// Process BlitzPay plans
+// =========================
+
+const blitzFailed =
+  blitzResult.status !== "fulfilled";
+
+const blitzPlans =
+  blitzResult.status === "fulfilled"
+    ? (blitzResult.value?.plans || [])
+    : [];
+
+const currentBlitzIds = new Set();
+
+const blitzOverrides = [];
+
+if(blitzFailed && cached?.providers?.blitzpay){
+
+  console.log(
+    "⚠️ BlitzPay failed - using previous cached BlitzPay plans"
+  );
+
+  allPlans.push(
+    ...cached.providers.blitzpay
+  );
+
+}else{
+
+for(const plan of blitzPlans){
+
+  if(
+    !plan.id ||
+    !plan.name ||
+    !plan.network ||
+    Number(plan.price) <= 0 ||
+    plan.available === false
+  ){
+    continue;
+  }
+
+  const variationId = String(plan.id);
+
+  currentBlitzIds.add(variationId);
+
+  const providerPrice = Number(plan.price);
+  const sellingPrice =
+    calculateSellingPrice(providerPrice);
+
+  allPlans.push({
+    ...plan,
+    variation_id:variationId,
+    service_name:plan.network,
+    name:plan.name,
+    network:plan.network,
+    provider:"blitzpay",
+    providerPrice,
+    sellingPrice,
+    display_price:sellingPrice
+  });
+
+  blitzOverrides.push({
+    updateOne:{
+      filter:{
+        productId:variationId
+      },
+      update:{
+        $set:{
           productId:variationId,
           provider:"blitzpay",
           providerPlanId:variationId,
@@ -195,83 +480,127 @@ try{
           providerPrice,
           sellingPrice,
           active:true
-        },
-        {
-          upsert:true,
-          new:true,
-          setDefaultsOnInsert:true
         }
-      );
-    }catch(overrideError){
-      console.log(
-        "BlitzPay ProductOverride sync error:",
-        overrideError.message
-      );
+      },
+      upsert:true
     }
+  });
+
+}
+
+}
+
+
+// Sync BlitzPay ProductOverrides in one DB operation
+if(blitzOverrides.length > 0){
+
+  try{
+
+    await ProductOverride.bulkWrite(
+      blitzOverrides,
+      {
+        ordered:false
+      }
+    );
+
+  }catch(error){
+
+    console.log(
+      "BlitzPay ProductOverride bulk sync error:",
+      error.message
+    );
+
   }
 
-  // Remove stale BlitzPay plans from ProductOverride.
+}
+
+
+// Remove stale BlitzPay overrides
 try{
-  const ProductOverride = require("../models/ProductOverride");
-  const currentIds = Array.from(currentBlitzIds);
+
+  const currentIds =
+    Array.from(currentBlitzIds);
 
   if(currentIds.length > 0){
-    const deleted = await ProductOverride.deleteMany({
-      provider:"blitzpay",
-      productId:{
-        $nin:currentIds
-      }
-    });
+
+    const deleted =
+      await ProductOverride.deleteMany({
+
+        provider:"blitzpay",
+
+        productId:{
+          $nin:currentIds
+        }
+
+      });
 
     console.log(
       `BlitzPay stale ProductOverride plans removed: ${deleted.deletedCount}`
     );
+
   }
-}catch(cleanupError){
+
+}catch(error){
+
   console.log(
     "BlitzPay ProductOverride cleanup error:",
-    cleanupError.message
-  );
-}
-
-
-}catch(error){
-  console.log(
-    "BlitzPay plans error:",
     error.message
   );
-}
-
-// OPLUG plans
-
-
-try{
-
-const oplugNetworks = ["MTN","AIRTEL","GLO","9MOBILE"];
-
-for(const network of oplugNetworks){
-
-const oplugPlans = await getOplugPlans(network);
-
-oplugPlans.forEach(plan=>{
-
-allPlans.push({
-...plan,
-service_name: plan.network,
-name: `${plan.network} ${plan.datasize}`,
-price:Number(plan.price),
-provider:"oplug",
-variation_id:plan.id,
-display_price:calculateSellingPrice(plan.price),
-validity:`${plan.day} Days`
-});
-
-});
 
 }
 
-}catch(error){
-console.log("OPLUG plans error:", error.message);
+
+// =========================
+// Process OPLUG plans
+// =========================
+
+const oplugFailed =
+  oplugResult.status !== "fulfilled";
+
+const oplugPlans =
+  oplugResult.status === "fulfilled"
+    ? (oplugResult.value?.plans || [])
+    : [];
+
+if(oplugFailed && cached?.providers?.oplug){
+
+  console.log(
+    "⚠️ OPLUG failed - using previous cached OPLUG plans"
+  );
+
+  allPlans.push(
+    ...cached.providers.oplug
+  );
+
+}else{
+
+  oplugPlans.forEach(plan=>{
+
+    allPlans.push({
+
+      ...plan,
+
+      service_name:plan.network,
+
+      name:
+        `${plan.network} ${plan.datasize}`,
+
+      price:Number(plan.price),
+
+      provider:"oplug",
+
+      variation_id:plan.id,
+
+      display_price:
+        calculateSellingPrice(plan.price),
+
+      validity:
+        `${plan.day} Days`
+
+    });
+
+  });
+
 }
 
 
@@ -371,13 +700,38 @@ delete grouped[network];
 }
 });
 
-res.json({
-
+const responseData = {
 success:true,
-
 networks:grouped
+};
 
-});
+// Save the fully processed plans to persistent MongoDB cache.
+const cacheSaved = await saveDataPlansCache(
+  responseData,
+  {
+    vtu:allPlans.filter(
+      plan=>plan.provider==="vtu"
+    ),
+
+    blitzpay:allPlans.filter(
+      plan=>plan.provider==="blitzpay"
+    ),
+
+    oplug:allPlans.filter(
+      plan=>plan.provider==="oplug"
+    )
+  }
+);
+
+if(!cacheSaved){
+
+  console.log(
+    "⚠️ Data plans loaded but persistent cache was not updated"
+  );
+
+}
+
+res.json(responseData);
 
 
 }catch(error){
