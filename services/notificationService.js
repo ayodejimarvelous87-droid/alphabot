@@ -25,45 +25,39 @@ const createNotification = async (
     });
 
 
-    // Find user's Firebase device
-    let device;
+    // Find all Firebase devices belonging to the recipient.
+    const devices =
+      phone === "admin"
+        ? await DeviceToken.find({
+            userType:"admin"
+          }).lean()
+        : await DeviceToken.find({
+            phone
+          }).lean();
 
-    if(phone === "admin"){
+    // Send Firebase push notifications to every registered device.
+    await Promise.all(
+      devices.map(async(device)=>{
+        if(!device?.token) return;
 
-      device = await DeviceToken.findOne({
-        userType:"admin"
-      });
+        try{
 
-    }else{
+          await sendPushNotification(
+            device.token,
+            title,
+            message
+          );
 
-      device = await DeviceToken.findOne({
-        phone
-      });
+        }catch(pushError){
 
-    }
+          console.log(
+            "Push notification failed:",
+            pushError.message
+          );
 
-
-    // Send Firebase push notification (best effort)
-    try{
-
-      if(device?.token){
-
-        await sendPushNotification(
-          device.token,
-          title,
-          message
-        );
-
-      }
-
-    }catch(pushError){
-
-      console.log(
-        "Push notification failed:",
-        pushError.message
-      );
-
-    }
+        }
+      })
+    );
 
 
     return true;

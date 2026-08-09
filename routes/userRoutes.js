@@ -3,8 +3,16 @@ const router = express.Router();
 const { loginLimiter, loginPhoneLimiter, otpLimiter, otpPhoneLimiter } = require("../middleware/rateLimiter");
 
 const auth = require("../middleware/auth");
+const accountTier = require("../middleware/accountTier");
 const validate = require("../middleware/validate");
 const { registerSchema, loginSchema, otpSchema, emailOtpSchema } = require("../validators/authValidator");
+const {
+  getMembershipPaymentInfo,
+  getAccountTier,
+  getMyMembershipPayments
+} = require("../controllers/membershipPaymentController");
+
+
 const {
   registerUser,
   loginUser,
@@ -21,6 +29,7 @@ const {
   getWithdrawAccount,
   deleteOwnAccount,
   verifyProfileOTP,
+  purchaseMembership,
 } = require("../controllers/userController");
 
 
@@ -94,6 +103,41 @@ router.put(
   changePassword
 );
 
+
+// Account tier
+router.get(
+  "/account-tier",
+  auth,
+  accountTier,
+  getAccountTier
+);
+
+
+// Membership payment information
+router.get(
+  "/membership/payment-info",
+  auth,
+  accountTier,
+  getMembershipPaymentInfo
+);
+
+
+// My membership payment requests
+router.get(
+  "/membership/payments",
+  auth,
+  accountTier,
+  getMyMembershipPayments
+);
+
+
+// Membership purchase
+router.post(
+  "/membership/purchase",
+  auth,
+  accountTier,
+  purchaseMembership
+);
 
 
 // Withdrawal saved account

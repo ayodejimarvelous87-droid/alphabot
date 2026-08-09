@@ -56,6 +56,31 @@ const userSchema = new mongoose.Schema(
     default:null
   },
 
+  accountTier:{
+    type:String,
+    enum:[
+      "normal",
+      "silver",
+      "gold"
+    ],
+    default:"normal"
+  },
+
+  accountTierExpiresAt:{
+    type:Date,
+    default:null
+  },
+
+  membershipExpiryReminderSentAt:{
+    type:Date,
+    default:null
+  },
+
+  membershipExpiredNotificationSentAt:{
+    type:Date,
+    default:null
+  },
+
   role:{
     type:String,
     default:"user"

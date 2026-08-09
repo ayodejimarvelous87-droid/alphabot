@@ -19,6 +19,8 @@ const {
   activateUser,
   deleteUser,
   upgradeUserToAdmin,
+  updateUserAccountTier,
+  getUserMembership,
   demoteUserFromAdmin,
   sendBroadcastNotification,
   updateSystemSettings
@@ -55,9 +57,26 @@ router.put("/user/activate/:phone", auth, admin, activateUser);
 
 router.put("/user/upgrade/:phone", auth, admin, upgradeUserToAdmin);
 
-router.put("/user/demote/:phone", auth, admin, demoteUserFromAdmin,
-  sendBroadcastNotification);
-  updateSystemSettings
+router.put(
+  "/user/tier/:phone",
+  auth,
+  admin,
+  updateUserAccountTier
+);
+
+router.get(
+  "/user/membership/:phone",
+  auth,
+  admin,
+  getUserMembership
+);
+
+router.put(
+  "/user/demote/:phone",
+  auth,
+  admin,
+  demoteUserFromAdmin
+);
 
 router.delete("/user/:phone", auth, admin, deleteUser);
 
@@ -72,8 +91,12 @@ router.get("/transactions", auth, admin, getTransactions);
 
 router.get("/notifications", auth, admin, getNotifications);
 
-router.post("/notifications/broadcast", auth, admin, sendBroadcastNotification);
-  updateSystemSettings
+router.post(
+  "/notifications/broadcast",
+  auth,
+  admin,
+  sendBroadcastNotification
+);
 
 
 
@@ -135,5 +158,76 @@ router.put(
   updateSystemSettings
 );
 
+
+
+/*
+ * Membership management
+ */
+
+const {
+  getMembershipPaymentRequests,
+  approveMembershipPayment,
+  rejectMembershipPayment,
+  getMembershipPricing,
+  updateMembershipPricing
+} = require("../controllers/adminMembershipController");
+
+router.get(
+  "/membership/payments",
+  auth,
+  admin,
+  getMembershipPaymentRequests
+);
+
+router.put(
+  "/membership/payments/:id/approve",
+  auth,
+  admin,
+  approveMembershipPayment
+);
+
+router.put(
+  "/membership/payments/:id/reject",
+  auth,
+  admin,
+  rejectMembershipPayment
+);
+
+router.get(
+  "/membership/pricing",
+  auth,
+  admin,
+  getMembershipPricing
+);
+
+router.put(
+  "/membership/pricing",
+  auth,
+  admin,
+  updateMembershipPricing
+);
+
+/*
+ * Membership payment account
+ */
+
+const {
+  getBankSettings,
+  updateBankSettings
+} = require("../controllers/adminBankSettingsController");
+
+router.get(
+  "/membership/payment-account",
+  auth,
+  admin,
+  getBankSettings
+);
+
+router.put(
+  "/membership/payment-account",
+  auth,
+  admin,
+  updateBankSettings
+);
 
 module.exports = router;

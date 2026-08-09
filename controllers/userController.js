@@ -11,9 +11,157 @@ const RegistrationOTP = require("../models/RegistrationOTP");
 const jwt = require("jsonwebtoken");
 const normalizePhone = require("../utils/phone");
 const sendEmail = require("../services/emailService");
+const Transaction = require("../models/Transaction");
+const Membership = require("../models/Membership");
+const SystemSetting = require("../models/SystemSetting");
+const { sendPushNotification } = require("../services/firebaseService");
+const DeviceToken = require("../models/DeviceToken");
 
 
 
+
+
+
+// Purchase membership
+const purchaseMembership = async(req,res,next)=>{
+  try{
+
+    const MembershipPaymentRequest =
+      require("../models/MembershipPaymentRequest");
+
+    const SystemSetting =
+      require("../models/SystemSetting");
+
+    const phone =
+      normalizePhone(req.user.phone);
+
+    const {tier} = req.body;
+
+    const allowedTiers = ["silver","gold"];
+
+    if(!allowedTiers.includes(tier)){
+      throw new AppError(
+        "Invalid membership tier",
+        400
+      );
+    }
+
+    const user = await User.findOne({
+      phone
+    });
+
+    if(!user){
+      throw new AppError(
+        "User not found",
+        404
+      );
+    }
+
+    const setting =
+      await SystemSetting.findOne() ||
+      await SystemSetting.create({});
+
+    const prices = {
+      silver:Number(setting.membershipSilverPrice || 1000),
+      gold:Number(setting.membershipGoldPrice || 2000)
+    };
+
+    const amount = prices[tier];
+
+    if(!amount || amount <= 0){
+      throw new AppError(
+        "Membership price is not configured",
+        400
+      );
+    }
+
+    const existing =
+      await MembershipPaymentRequest.findOne({
+        phone,
+        status:{
+          $in:["pending","processing"]
+        }
+      });
+
+    if(existing){
+      throw new AppError(
+        "You already have a pending membership payment request",
+        400
+      );
+    }
+
+    const request =
+      await MembershipPaymentRequest.create({
+        user:user._id,
+        phone,
+        tier,
+        amount,
+        status:"pending"
+      });
+
+    const {createNotification} =
+      require("../services/notificationService");
+
+    await createNotification(
+      "admin",
+      "New Membership Payment 🔔",
+      `${tier.toUpperCase()} membership payment of ₦${amount.toLocaleString()} submitted by ${phone}.`,
+      "info"
+    );
+
+    // Notify all registered admin devices
+    const adminDevices = await DeviceToken.find({
+      userType:"admin"
+    }).lean();
+
+    await Promise.all(
+      adminDevices.map(device =>
+        sendPushNotification(
+          device.token,
+          "New Membership Payment 🔔",
+          `${tier.toUpperCase()} membership payment of ₦${amount.toLocaleString()} submitted by ${phone}.`
+        )
+      )
+    );
+
+    const devices = await DeviceToken.find();
+
+    for(const device of devices){
+
+      try{
+
+        await sendPushNotification(
+          device.token,
+          "New Membership Payment 🔔",
+          `${tier.toUpperCase()} membership payment of ₦${amount.toLocaleString()} submitted by ${phone}.`
+        );
+
+      }catch(pushError){
+
+        console.error(
+          "Membership push notification failed:",
+          pushError.message
+        );
+
+      }
+
+    }
+
+    res.status(201).json({
+      success:true,
+      message:"Membership payment submitted for approval",
+      request:{
+        id:request._id,
+        tier:request.tier,
+        amount:request.amount,
+        status:request.status
+      }
+    });
+
+  }catch(error){
+    next(error);
+  }
+};
 
 
 // Send reset OTP
@@ -732,7 +880,7 @@ const forgotPassword = async(req,res,next)=>{
 
 
 // Get user profile
-const getProfile = async (req,res)=>{
+const getProfile = async (req,res,next)=>{
 
   try{
 
@@ -1083,6 +1231,8 @@ next(error);
 
 
 
+
+
 const deleteOwnAccount = async (req,res)=>{
   try{
 
@@ -1114,7 +1264,32 @@ const deleteOwnAccount = async (req,res)=>{
 };
 
 
+
+const getAccountTier = async(req,res,next)=>{
+  try{
+    const phone = normalizePhone(req.user.phone);
+
+    const user = await User.findOne({phone})
+      .select("accountTier accountTierExpiresAt");
+
+    if(!user){
+      throw new AppError("User not found",404);
+    }
+
+    res.json({
+      success:true,
+      accountTier:user.accountTier || "normal",
+      accountTierExpiresAt:user.accountTierExpiresAt || null
+    });
+
+  }catch(error){
+    next(error);
+  }
+};
+
 module.exports = {
+  getAccountTier,
+  purchaseMembership,
 
   registerUser,
 
@@ -1139,6 +1314,7 @@ module.exports = {
     verifyRegistrationOTP,
   saveWithdrawAccount,
   deleteOwnAccount,
+
 
   getWithdrawAccount,
 

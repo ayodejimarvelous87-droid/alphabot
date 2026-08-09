@@ -13,6 +13,17 @@ const createFootballRewards = require("./footballRewardService");
 const runFootballIdleChat = require("./footballIdleChatService");
 const reconcileWallets = require("./walletReconciliationService");
 
+const User = require("../models/User");
+
+const {
+  sendMembershipExpiryReminderEmail,
+  sendMembershipExpiredEmail
+} = require("./membershipEmailService");
+
+const {
+  processMembershipLifecycle
+} = require("./membershipCron");
+
 
 
 
@@ -41,9 +52,10 @@ Math.ceil(
 }
 
 
+
+
+
 function startCron(){
-
-
 /*
 Recurring payments
 Runs every minute
@@ -190,6 +202,34 @@ error.message
 
 });
 
+
+
+/*
+Membership lifecycle
+Runs every minute
+
+Handles:
+- 24-hour expiry reminders
+- automatic membership expiry
+- user notification
+*/
+
+cron.schedule("* * * * *", async ()=>{
+
+try{
+
+await processMembershipLifecycle();
+
+}catch(error){
+
+console.log(
+"Membership lifecycle cron error:",
+error.message
+);
+
+}
+
+});
 
 
 /*

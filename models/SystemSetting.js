@@ -174,6 +174,32 @@ const systemSettingSchema = new mongoose.Schema({
   referralPercentage:{
     type:Number,
     default:1
+  },
+
+  membershipSilverPrice:{
+    type:Number,
+    default:1000
+  },
+
+  membershipGoldPrice:{
+    type:Number,
+    default:2000
+  },
+
+  membershipDurationDays:{
+    type:Number,
+    default:30
+  },
+
+  // Membership pricing
+  silverMembershipPrice:{
+    type:Number,
+    default:1000
+  },
+
+  goldMembershipPrice:{
+    type:Number,
+    default:2000
   }
 
 

@@ -22,12 +22,17 @@ router.post("/register-token", auth, async (req,res)=>{
       });
     }
 
+    const userType =
+      req.user.role === "admin"
+        ? "admin"
+        : "user";
+
     await DeviceToken.findOneAndUpdate(
       { token },
       {
         token,
-        phone:req.user.phone,
-        userType:"user"
+        phone:req.user.phone || null,
+        userType
       },
       {
         upsert:true,

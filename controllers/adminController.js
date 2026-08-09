@@ -582,6 +582,224 @@ message:error.message
 
 
 
+const updateUserAccountTier = async(req,res)=>{
+  try{
+
+    const {tier, durationDays} = req.body;
+
+    const allowedTiers = [
+      "normal",
+      "silver",
+      "gold"
+    ];
+
+    if(!allowedTiers.includes(tier)){
+      return res.status(400).json({
+        success:false,
+        message:"Invalid account tier"
+      });
+    }
+
+    const user = await User.findOne({
+      phone:req.params.phone
+    });
+
+    if(!user){
+      throw new AppError(
+        "User not found",
+        404
+      );
+    }
+
+    // NORMAL = remove membership
+    if(tier === "normal"){
+
+      const previousTier = user.accountTier;
+
+      user.accountTier = "normal";
+      user.accountTierExpiresAt = null;
+
+      user.membershipExpiryReminderSentAt = null;
+      user.membershipExpiredNotificationSentAt = null;
+
+      await user.save();
+
+      // Send demotion email without allowing email failure
+      // to undo the successful demotion.
+      if(
+        previousTier !== "normal" &&
+        user.email
+      ){
+
+        try{
+
+          const {
+            sendMembershipDemotionEmail
+          } = require("../services/membershipEmailService");
+
+          await sendMembershipDemotionEmail(user);
+
+        }catch(emailError){
+
+          console.log(
+            "Membership demotion email error:",
+            emailError.message
+          );
+
+        }
+
+      }
+
+      return res.json({
+        success:true,
+        message:"User returned to normal tier",
+        accountTier:"normal",
+        accountTierExpiresAt:null
+      });
+    }
+
+    const days = Number(durationDays || 30);
+
+    if(!Number.isInteger(days) || days <= 0 || days > 3650){
+      return res.status(400).json({
+        success:false,
+        message:"Invalid membership duration"
+      });
+    }
+
+    const now = new Date();
+
+    // If current membership is still active,
+    // extend from its current expiry.
+    const currentExpiry =
+      user.accountTierExpiresAt &&
+      new Date(user.accountTierExpiresAt) > now
+        ? new Date(user.accountTierExpiresAt)
+        : now;
+
+    const expiresAt = new Date(currentExpiry);
+
+    expiresAt.setDate(
+      expiresAt.getDate() + days
+    );
+
+    user.accountTier = tier;
+    user.accountTierExpiresAt = expiresAt;
+
+    user.membershipExpiryReminderSentAt = null;
+    user.membershipExpiredNotificationSentAt = null;
+
+    await user.save();
+
+    const Membership =
+      require("../models/Membership");
+
+    const setting = await SystemSetting.findOne();
+
+    const prices = {
+      silver: Number(setting?.membershipSilverPrice ?? 1000),
+      gold: Number(setting?.membershipGoldPrice ?? 2000)
+    };
+
+    await Membership.create({
+      user:user._id,
+      phone:user.phone,
+      tier,
+      amount:prices[tier],
+      durationDays:days,
+      startsAt:now,
+      expiresAt,
+      source:"admin",
+      status:"active"
+    });
+
+    res.json({
+      success:true,
+      message:`User upgraded to ${tier}`,
+      accountTier:user.accountTier,
+      accountTierExpiresAt:user.accountTierExpiresAt
+    });
+
+  }catch(error){
+
+    res.status(error.statusCode || 500).json({
+      success:false,
+      message:error.message
+    });
+
+  }
+};
+
+const getUserMembership = async(req,res)=>{
+  try{
+
+    const user = await User.findOne({
+      phone:req.params.phone
+    }).select(
+      "name phone accountTier accountTierExpiresAt"
+    );
+
+    if(!user){
+      throw new AppError(
+        "User not found",
+        404
+      );
+    }
+
+    const now = new Date();
+
+    let tier = user.accountTier || "normal";
+    let expiresAt = user.accountTierExpiresAt;
+
+    if(
+      tier !== "normal" &&
+      expiresAt &&
+      new Date(expiresAt) <= now
+    ){
+
+      tier = "normal";
+      expiresAt = null;
+
+      user.accountTier = "normal";
+      user.accountTierExpiresAt = null;
+
+      await user.save();
+    }
+
+    const Membership =
+      require("../models/Membership");
+
+    const history = await Membership.find({
+      phone:user.phone
+    })
+    .sort({createdAt:-1})
+    .limit(20)
+    .lean();
+
+    res.json({
+      success:true,
+
+      user:{
+        name:user.name,
+        phone:user.phone,
+        accountTier:tier,
+        accountTierExpiresAt:expiresAt
+      },
+
+      history
+    });
+
+  }catch(error){
+
+    res.status(error.statusCode || 500).json({
+      success:false,
+      message:error.message
+    });
+
+  }
+};
+
+
 const upgradeUserToAdmin = async(req,res)=>{
 
 try{
@@ -803,6 +1021,8 @@ module.exports = {
   activateUser,
   deleteUser,
   upgradeUserToAdmin,
+  updateUserAccountTier,
+  getUserMembership,
   demoteUserFromAdmin,
   sendBroadcastNotification,
   updateSystemSettings
