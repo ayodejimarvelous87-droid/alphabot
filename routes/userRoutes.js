@@ -8,7 +8,6 @@ const validate = require("../middleware/validate");
 const { registerSchema, loginSchema, otpSchema, emailOtpSchema } = require("../validators/authValidator");
 const {
   getMembershipPaymentInfo,
-  getAccountTier,
   getMyMembershipPayments
 } = require("../controllers/membershipPaymentController");
 
@@ -30,6 +29,7 @@ const {
   deleteOwnAccount,
   verifyProfileOTP,
   purchaseMembership,
+  getAccountTier,
 } = require("../controllers/userController");
 
 
