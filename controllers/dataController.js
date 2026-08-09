@@ -505,12 +505,12 @@ userPhone,
 
 
 
-if(user?.email){
+if(req.user?.email){
 
   try{
 
     await sendEmail(
-      user.email,
+      req.user.email,
       "Data Purchase Successful",
       `Your ${network} data plan purchase was successful.`
     );
