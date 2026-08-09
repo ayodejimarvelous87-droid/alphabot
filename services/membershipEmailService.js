@@ -196,8 +196,71 @@ The AlphaBot Team
 };
 
 
+const sendMembershipAdminUpgradeEmail = async (
+  user,
+  tier,
+  startsAt,
+  expiresAt
+) => {
+
+  if(!user?.email){
+    console.log(
+      "No email address for admin membership upgrade:",
+      user?.phone
+    );
+    return;
+  }
+
+  const normalizedTier =
+    String(tier || "silver").toLowerCase();
+
+  const tierName =
+    normalizedTier.charAt(0).toUpperCase() +
+    normalizedTier.slice(1);
+
+  const tierBenefits =
+    benefits[normalizedTier] || [];
+
+  const benefitText =
+    tierBenefits
+      .map(item => `- ${item}`)
+      .join("\n");
+
+  const startsDate =
+    formatDate(startsAt);
+
+  const expiresDate =
+    formatDate(expiresAt);
+
+  await sendEmail(
+    user.email,
+    `Your AlphaBot ${tierName} Membership Has Been Activated`,
+    `
+Hello ${user.name || "there"},
+
+Your AlphaBot ${tierName} membership has been activated by the AlphaBot administration team.
+
+Membership: ${tierName}
+Activated: ${startsDate}
+Expires: ${expiresDate}
+
+Your membership benefits:
+
+${benefitText}
+
+Your ${tierName} membership is now active and you can enjoy your membership benefits on AlphaBot.
+
+Thank you for being part of AlphaBot.
+
+The AlphaBot Team
+`
+  );
+};
+
+
 module.exports = {
   sendMembershipApprovalEmail,
+  sendMembershipAdminUpgradeEmail,
   sendMembershipDemotionEmail,
   sendMembershipExpiryReminderEmail,
   sendMembershipExpiredEmail

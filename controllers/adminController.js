@@ -713,6 +713,34 @@ const updateUserAccountTier = async(req,res)=>{
       status:"active"
     });
 
+    // Send admin upgrade email without allowing
+    // email failure to undo the successful upgrade.
+    if(user.email){
+
+      try{
+
+        const {
+          sendMembershipAdminUpgradeEmail
+        } = require("../services/membershipEmailService");
+
+        await sendMembershipAdminUpgradeEmail(
+          user,
+          tier,
+          now,
+          expiresAt
+        );
+
+      }catch(emailError){
+
+        console.log(
+          "Admin membership upgrade email error:",
+          emailError.message
+        );
+
+      }
+
+    }
+
     res.json({
       success:true,
       message:`User upgraded to ${tier}`,
