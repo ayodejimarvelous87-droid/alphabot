@@ -12,6 +12,11 @@ const dataPriceSchema = new mongoose.Schema({
     required:true
   },
 
+  providerPlanId:{
+    type:String,
+    default:""
+  },
+
   network:{
     type:String
   },

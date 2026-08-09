@@ -143,53 +143,79 @@ error.message
 
 
 // BlitzPay plans
-
 try{
+  const blitzResponse = await getPlans();
+  const blitzPlans = blitzResponse.plans || [];
+  const currentBlitzIds = new Set();
 
-const blitzResponse = await getPlans();
+  blitzPlans.forEach(plan=>{
 
+    if(
+      !plan.id ||
+      !plan.name ||
+      !plan.network ||
+      Number(plan.price) <= 0 ||
+      plan.available === false
+    ){
+      return;
+    }
 
-const blitzPlans = blitzResponse.plans || [];
+    const variationId = String(plan.id);
 
+    currentBlitzIds.add(variationId);
 
-blitzPlans.forEach(plan=>{
+    allPlans.push({
+      ...plan,
+      variation_id: variationId,
+      service_name: plan.network,
+      name: plan.name,
+      network: plan.network,
+      provider:"blitzpay",
+      providerPrice:Number(plan.api_price || plan.price),
+      sellingPrice:calculateSellingPrice(
+        plan.api_price || plan.price
+      ),
+      display_price:calculateSellingPrice(
+        plan.api_price || plan.price
+      )
+    });
+  });
 
-if(
-!plan.name &&
-!plan.data_plan
-){
-return;
+  // Remove stale BlitzPay plans from ProductOverride.
+try{
+  const ProductOverride = require("../models/ProductOverride");
+  const currentIds = Array.from(currentBlitzIds);
+
+  if(currentIds.length > 0){
+    const deleted = await ProductOverride.deleteMany({
+      provider:"blitzpay",
+      productId:{
+        $nin:currentIds
+      }
+    });
+
+    console.log(
+      `BlitzPay stale ProductOverride plans removed: ${deleted.deletedCount}`
+    );
+  }
+}catch(cleanupError){
+  console.log(
+    "BlitzPay ProductOverride cleanup error:",
+    cleanupError.message
+  );
 }
-
-if(
-!plan.network ||
-Number(plan.price) <= 0
-){
-return;
-}
-
-allPlans.push({
-...plan,
-service_name: plan.network,
-provider:"blitzpay",
-display_price:calculateSellingPrice(plan.price)
-});
-
-});
 
 
 }catch(error){
-
-console.log(
-"BlitzPay plans error:",
-error.message
-);
-
+  console.log(
+    "BlitzPay plans error:",
+    error.message
+  );
 }
 
-
-
 // OPLUG plans
+
+
 try{
 
 const oplugNetworks = ["MTN","AIRTEL","GLO","9MOBILE"];

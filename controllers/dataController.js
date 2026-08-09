@@ -465,10 +465,13 @@ phone:userPhone
     providerResponse?.request_id ||
     reference,
 
-  vtuOrderId:
-    providerResponse?.data?.order ||
-    providerResponse?.order_id ||
-    null,
+  ...(providerResponse?.data?.order || providerResponse?.order_id
+    ? {
+        vtuOrderId:
+          providerResponse?.data?.order ||
+          providerResponse?.order_id
+      }
+    : {}),
 
   providerResponse: providerResponse,
 

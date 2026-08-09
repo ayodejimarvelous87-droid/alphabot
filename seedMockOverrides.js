@@ -20,7 +20,7 @@ productId:String(plan.variation_id)
 {
 productId:String(plan.variation_id),
 provider:plan.provider,
-providerPlanId: plan.plan_id || plan.variation_id,
+providerPlanId: plan.providerPlanId || plan.plan_id || plan.variation_id,
 network:plan.network,
 name:plan.name,
 providerPrice:Number(plan.providerPrice),

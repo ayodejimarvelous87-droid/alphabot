@@ -84,6 +84,7 @@ plans.forEach(plan=>{
 allPlans.push({
 variation_id:String(plan.id),
 provider:"oplug",
+providerPlanId:String(plan.providerPlanId || plan.id),
 network:plan.network,
 name:`${plan.network} ${plan.datasize}`,
 providerPrice:Number(plan.price),
