@@ -132,7 +132,72 @@ The AlphaBot Team
 };
 
 
+const sendMembershipApprovalEmail = async (
+  user,
+  request,
+  startsAt,
+  expiresAt
+) => {
+
+  if (!user?.email) {
+    console.log(
+      "No email address for membership approval:",
+      user?.phone
+    );
+    return;
+  }
+
+  const tier = String(
+    request.tier || "silver"
+  ).toLowerCase();
+
+  const tierName =
+    tier.charAt(0).toUpperCase() +
+    tier.slice(1);
+
+  const tierBenefits =
+    benefits[tier] || [];
+
+  const benefitText =
+    tierBenefits
+      .map(item => `- ${item}`)
+      .join("\n");
+
+  const startsDate =
+    formatDate(startsAt);
+
+  const expiresDate =
+    formatDate(expiresAt);
+
+  await sendEmail(
+    user.email,
+    `Your AlphaBot ${tierName} Membership Has Been Approved`,
+    `
+Hello ${user.name || "there"},
+
+Your AlphaBot ${tierName} membership has been approved successfully.
+
+Membership: ${tierName}
+Amount: ₦${Number(request.amount || 0).toLocaleString()}
+Activated: ${startsDate}
+Expires: ${expiresDate}
+
+Your membership benefits:
+
+${benefitText}
+
+You can now enjoy your ${tierName} membership benefits on AlphaBot.
+
+Thank you for choosing AlphaBot.
+
+The AlphaBot Team
+`
+  );
+};
+
+
 module.exports = {
+  sendMembershipApprovalEmail,
   sendMembershipDemotionEmail,
   sendMembershipExpiryReminderEmail,
   sendMembershipExpiredEmail

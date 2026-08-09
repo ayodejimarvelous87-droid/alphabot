@@ -3,6 +3,10 @@ const User = require("../models/User");
 const Membership = require("../models/Membership");
 const MembershipPaymentRequest =
   require("../models/MembershipPaymentRequest");
+
+const {
+  sendMembershipApprovalEmail
+} = require("../services/membershipEmailService");
 const SystemSetting = require("../models/SystemSetting");
 const {createNotification} =
   require("../services/notificationService");
@@ -139,221 +143,26 @@ const approveMembershipPayment = async(req,res)=>{
     await request.save();
 
     // Send membership approval email.
-    // Email failure must not undo a successful membership approval.
-    if(user.email){
+    // Email failure must never undo a successful membership approval.
+    try {
 
-      const tierName =
-        request.tier.charAt(0).toUpperCase() +
-        request.tier.slice(1);
+      await sendMembershipApprovalEmail(
+        user,
+        request,
+        startsAt,
+        expiresAt
+      );
 
-      const benefits = request.tier === "gold"
-        ? [
-            "3x coins on eligible rewards",
-            "Weekly member bonuses",
-            "Reduced prices during Gold promotions",
-            "Access to Gold-only deals"
-          ]
-        : [
-            "2x coins on eligible rewards",
-            "Weekly member bonuses",
-            "Access to Silver member promotions"
-          ];
+    } catch (emailError) {
 
-      const benefitHtml =
-        benefits
-          .map(item => `<li style="margin-bottom:8px;">${item}</li>`)
-          .join("");
+      console.error(
+        "Membership approval email failed:",
+        emailError.response?.data || emailError.message
+      );
 
-      const startsDate =
-        startsAt.toLocaleDateString(
-          "en-NG",
-          {
-            day:"numeric",
-            month:"long",
-            year:"numeric"
-          }
-        );
-
-      const expiresDate =
-        expiresAt.toLocaleDateString(
-          "en-NG",
-          {
-            day:"numeric",
-            month:"long",
-            year:"numeric"
-          }
-        );
-
-      const approvalText =
-`Hello ${user.name || "there"},
-
-Your AlphaBot ${tierName} membership has been approved successfully.
-
-Membership: ${tierName}
-Amount: ₦${Number(request.amount).toLocaleString()}
-Activated: ${startsDate}
-Expires: ${expiresDate}
-
-Your membership benefits:
-${benefits.map(item => `- ${item}`).join("\n")}
-
-Thank you for choosing AlphaBot.`;
-
-      const approvalHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Membership Approved</title>
-</head>
-
-<body style="margin:0;padding:0;background:#f4f7fb;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
-
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7fb;padding:35px 15px;">
-<tr>
-<td align="center">
-
-<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,0.08);">
-
-<tr>
-<td style="background:#111827;padding:28px;text-align:center;">
-  <div style="font-size:28px;font-weight:bold;color:#ffffff;">
-    AlphaBot
-  </div>
-  <div style="color:#d1d5db;margin-top:6px;font-size:14px;">
-    Membership Confirmation
-  </div>
-</td>
-</tr>
-
-<tr>
-<td style="padding:35px 32px;">
-
-<div style="text-align:center;margin-bottom:25px;">
-  <div style="font-size:48px;">🎉</div>
-
-  <h1 style="margin:10px 0 8px;color:#111827;font-size:26px;">
-    Membership Approved
-  </h1>
-
-  <p style="margin:0;color:#6b7280;font-size:15px;">
-    Your AlphaBot membership is now active.
-  </p>
-</div>
-
-<p style="font-size:16px;line-height:1.7;">
-  Hello <strong>${user.name || "there"}</strong>,
-</p>
-
-<p style="font-size:15px;line-height:1.7;color:#4b5563;">
-  Great news! Your payment has been verified and your
-  <strong>${tierName} Membership</strong> has been successfully approved.
-  Your membership benefits are now active.
-</p>
-
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:25px 0;background:#f9fafb;border-radius:12px;">
-
-<tr>
-<td style="padding:14px 18px;color:#6b7280;font-size:14px;">
-  Membership
-</td>
-<td align="right" style="padding:14px 18px;font-weight:bold;font-size:15px;">
-  ${tierName}
-</td>
-</tr>
-
-<tr>
-<td style="padding:14px 18px;color:#6b7280;font-size:14px;">
-  Amount Paid
-</td>
-<td align="right" style="padding:14px 18px;font-weight:bold;font-size:15px;">
-  ₦${Number(request.amount).toLocaleString()}
-</td>
-</tr>
-
-<tr>
-<td style="padding:14px 18px;color:#6b7280;font-size:14px;">
-  Activated
-</td>
-<td align="right" style="padding:14px 18px;font-size:15px;">
-  ${startsDate}
-</td>
-</tr>
-
-<tr>
-<td style="padding:14px 18px;color:#6b7280;font-size:14px;">
-  Expires
-</td>
-<td align="right" style="padding:14px 18px;font-size:15px;">
-  ${expiresDate}
-</td>
-</tr>
-
-</table>
-
-<h2 style="font-size:18px;color:#111827;margin-bottom:12px;">
-  Your ${tierName} benefits
-</h2>
-
-<ul style="padding-left:22px;color:#4b5563;font-size:14px;line-height:1.6;">
-  ${benefitHtml}
-</ul>
-
-<div style="margin-top:28px;padding:18px;background:#f3f4f6;border-radius:10px;">
-  <p style="margin:0;color:#4b5563;font-size:14px;line-height:1.6;">
-    Your membership will remain active until the expiry date shown above.
-    Thank you for being part of AlphaBot.
-  </p>
-</div>
-
-<p style="margin-top:30px;font-size:14px;color:#6b7280;line-height:1.6;">
-  If you have any questions about your membership, please contact
-  AlphaBot support.
-</p>
-
-</td>
-</tr>
-
-<tr>
-<td style="background:#f9fafb;padding:22px;text-align:center;">
-  <div style="font-weight:bold;color:#111827;">
-    AlphaBot
-  </div>
-  <div style="margin-top:6px;font-size:12px;color:#9ca3af;">
-    Thank you for choosing AlphaBot.
-  </div>
-</td>
-</tr>
-
-</table>
-
-</td>
-</tr>
-</table>
-
-</body>
-</html>
-`;
-
-      try{
-
-        await sendEmail(
-          user.email,
-          `🎉 Your AlphaBot ${tierName} Membership Has Been Approved`,
-          approvalText,
-          approvalHtml
-        );
-
-      }catch(emailError){
-
-        console.log(
-          "Membership approval email failed:",
-          emailError.message
-        );
-
-      }
     }
+
+
 
     await createNotification(
       user.phone,
@@ -364,8 +173,8 @@ Thank you for choosing AlphaBot.`;
 
     // Notify the user's registered devices
     const userDevices = await DeviceToken.find({
-      phone:user.phone,
-      userType:"user"
+      phone: user.phone,
+      userType: "user"
     }).lean();
 
     await Promise.all(
@@ -379,10 +188,10 @@ Thank you for choosing AlphaBot.`;
     );
 
     res.json({
-      success:true,
-      message:"Membership payment approved",
-      membership:{
-        tier:user.accountTier,
+      success: true,
+      message: "Membership payment approved",
+      membership: {
+        tier: user.accountTier,
         startsAt,
         expiresAt
       }
