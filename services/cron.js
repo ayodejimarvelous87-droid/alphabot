@@ -71,7 +71,7 @@ error.message
 
 /*
 Football updates
-Runs every 6 hours
+Runs every 5 minutes
 */
 
 cron.schedule("*/5 * * * *", async ()=>{
