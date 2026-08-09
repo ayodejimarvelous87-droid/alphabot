@@ -148,7 +148,7 @@ try{
   const blitzPlans = blitzResponse.plans || [];
   const currentBlitzIds = new Set();
 
-  blitzPlans.forEach(plan=>{
+  for(const plan of blitzPlans){
 
     if(
       !plan.id ||
@@ -164,6 +164,9 @@ try{
 
     currentBlitzIds.add(variationId);
 
+    const providerPrice = Number(plan.price);
+    const sellingPrice = calculateSellingPrice(providerPrice);
+
     allPlans.push({
       ...plan,
       variation_id: variationId,
@@ -171,15 +174,41 @@ try{
       name: plan.name,
       network: plan.network,
       provider:"blitzpay",
-      providerPrice:Number(plan.api_price || plan.price),
-      sellingPrice:calculateSellingPrice(
-        plan.api_price || plan.price
-      ),
-      display_price:calculateSellingPrice(
-        plan.api_price || plan.price
-      )
+      providerPrice,
+      sellingPrice,
+      display_price:sellingPrice
     });
-  });
+
+    try{
+      const ProductOverride = require("../models/ProductOverride");
+
+      await ProductOverride.findOneAndUpdate(
+        {
+          productId:variationId
+        },
+        {
+          productId:variationId,
+          provider:"blitzpay",
+          providerPlanId:variationId,
+          network:plan.network,
+          name:plan.name,
+          providerPrice,
+          sellingPrice,
+          active:true
+        },
+        {
+          upsert:true,
+          new:true,
+          setDefaultsOnInsert:true
+        }
+      );
+    }catch(overrideError){
+      console.log(
+        "BlitzPay ProductOverride sync error:",
+        overrideError.message
+      );
+    }
+  }
 
   // Remove stale BlitzPay plans from ProductOverride.
 try{
