@@ -16,6 +16,11 @@ const Membership = require("../models/Membership");
 const SystemSetting = require("../models/SystemSetting");
 const { sendPushNotification } = require("../services/firebaseService");
 const DeviceToken = require("../models/DeviceToken");
+const {
+  TOTP,
+  NobleCryptoPlugin,
+  ScureBase32Plugin
+} = require("otplib");
 
 
 
@@ -910,69 +915,98 @@ const getProfile = async (req,res,next)=>{
 
 
 // Update profile
-const updateProfile = async (req,res)=>{
+const updateProfile = async (req,res,next)=>{
 
   try{
 
     const phone = normalizePhone(req.params.phone);
 
-
     const user = await User.findOne({
       phone
-    });
-
+    }).select("+twoFactorSecret");
 
     if(!user){
-
-      throw new AppError("User not found", 404);
-
+      throw new AppError("User not found",404);
     }
 
+    const {
+      name,
+      email,
+      otp,
+      code
+    } = req.body;
 
-      const {
-        name,
-        email,
-        otp
-      } = req.body;
+    // Authenticator code is used only for verification.
+    // It is never saved to the user record.
+    const authenticatorCode =
+      typeof code === "string" ? code.trim() : "";
 
-      if(email && email !== user.email){
-if(verify && verify.attempts >= 5){
-return res.status(429).json({
-message:"Too many OTP attempts"
-});
-}
+    // Require 2FA for profile changes when enabled
+    if(user.twoFactorEnabled){
 
-
-        const verify = await ProfileOTP.findOne({
-          phone,
-          otp
-        });
-
-        if(!verify){
-          throw new AppError("Invalid or missing OTP", 400);
-        }
-
-
-const user = await User.findOne({phone:normalizePhone(phone)});
-
-if(user){
-  user.emailVerified = true;
-  await user.save();
-}
-
-        await ProfileOTP.deleteOne({_id:verify._id});
-        user.email = email;
+      if(!authenticatorCode){
+        throw new AppError(
+          "Authenticator code is required",
+          400
+        );
       }
 
-      if(name) user.name = name;
+      if(!user.twoFactorSecret){
+        throw new AppError(
+          "2FA configuration is invalid",
+          400
+        );
+      }
+
+      const totp = new TOTP({
+        crypto: new NobleCryptoPlugin(),
+        base32: new ScureBase32Plugin()
+      });
+
+      const result = await totp.verify(authenticatorCode,{
+        secret:user.twoFactorSecret
+      });
+
+      if(!result.valid){
+        throw new AppError(
+          "Invalid authenticator code",
+          400
+        );
+      }
+    }
+
+    // Email changes still require email OTP
+    if(email && email !== user.email){
+
+      const verify = await ProfileOTP.findOne({
+        phone,
+        otp
+      });
+
+      if(!verify){
+        throw new AppError(
+          "Invalid or missing OTP",
+          400
+        );
+      }
+
+      user.email = email;
+      user.emailVerified = true;
+
+      await ProfileOTP.deleteOne({
+        _id:verify._id
+      });
+    }
+
+    if(name){
+      user.name = name;
+    }
 
     await user.save();
-
 
     res.json({
       message:"Profile updated successfully"
     });
-
 
   }catch(error){
 
@@ -983,59 +1017,83 @@ if(user){
 };
 
 
-
 // Change password
-const changePassword = async (req,res)=>{
+const changePassword = async(req,res,next)=>{
 
   try{
 
     const phone = normalizePhone(req.params.phone);
 
-
     const {
       oldPassword,
-      newPassword
+      newPassword,
+      code
     } = req.body;
-
 
     const user = await User.findOne({
       phone
-    });
-
+    }).select("+twoFactorSecret");
 
     if(!user){
-
       throw new AppError("User not found", 404);
-
     }
 
+    // Require 2FA for password changes
+    if(user.twoFactorEnabled){
+
+      if(!code){
+        throw new AppError(
+          "Authenticator code is required",
+          400
+        );
+      }
+
+      if(!user.twoFactorSecret){
+        throw new AppError(
+          "2FA configuration is invalid",
+          400
+        );
+      }
+
+      const totp = new TOTP({
+        crypto: new NobleCryptoPlugin(),
+        base32: new ScureBase32Plugin()
+      });
+
+      const result = await totp.verify(code, {
+        secret: user.twoFactorSecret
+      });
+
+      if(!result.valid){
+        throw new AppError(
+          "Invalid authenticator code",
+          400
+        );
+      }
+    }
 
     const match = await bcrypt.compare(
       oldPassword,
       user.password
     );
 
-
     if(!match){
-
-      throw new AppError("Old password is incorrect", 400);
-
+      throw new AppError(
+        "Old password is incorrect",
+        400
+      );
     }
-
 
     user.password = await bcrypt.hash(
       newPassword,
       10
     );
 
-
     await user.save();
-
 
     res.json({
       message:"Password changed successfully"
     });
-
 
   }catch(error){
 
@@ -1044,8 +1102,6 @@ const changePassword = async (req,res)=>{
   }
 
 };
-
-
 
 const sendProfileOTP = async(req,res,next)=>{
 try{

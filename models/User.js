@@ -101,6 +101,22 @@ const userSchema = new mongoose.Schema(
       default:false
     },
 
+    twoFactorEnabled:{
+      type:Boolean,
+      default:false
+    },
+
+    twoFactorVerifiedAt:{
+      type:Date,
+      default:null
+    },
+
+    twoFactorSecret:{
+      type:String,
+      default:null,
+      select:false
+    },
+
 
   referralCode:{
     type:String,
