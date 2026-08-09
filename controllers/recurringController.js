@@ -13,6 +13,9 @@ const {
     service,
     provider,
     productId,
+    variationId,
+    network,
+    planName,
     amount,
     frequency
 }=req.body;
@@ -47,14 +50,29 @@ nextRun.setMonth(nextRun.getMonth()+1);
 
 
 
+// Data recurring payments must identify the exact data plan.
+// Airtime continues to use the existing amount-based behaviour.
+if(service === "data"){
+
+  if(!variationId || !network){
+    return res.status(400).json({
+      message:"Data plan and network are required"
+    });
+  }
+
+}
+
 const recurring = await Recurring.create({
 
 phone:cleanPhone,
 targetPhone:cleanTargetPhone,
 service,
-provider,
-productId,
-amount,
+provider:service === "data" ? provider : "",
+productId:service === "airtime" ? productId : null,
+variationId:service === "data" ? String(variationId) : "",
+network:service === "data" ? network : "",
+planName:service === "data" ? (planName || "") : "",
+amount:Number(amount),
 frequency,
 nextRun
 

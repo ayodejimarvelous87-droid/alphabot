@@ -23,6 +23,23 @@ const recurringSchema = new mongoose.Schema(
     default:""
   },
 
+  // Data recurring uses the same provider plan identifier
+  // used by the normal data purchase flow.
+  variationId:{
+    type:String,
+    default:""
+  },
+
+  network:{
+    type:String,
+    default:""
+  },
+
+  planName:{
+    type:String,
+    default:""
+  },
+
   productId:{
     type:mongoose.Schema.Types.ObjectId,
     ref:"Product",
