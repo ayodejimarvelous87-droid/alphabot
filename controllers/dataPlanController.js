@@ -818,10 +818,18 @@ try {
     )
   );
 
-  const getPlanProductId = (plan) => {
+  // Generate every possible ProductOverride identity for a plan.
+  // Oplug can expose the same plan using different identifiers.
+  // Example:
+  //   providerPlanId: "gsubz_356"
+  //   plan_id: 356
+  //
+  // If admin disabled oplug:MTN:356, the current gsubz_356
+  // version must also remain hidden.
+  const getPlanProductIds = (plan) => {
 
     if(!plan?.provider){
-      return null;
+      return [];
     }
 
     const provider =
@@ -834,39 +842,53 @@ try {
         ""
       ).trim().toUpperCase();
 
-    const planId =
-      plan.providerPlanId ??
-      plan.provider_plan_id ??
-      plan.id ??
-      plan.plan_id ??
-      plan.variation_id;
-
-    if(
-      !network ||
-      planId === undefined ||
-      planId === null
-    ){
-      return null;
+    if(!network){
+      return [];
     }
 
-    return `${provider}:${network}:${String(planId)}`;
+    const identifiers = [
+      plan.providerPlanId,
+      plan.provider_plan_id,
+      plan.id,
+      plan.plan_id,
+      plan.variation_id
+    ];
+
+    const uniqueIds = [
+      ...new Set(
+        identifiers
+          .filter(
+            id =>
+              id !== undefined &&
+              id !== null &&
+              String(id).trim() !== ""
+          )
+          .map(id => String(id))
+      )
+    ];
+
+    return uniqueIds.map(
+      id => `${provider}:${network}:${id}`
+    );
   };
 
   const beforeCount = allPlans.length;
 
   allPlans = allPlans.filter(plan => {
 
-    const productId =
-      getPlanProductId(plan);
+    const productIds =
+      getPlanProductIds(plan);
 
-    if(
-      productId &&
-      inactiveIds.has(productId)
-    ){
+    const disabledProductId =
+      productIds.find(
+        id => inactiveIds.has(id)
+      );
+
+    if(disabledProductId){
 
       console.log(
         "🚫 Hiding inactive plan:",
-        productId,
+        disabledProductId,
         plan.name || plan.datasize || ""
       );
 
