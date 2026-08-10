@@ -10,6 +10,7 @@ const {
 } = require("@simplewebauthn/server/helpers");
 
 const jwt = require("jsonwebtoken");
+const auditLogger = require("../services/auditLogger");
 const User = require("../models/User");
 const normalizePhone = require("../utils/phone");
 const BiometricCredential = require("../models/BiometricCredential");
