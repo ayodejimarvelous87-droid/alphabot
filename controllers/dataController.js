@@ -1,6 +1,9 @@
 const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
+const {
+  verifyTransactionAuthorization
+} = require("../utils/transactionAuthorization");
 const Data = require("../models/Data");
 const Profit = require("../models/Profit");
 const DataPrice = require("../models/DataPrice");
@@ -36,6 +39,7 @@ plan,
 amount,
 phone,
 pin,
+biometricToken,
 variation_id,
 provider
 }=req.body;
@@ -119,22 +123,21 @@ throw new AppError("Invalid phone number",400);
 }
 
 
-const userPin = await TransactionPin.findOne({
-phone:userPhone
+const authorized =
+await verifyTransactionAuthorization({
+  phone:userPhone,
+  pin,
+  biometricToken
 });
 
+if(!authorized){
 
-if(!userPin){
-
-throw new AppError("Create transaction PIN first", 400);
-
-}
-
-
-
-if(!(await bcrypt.compare(pin,userPin.pin))){
-
-throw new AppError("Incorrect transaction PIN", 400);
+throw new AppError(
+  biometricToken
+    ? "Fingerprint authorization expired or invalid"
+    : "Incorrect transaction PIN",
+  400
+);
 
 }
 

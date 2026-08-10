@@ -140,6 +140,7 @@ const bettingRoutes = require("./routes/bettingRoutes");
 const electricityRoutes = require("./routes/electricityRoutes");
 const tvRoutes = require("./routes/tvRoutes");
 const pinRoutes = require("./routes/pinRoutes");
+const biometricRoutes = require("./routes/biometricRoutes");
 const recurringRoutes = require("./routes/recurringRoutes");
 const airtimeCashRoutes = require("./routes/airtimeCashRoutes");
 const examPinRoutes = require("./routes/examPinRoutes");
@@ -263,6 +264,7 @@ app.use("/electricity", electricityRoutes);
 app.use("/tv", tvRoutes);
 
 app.use("/pin", pinRoutes);
+app.use("/biometric", biometricRoutes);
 app.use("/recurring", recurringRoutes);
 
 app.use("/airtime-cash", airtimeCashRoutes);

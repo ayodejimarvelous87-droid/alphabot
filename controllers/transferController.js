@@ -6,6 +6,9 @@ const crypto = require("crypto");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const TransactionPin = require("../models/TransactionPin");
+const {
+  verifyTransactionAuthorization
+} = require("../utils/transactionAuthorization");
 const BankBeneficiary = require("../models/BankBeneficiary");
 const TransferSetting = require("../models/TransferSetting");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
@@ -123,6 +126,7 @@ bankCode,
 accountNumber,
 accountName,
 pin,
+biometricToken,
 amount,
 idempotencyKey
 }=req.body;
@@ -142,19 +146,21 @@ throw new AppError("Idempotency key required",400);
 }
 
 
-const userPin = await TransactionPin.findOne({
-phone
+const authorized =
+await verifyTransactionAuthorization({
+  phone,
+  pin,
+  biometricToken
 });
 
+if(!authorized){
 
-if(!pin){
-  throw new AppError("Transaction PIN is required",400);
-}
-
-
-if(!userPin || !(await bcrypt.compare(pin,userPin.pin))){
-
-throw new AppError("Invalid transaction PIN", 400);
+throw new AppError(
+  biometricToken
+    ? "Fingerprint authorization expired or invalid"
+    : "Invalid transaction PIN",
+  400
+);
 
 }
 

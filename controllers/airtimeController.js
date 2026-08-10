@@ -2,6 +2,9 @@ const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
 const AirtimeOverride = require("../models/AirtimeOverride");
 const TransactionPin = require("../models/TransactionPin");
+const {
+  verifyTransactionAuthorization
+} = require("../utils/transactionAuthorization");
 const Airtime = require("../models/Airtime");
 const Profit = require("../models/Profit");
 const Wallet = require("../models/wallet");
@@ -24,7 +27,13 @@ const buyAirtime = async(req,res)=>{
 
 try{
 
-const { network, amount, pin, phone } = req.body;
+const {
+  network,
+  amount,
+  pin,
+  biometricToken,
+  phone
+} = req.body;
 
 
 const idempotencyKey =
@@ -83,21 +92,21 @@ userPhone,
 airtimePhone
 });
 
-const userPin = await TransactionPin.findOne({
-phone: userPhone
+const authorized =
+await verifyTransactionAuthorization({
+  phone:userPhone,
+  pin,
+  biometricToken
 });
 
+if(!authorized){
 
-if(!userPin){
-
-throw new AppError("Create transaction PIN first", 400);
-
-}
-
-
-if(!(await bcrypt.compare(pin,userPin.pin))){
-
-throw new AppError("Incorrect transaction PIN", 400);
+throw new AppError(
+  biometricToken
+    ? "Fingerprint authorization expired or invalid"
+    : "Incorrect transaction PIN",
+  400
+);
 
 }
 

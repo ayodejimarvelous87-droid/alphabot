@@ -2,6 +2,9 @@ const AppError = require("../utils/AppError");
 const auditLogger = require("../services/auditLogger");
 const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
+const {
+  verifyTransactionAuthorization
+} = require("../utils/transactionAuthorization");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
@@ -132,6 +135,7 @@ const payWallet = async(req,res,next)=>{
       amount,
       description,
       pin,
+      biometricToken,
       idempotencyKey
     } = req.body;
 
@@ -178,26 +182,21 @@ const payWallet = async(req,res,next)=>{
 
 
 
-    const userPin = await TransactionPin.findOne({
+    const authorized =
+      await verifyTransactionAuthorization({
+        phone: cleanPhone,
+        pin,
+        biometricToken
+      });
 
-      phone:cleanPhone
+    if(!authorized){
 
-    });
-
-
-
-    if(!userPin){
-
-      throw new AppError("Create transaction PIN first", 400);
-
-    }
-
-
-
-
-    if(!(await bcrypt.compare(pin,userPin.pin))){
-
-      throw new AppError("Incorrect transaction PIN", 400);
+      throw new AppError(
+        biometricToken
+          ? "Fingerprint authorization expired or invalid"
+          : "Incorrect transaction PIN",
+        400
+      );
 
     }
 
