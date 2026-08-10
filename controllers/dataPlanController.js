@@ -661,7 +661,9 @@ try {
             network:plan.network,
             name:`${plan.network} ${plan.datasize || "DATA"}`,
             providerPrice,
-            sellingPrice,
+            sellingPrice
+          },
+          $setOnInsert:{
             active:true
           }
         },
@@ -795,6 +797,94 @@ try {
   console.log(
     "Saved Oplug merge error:",
     e.message
+  );
+
+}
+
+// Remove plans manually deactivated through ProductOverride.
+// ProductOverride is the source of truth for admin-disabled plans.
+try {
+
+  const inactiveOverrides =
+    await ProductOverride.find({
+      active:false
+    }).select(
+      "productId provider network providerPlanId"
+    ).lean();
+
+  const inactiveIds = new Set(
+    inactiveOverrides.map(
+      item => String(item.productId)
+    )
+  );
+
+  const getPlanProductId = (plan) => {
+
+    if(!plan?.provider){
+      return null;
+    }
+
+    const provider =
+      String(plan.provider).toLowerCase();
+
+    const network =
+      String(
+        plan.network ||
+        plan.service_name ||
+        ""
+      ).trim().toUpperCase();
+
+    const planId =
+      plan.providerPlanId ??
+      plan.provider_plan_id ??
+      plan.id ??
+      plan.plan_id ??
+      plan.variation_id;
+
+    if(
+      !network ||
+      planId === undefined ||
+      planId === null
+    ){
+      return null;
+    }
+
+    return `${provider}:${network}:${String(planId)}`;
+  };
+
+  const beforeCount = allPlans.length;
+
+  allPlans = allPlans.filter(plan => {
+
+    const productId =
+      getPlanProductId(plan);
+
+    if(
+      productId &&
+      inactiveIds.has(productId)
+    ){
+
+      console.log(
+        "🚫 Hiding inactive plan:",
+        productId,
+        plan.name || plan.datasize || ""
+      );
+
+      return false;
+    }
+
+    return true;
+  });
+
+  console.log(
+    `✅ Inactive ProductOverrides filtered: ${beforeCount - allPlans.length}`
+  );
+
+}catch(error){
+
+  console.log(
+    "Inactive ProductOverride filtering error:",
+    error.message
   );
 
 }
