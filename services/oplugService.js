@@ -148,11 +148,65 @@ const getDataPlans = async (network) => {
         )
       : plans;
 
-    return filtered.map(plan => ({
+    // Deduplicate OPLUG plans by provider + network + stable plan ID.
+    // OPLUG may return the same plan more than once from /data_plans.
+    const seen = new Set();
 
-      id: plan.plan_id,
-      providerPlanId: plan.plan_id,
-      plan_id: plan.plan_id,
+    const uniquePlans = filtered.filter(plan => {
+
+      const planNetwork =
+        String(
+          plan.network ||
+          network ||
+          ""
+        ).trim().toUpperCase();
+
+      const planId =
+        plan.id ??
+        plan.plan_id;
+
+      // If a plan has no stable ID, keep it rather than
+      // accidentally removing a legitimate provider plan.
+      if (
+        !planNetwork ||
+        planId === undefined ||
+        planId === null
+      ) {
+        return true;
+      }
+
+      const identity =
+        `oplug:${planNetwork}:${String(planId)}`;
+
+      if (seen.has(identity)) {
+        console.log(
+          "OPLUG duplicate removed:",
+          identity
+        );
+
+        return false;
+      }
+
+      seen.add(identity);
+
+      return true;
+
+    });
+
+    return uniquePlans.map(plan => ({
+
+      // Keep the actual provider identifier when available.
+      // Oplug can expose both "id" and "plan_id".
+      id:
+        plan.id ??
+        plan.plan_id,
+
+      providerPlanId:
+        plan.plan_id ??
+        plan.id,
+
+      plan_id:
+        plan.plan_id,
 
       network: plan.network,
 

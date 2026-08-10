@@ -520,8 +520,15 @@ if(blitzOverrides.length > 0){
 try{
 
   const currentIds =
-    Array.from(currentBlitzIds).map(id =>
-      `blitzpay:${String(id)}`
+    Array.from(
+      blitzPlans
+        .filter(plan =>
+          plan?.id &&
+          plan?.network
+        )
+        .map(plan =>
+          `blitzpay:${String(plan.network).toUpperCase()}:${String(plan.id)}`
+        )
     );
 
   if(currentIds.length > 0){
@@ -592,7 +599,11 @@ if(oplugFailed && cached?.providers?.oplug){
 
       provider:"oplug",
 
-      variation_id:plan.id,
+      variation_id:
+        String(
+          plan.id ??
+          plan.plan_id
+        ),
 
       display_price:
         calculateSellingPrice(plan.price),
@@ -641,7 +652,12 @@ try {
           $set:{
             productId,
             provider:"oplug",
-            providerPlanId:variationId,
+            providerPlanId:
+              String(
+                plan.providerPlanId ??
+                plan.plan_id ??
+                variationId
+              ),
             network:plan.network,
             name:`${plan.network} ${plan.datasize || "DATA"}`,
             providerPrice,
@@ -681,30 +697,106 @@ try {
 
 
 // Add missing Oplug plans from saved cache
+// Use a stable provider + network + plan ID identity so
+// cached plans cannot duplicate freshly fetched plans.
 try {
-const savedOplug = [];
-for(const network in savedPlans.networks){
-for(const category in savedPlans.networks[network]){
-savedPlans.networks[network][category].forEach(plan=>{
-if(plan.provider==="oplug") savedOplug.push(plan);
-});
-}
-}
 
-const existingIds = new Set(allPlans.filter(p=>p.provider==="oplug").map(p=>p.variation_id));
+  const savedOplug = [];
 
-savedOplug.forEach(plan=>{
-if(!existingIds.has(plan.variation_id)){
-allPlans.push({
-...plan,
-display_price:calculateSellingPrice(plan.price)
-});
-}
-});
+  for(const network in savedPlans.networks){
+
+    for(const category in savedPlans.networks[network]){
+
+      savedPlans.networks[network][category].forEach(plan=>{
+
+        if(plan.provider === "oplug"){
+          savedOplug.push(plan);
+        }
+
+      });
+
+    }
+
+  }
+
+
+  const getOplugIdentity = (plan) => {
+
+    if(!plan || plan.provider !== "oplug"){
+      return null;
+    }
+
+    const network = String(
+      plan.network ||
+      plan.service_name ||
+      ""
+    ).trim().toUpperCase();
+
+    const planId =
+      plan.id ??
+      plan.plan_id ??
+      plan.providerPlanId ??
+      plan.variation_id;
+
+    if(!network || planId === undefined || planId === null){
+      return null;
+    }
+
+    return `oplug:${network}:${String(planId)}`;
+
+  };
+
+
+  const existingIds = new Set();
+
+  for(const plan of allPlans){
+
+    const identity = getOplugIdentity(plan);
+
+    if(identity){
+      existingIds.add(identity);
+    }
+
+  }
+
+
+  savedOplug.forEach(plan=>{
+
+    const identity = getOplugIdentity(plan);
+
+    if(!identity || existingIds.has(identity)){
+      return;
+    }
+
+    allPlans.push({
+
+      ...plan,
+
+      variation_id:
+        String(
+          plan.id ??
+          plan.plan_id ??
+          plan.providerPlanId ??
+          plan.variation_id
+        ),
+
+      display_price:
+        calculateSellingPrice(plan.price)
+
+    });
+
+    existingIds.add(identity);
+
+  });
 
 
 }catch(e){
-console.log("Saved Oplug merge error:",e.message);
+
+  console.log(
+    "Saved Oplug merge error:",
+    e.message
+  );
+
 }
 
 const grouped = {};
