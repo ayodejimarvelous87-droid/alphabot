@@ -91,12 +91,8 @@ const oplugRequest = async (
     );
 
     console.log(
-      "OPLUG RESPONSE:",
-      JSON.stringify(
-        error.response?.data,
-        null,
-        2
-      )
+      "OPLUG RESPONSE STRING:",
+      JSON.stringify(error.response?.data)
     );
 
     console.log(
