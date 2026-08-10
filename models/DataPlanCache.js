@@ -13,21 +13,12 @@ const dataPlanCacheSchema = new mongoose.Schema(
       required:true
     },
 
+    // Provider-specific raw/normalized plans.
+    // Keys are provider names, so new providers can be
+    // added without changing this schema.
     providers:{
-      vtu:{
-        type:mongoose.Schema.Types.Mixed,
-        default:null
-      },
-
-      blitzpay:{
-        type:mongoose.Schema.Types.Mixed,
-        default:null
-      },
-
-      oplug:{
-        type:mongoose.Schema.Types.Mixed,
-        default:null
-      }
+      type:mongoose.Schema.Types.Mixed,
+      default:{}
     },
 
     updatedAt:{
