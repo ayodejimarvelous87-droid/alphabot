@@ -468,11 +468,12 @@ for(const plan of blitzPlans){
   blitzOverrides.push({
     updateOne:{
       filter:{
-        productId:variationId
+        productId:`blitzpay:${String(plan.network).toUpperCase()}:${variationId}`
       },
       update:{
         $set:{
-          productId:variationId,
+          productId:`blitzpay:${String(plan.network).toUpperCase()}:${variationId}`,
+
           provider:"blitzpay",
           providerPlanId:variationId,
           network:plan.network,
@@ -519,7 +520,9 @@ if(blitzOverrides.length > 0){
 try{
 
   const currentIds =
-    Array.from(currentBlitzIds);
+    Array.from(currentBlitzIds).map(id =>
+      `blitzpay:${String(id)}`
+    );
 
   if(currentIds.length > 0){
 
@@ -603,6 +606,78 @@ if(oplugFailed && cached?.providers?.oplug){
 
 }
 
+
+
+// Sync OPLUG ProductOverrides using provider + network + plan ID
+// This prevents collisions where different providers reuse the same plan ID.
+try {
+
+  const oplugOverrides = [];
+
+  for(const plan of oplugPlans){
+
+    if(
+      plan?.id === undefined ||
+      plan?.id === null ||
+      !plan.network ||
+      Number(plan.price) <= 0
+    ){
+      continue;
+    }
+
+    const variationId = String(plan.id);
+    const providerPrice = Number(plan.price);
+    const sellingPrice = calculateSellingPrice(providerPrice);
+
+    const productId =
+      `oplug:${String(plan.network).toUpperCase()}:${variationId}`;
+
+    oplugOverrides.push({
+      updateOne:{
+        filter:{
+          productId
+        },
+        update:{
+          $set:{
+            productId,
+            provider:"oplug",
+            providerPlanId:variationId,
+            network:plan.network,
+            name:`${plan.network} ${plan.datasize || "DATA"}`,
+            providerPrice,
+            sellingPrice,
+            active:true
+          }
+        },
+        upsert:true
+      }
+    });
+
+  }
+
+  if(oplugOverrides.length > 0){
+
+    await ProductOverride.bulkWrite(
+      oplugOverrides,
+      {
+        ordered:false
+      }
+    );
+
+    console.log(
+      `OPLUG ProductOverride sync: ${oplugOverrides.length} plans`
+    );
+
+  }
+
+}catch(error){
+
+  console.log(
+    "OPLUG ProductOverride sync error:",
+    error.message
+  );
+
+}
 
 
 // Add missing Oplug plans from saved cache

@@ -79,8 +79,25 @@ throw new AppError(
 
 
 
+const providerKey =
+  String(provider || "").toLowerCase();
+
+const requestedNetwork =
+  String(network || "").toUpperCase();
+
+const productId =
+  `${providerKey}:${requestedNetwork}:${String(variation_id)}`;
+
 const dataPrice = await ProductOverride.findOne({
-  productId: String(variation_id)
+  productId
+});
+
+console.log("DATAPRICE DEBUG:", {
+  productId,
+  provider:providerKey,
+  network:requestedNetwork,
+  variation_id,
+  dataPrice
 });
   console.log("DATAPRICE DEBUG:", dataPrice);
 
