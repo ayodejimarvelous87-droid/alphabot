@@ -37,8 +37,9 @@ try {
 
   masterWallet.oplug =
     Number(
-      balance.data?.balance ||
-      balance.balance ||
+      balance.user?.wallet ??
+      balance.wallet ??
+      balance.data?.balance ??
       0
     );
 
