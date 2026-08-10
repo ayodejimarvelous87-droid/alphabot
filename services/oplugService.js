@@ -202,8 +202,8 @@ const getDataPlans = async (network) => {
         plan.plan_id,
 
       providerPlanId:
-        plan.plan_id ??
-        plan.id,
+        plan.id ??
+        plan.plan_id,
 
       plan_id:
         plan.plan_id,
@@ -280,7 +280,7 @@ const purchaseData = async (data) => {
     {
       network: data.network,
       phone,
-      data_plan: Number(planId),
+      data_plan: planId,
       bypass: data.bypass ?? false,
       "request-id":
         data.requestId ||
