@@ -88,9 +88,45 @@ const requestedNetwork =
 const productId =
   `${providerKey}:${requestedNetwork}:${String(variation_id)}`;
 
-const dataPrice = await ProductOverride.findOne({
+// First try the exact ProductOverride identity.
+let dataPrice = await ProductOverride.findOne({
   productId
 });
+
+// OPLUG can expose the same plan using different IDs.
+// Example:
+// frontend variation_id: gsubz_356
+// disabled override:    oplug:MTN:356
+//
+// If the exact identity is missing, resolve the numeric plan ID
+// from the OPLUG variation ID and check the canonical override.
+if(!dataPrice && providerKey === "oplug"){
+
+  const variationText = String(variation_id);
+
+  const numericMatch =
+    variationText.match(/(?:^|_)(\\d+)$/);
+
+  if(numericMatch){
+
+    const canonicalId = numericMatch[1];
+
+    const canonicalProductId =
+      `oplug:${requestedNetwork}:${canonicalId}`;
+
+    dataPrice = await ProductOverride.findOne({
+      productId:canonicalProductId
+    });
+
+    console.log("OPLUG CANONICAL LOOKUP:", {
+      originalProductId:productId,
+      canonicalProductId,
+      dataPrice
+    });
+
+  }
+
+}
 
 console.log("DATAPRICE DEBUG:", {
   productId,
@@ -99,8 +135,6 @@ console.log("DATAPRICE DEBUG:", {
   variation_id,
   dataPrice
 });
-  console.log("DATAPRICE DEBUG:", dataPrice);
-
 
 if(!dataPrice){
   throw new AppError("Invalid data plan",400);
