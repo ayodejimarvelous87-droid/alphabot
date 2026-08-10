@@ -274,11 +274,30 @@ const purchaseData = async (data) => {
     throw new Error("Oplug data plan ID is required");
   }
 
+  const networkMap = {
+    MTN: 1,
+    GLO: 2,
+    "9MOBILE": 3,
+    AIRTEL: 4
+  };
+
+  const networkName =
+    String(data.network || "").trim().toUpperCase();
+
+  const networkId =
+    networkMap[networkName];
+
+  if (!networkId) {
+    throw new Error(
+      `Unsupported Oplug network: ${data.network}`
+    );
+  }
+
   return await oplugRequest(
     "/data",
     "POST",
     {
-      network: data.network,
+      network: networkId,
       phone,
       data_plan: planId,
       bypass: data.bypass ?? false,
