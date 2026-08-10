@@ -82,8 +82,43 @@ const oplugRequest = async (
     });
 
     console.log(
-      "OPLUG error:",
-      error.response?.data || error.message
+      "========== OPLUG ERROR =========="
+    );
+
+    console.log(
+      "OPLUG STATUS:",
+      error.response?.status
+    );
+
+    console.log(
+      "OPLUG RESPONSE:",
+      JSON.stringify(
+        error.response?.data,
+        null,
+        2
+      )
+    );
+
+    console.log(
+      "OPLUG REQUEST:",
+      JSON.stringify(
+        {
+          endpoint,
+          method,
+          data
+        },
+        null,
+        2
+      )
+    );
+
+    console.log(
+      "OPLUG ERROR MESSAGE:",
+      error.message
+    );
+
+    console.log(
+      "================================="
     );
 
     throw error;
