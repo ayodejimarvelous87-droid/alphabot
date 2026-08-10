@@ -18,11 +18,11 @@ if(provider === "oplug"){
 const data = await getOplugBalance();
 
 balance = Number(
-data.balance ||
-data.data?.balance ||
-0
+  data.user?.wallet ??
+  data.wallet ??
+  data.data?.balance ??
+  0
 );
-
 }
 
 
