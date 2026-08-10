@@ -134,27 +134,116 @@ function normalizePlan(plan, provider) {
     return null;
   }
 
-  const datasize = String(
-    plan.datasize ||
-    plan.size ||
-    ""
-  ).trim();
+  // Normalize data size so providers using formats such as
+  // "1 GB", "1GB", "1gb" produce the same product identity.
+  function normalizeDatasize(value) {
+    return String(value || "")
+      .trim()
+      .replace(/\\s+/g, "")
+      .toUpperCase();
+  }
 
-  const validity = String(
-    plan.validity ||
-    plan.day ||
-    ""
-  ).trim();
+  // Normalize validity without creating values such as:
+  // "30 Days Days" or "undefined Days".
+  function normalizeValidity(value) {
+    if (
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ""
+    ) {
+      return "";
+    }
+
+    const text = String(value)
+      .trim()
+      .replace(/\\s+/g, " ");
+
+    const match = text.match(/^(\\d+(?:\\.\\d+)?)\\s*(day|days|week|weeks|month|months)$/i);
+
+    if (match) {
+      const number = match[1];
+      const unit = match[2].toLowerCase();
+
+      if (unit === "day" || unit === "days") {
+        return `${number} Days`;
+      }
+
+      if (unit === "week" || unit === "weeks") {
+        return `${number} Weeks`;
+      }
+
+      return `${number} Months`;
+    }
+
+    // Handle plain numeric validity such as "30".
+    if (/^\\d+(?:\\.\\d+)?$/.test(text)) {
+      return `${text} Days`;
+    }
+
+    return text;
+  }
+
+  function normalizeDatasize(value) {
+    return String(value || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .toUpperCase();
+  }
+
+  function normalizeValidity(value) {
+    if (
+      value === undefined ||
+      value === null ||
+      String(value).trim() === ""
+    ) {
+      return "";
+    }
+
+    const text = String(value)
+      .trim()
+      .replace(/\s+/g, " ");
+
+    if (/^\d+(?:\.\d+)?$/.test(text)) {
+      return `${text} Days`;
+    }
+
+    const match = text.match(
+      /^(\d+(?:\.\d+)?)\s*(day|days|week|weeks|month|months)$/i
+    );
+
+    if (match) {
+      const number = match[1];
+      const unit = match[2].toLowerCase();
+
+      if (unit === "day" || unit === "days") {
+        return `${number} Days`;
+      }
+
+      if (unit === "week" || unit === "weeks") {
+        return `${number} Weeks`;
+      }
+
+      return `${number} Months`;
+    }
+
+    return text;
+  }
+
+  const datasize = normalizeDatasize(
+    plan.datasize ||
+    plan.size
+  );
+
+  const validity = normalizeValidity(
+    plan.validity ??
+    plan.day
+  );
 
   let name = String(
     plan.name ||
     plan.data_plan ||
     ""
   ).trim();
-
-  if (!name && datasize) {
-    name = `${network} ${datasize}`;
-  }
 
   const category = normalizeCategory(plan);
 
@@ -316,10 +405,24 @@ async function syncProducts(plans) {
     normalized.providerRoute.active =
       routeActive;
 
+    /*
+     * Keep EVERY provider plan.
+     *
+     * A provider can expose multiple routes for the same
+     * normalized product, so provider alone is NOT enough
+     * to identify a route.
+     *
+     * Identity:
+     *   provider + providerPlanId
+     *
+     * This prevents one plan from silently replacing another.
+     */
     const existingProvider =
       product.providers.find(
         route =>
-          route.provider === provider
+          route.provider === provider &&
+          String(route.providerPlanId) ===
+          String(providerPlanId)
       );
 
     if (existingProvider) {
@@ -432,6 +535,54 @@ async function syncProducts(plans) {
       ordered: false
     }
   );
+
+  /*
+   * Reconcile stale products.
+   *
+   * Do NOT delete them. Mark them inactive so old malformed
+   * products cannot continue appearing as current products.
+   *
+   * This is deliberately based on productKey, which means
+   * every currently supplied provider plan remains represented.
+   */
+  const currentProductKeys = [
+    ...products.keys()
+  ];
+
+  if (currentProductKeys.length > 0) {
+
+    try {
+
+      const staleResult =
+        await DataProduct.updateMany(
+          {
+            productKey: {
+              $nin: currentProductKeys
+            },
+
+            active: true
+          },
+          {
+            $set: {
+              active: false
+            }
+          }
+        );
+
+      console.log(
+        `🧹 Stale DataProducts marked inactive: ${staleResult.modifiedCount}`
+      );
+
+    } catch(error) {
+
+      console.log(
+        "⚠️ Stale DataProduct reconciliation error:",
+        error.message
+      );
+
+    }
+
+  }
 
   return {
     products:

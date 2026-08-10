@@ -660,8 +660,20 @@ if(oplugFailed && cached?.providers?.oplug){
       display_price:
         calculateSellingPrice(plan.price),
 
+      /*
+       * Preserve the provider's validity value.
+       *
+       * Do NOT append "Days" blindly:
+       *   "30 Days" -> "30 Days Days"  ❌
+       *   undefined -> "undefined Days" ❌
+       *
+       * dataProductEngine.normalizeValidity() will perform
+       * the final canonical normalization.
+       */
       validity:
-        `${plan.day} Days`
+        plan.validity ??
+        plan.day ??
+        ""
 
     });
 
