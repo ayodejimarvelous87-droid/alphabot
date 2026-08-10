@@ -4,6 +4,11 @@ const { getDataPlans: getOplugPlans } = require("../services/oplugService");
 const SystemSetting = require("../models/SystemSetting");
 const DataPlanCache = require("../models/DataPlanCache");
 const ProductOverride = require("../models/ProductOverride");
+
+const {
+  syncProviderProducts
+} = require("../services/dataProductSync");
+
 const savedPlans = require("../plans.json");
 
 
@@ -187,6 +192,53 @@ try{
 
     // Fresh cache.
     if(cacheAge < DATA_PLANS_CACHE_TTL){
+
+      // ---------------------------------------------------------
+      // Keep the new unified DataProduct layer synchronized even
+      // when the legacy frontend response is being served from
+      // the persistent cache.
+      //
+      // This is important during migration because the frontend
+      // must continue receiving the exact cached response while
+      // DataProduct is populated independently.
+      // ---------------------------------------------------------
+
+      try {
+
+        const cachedProviderResults = [
+          {
+            provider: "vtu",
+            plans: cached.providers?.vtu || []
+          },
+
+          {
+            provider: "blitzpay",
+            plans: cached.providers?.blitzpay || []
+          },
+
+          {
+            provider: "oplug",
+            plans: cached.providers?.oplug || []
+          }
+        ];
+
+        const unifiedResult =
+          await syncProviderProducts(
+            cachedProviderResults
+          );
+
+        console.log(
+          `✅ Cached DataProduct sync: ${unifiedResult.synced} unified products`
+        );
+
+      } catch(error) {
+
+        console.log(
+          "⚠️ Cached DataProduct sync error:",
+          error.message
+        );
+
+      }
 
       return res.json(cached.data);
 
@@ -797,6 +849,74 @@ try {
   console.log(
     "Saved Oplug merge error:",
     e.message
+  );
+
+}
+
+// =========================================================
+// Unified DataProduct synchronization
+// =========================================================
+//
+// At this point all provider plans have already been assembled
+// into allPlans, including persistent fallback plans.
+//
+// The existing frontend response is NOT changed here.
+// DataProduct is built alongside the current system so we can
+// safely migrate routing later.
+//
+// This also means the future 4th API can simply be added to
+// this provider list without rewriting the frontend.
+// =========================================================
+
+try {
+
+  const unifiedProviderResults = [
+
+    {
+      provider: "vtu",
+      plans: allPlans.filter(
+        plan =>
+          String(plan.provider || "").toLowerCase() === "vtu"
+      )
+    },
+
+    {
+      provider: "blitzpay",
+      plans: allPlans.filter(
+        plan =>
+          String(plan.provider || "").toLowerCase() === "blitzpay"
+      )
+    },
+
+    {
+      provider: "oplug",
+      plans: allPlans.filter(
+        plan =>
+          String(plan.provider || "").toLowerCase() === "oplug"
+      )
+    }
+
+  ];
+
+  const unifiedResult =
+    await syncProviderProducts(
+      unifiedProviderResults
+    );
+
+  console.log(
+    `✅ DataProduct engine synced ${unifiedResult.synced} unified products`
+  );
+
+} catch(error) {
+
+  /*
+   * DataProduct is an additional layer during migration.
+   * If it fails, the existing frontend plan system must
+   * continue working normally.
+   */
+  console.log(
+    "⚠️ DataProduct unified sync error:",
+    error.message
   );
 
 }
