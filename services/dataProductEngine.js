@@ -134,55 +134,7 @@ function normalizePlan(plan, provider) {
     return null;
   }
 
-  // Normalize data size so providers using formats such as
-  // "1 GB", "1GB", "1gb" produce the same product identity.
-  function normalizeDatasize(value) {
-    return String(value || "")
-      .trim()
-      .replace(/\\s+/g, "")
-      .toUpperCase();
-  }
-
-  // Normalize validity without creating values such as:
-  // "30 Days Days" or "undefined Days".
-  function normalizeValidity(value) {
-    if (
-      value === undefined ||
-      value === null ||
-      String(value).trim() === ""
-    ) {
-      return "";
-    }
-
-    const text = String(value)
-      .trim()
-      .replace(/\\s+/g, " ");
-
-    const match = text.match(/^(\\d+(?:\\.\\d+)?)\\s*(day|days|week|weeks|month|months)$/i);
-
-    if (match) {
-      const number = match[1];
-      const unit = match[2].toLowerCase();
-
-      if (unit === "day" || unit === "days") {
-        return `${number} Days`;
-      }
-
-      if (unit === "week" || unit === "weeks") {
-        return `${number} Weeks`;
-      }
-
-      return `${number} Months`;
-    }
-
-    // Handle plain numeric validity such as "30".
-    if (/^\\d+(?:\\.\\d+)?$/.test(text)) {
-      return `${text} Days`;
-    }
-
-    return text;
-  }
-
+  // Normalize data size.
   function normalizeDatasize(value) {
     return String(value || "")
       .trim()
@@ -190,6 +142,13 @@ function normalizePlan(plan, provider) {
       .toUpperCase();
   }
 
+  // Normalize validity.
+  // Examples:
+  //   "30"       -> "30 Days"
+  //   "30 Days"  -> "30 Days"
+  //   "7 day"    -> "7 Days"
+  //   "4 weeks"  -> "4 Weeks"
+  //   undefined  -> ""
   function normalizeValidity(value) {
     if (
       value === undefined ||
