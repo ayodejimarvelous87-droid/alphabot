@@ -6,20 +6,31 @@ const auth = require("../middleware/auth");
 
 const {
   submitRating,
-  getMyRating
+  getMyRating,
+  getPublicRatings
 } = require("../controllers/ratingController");
 
-router.post(
-  "/",
-  auth,
-  submitRating
+
+// Public ratings
+router.get(
+  "/public",
+  getPublicRatings
 );
 
+
+// Authenticated user's rating
 router.get(
   "/mine",
   auth,
   getMyRating
 );
 
-module.exports = router;
 
+// Submit/update authenticated user's rating
+router.post(
+  "/",
+  auth,
+  submitRating
+);
+
+module.exports = router;

@@ -32,6 +32,12 @@ const RatingSchema = new mongoose.Schema(
       type: String,
       default: "",
       maxlength: 1000
+    },
+
+    displayPublicly: {
+      type: Boolean,
+      default: false,
+      index: true
     }
   },
   {
