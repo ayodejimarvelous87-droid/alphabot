@@ -399,7 +399,7 @@ await wallet.save();
 
 
 
-await Transaction.create({
+const refundTransaction = await Transaction.create({
 
 phone:userPhone,
 
@@ -432,7 +432,8 @@ await createNotification(
   userPhone,
   "Data Purchase Failed",
   `Your ₦${Number(amount).toLocaleString()} has been refunded to your wallet.`,
-  "warning"
+  "warning",
+  refundTransaction._id
 );
 
 
@@ -501,7 +502,7 @@ phone:userPhone
 
 
 
-  await Transaction.create({
+  const transaction = await Transaction.create({
 
   phone:userPhone,
 
@@ -551,7 +552,9 @@ userPhone,
 
 `${network} data plan purchased.`,
 
-"success"
+"success",
+
+transaction._id
 
 );
 
