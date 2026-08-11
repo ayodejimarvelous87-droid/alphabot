@@ -80,10 +80,27 @@ throw new AppError(
 
 
 const providerKey =
-  String(provider || "").toLowerCase();
+  String(provider || "").trim().toLowerCase();
+
+// Provider selection is exact.
+// There is intentionally NO provider fallback.
+const allowedProviders = new Set([
+  "vtu",
+  "blitzpay",
+  "oplug"
+]);
+
+if (!allowedProviders.has(providerKey)) {
+  throw new AppError(
+    `Unsupported data provider: ${providerKey || "none"}`,
+    400
+  );
+}
+
+provider = providerKey;
 
 const requestedNetwork =
-  String(network || "").toUpperCase();
+  String(network || "").trim().toUpperCase();
 
 const productId =
   `${providerKey}:${requestedNetwork}:${String(variation_id)}`;
@@ -93,40 +110,8 @@ let dataPrice = await ProductOverride.findOne({
   productId
 });
 
-// OPLUG can expose the same plan using different IDs.
-// Example:
-// frontend variation_id: gsubz_356
-// disabled override:    oplug:MTN:356
-//
-// If the exact identity is missing, resolve the numeric plan ID
-// from the OPLUG variation ID and check the canonical override.
-if(!dataPrice && providerKey === "oplug"){
-
-  const variationText = String(variation_id);
-
-  const numericMatch =
-    variationText.match(/(?:^|_)(\\d+)$/);
-
-  if(numericMatch){
-
-    const canonicalId = numericMatch[1];
-
-    const canonicalProductId =
-      `oplug:${requestedNetwork}:${canonicalId}`;
-
-    dataPrice = await ProductOverride.findOne({
-      productId:canonicalProductId
-    });
-
-    console.log("OPLUG CANONICAL LOOKUP:", {
-      originalProductId:productId,
-      canonicalProductId,
-      dataPrice
-    });
-
-  }
-
-}
+// Exact provider + network + variation_id lookup only.
+// No alternate OPLUG ID resolution and no provider fallback.
 
 console.log("DATAPRICE DEBUG:", {
   productId,
@@ -273,7 +258,7 @@ try{
 
 await checkProviderBalance(provider);
 
-if(provider === "blitzpay"){
+if(providerKey === "blitzpay"){
 
 
 
@@ -297,7 +282,7 @@ if(
 providerResponse?.details?.network &&
 providerResponse.details.network.toUpperCase() !== network.toUpperCase()
 ){
-throw new Error(`OPLUG network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
+throw new Error(`Provider network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
 }
 
 
@@ -316,7 +301,7 @@ if(!providerResponse || providerResponse.success !== true){
 
 
 
-else if(provider === "oplug"){
+else if(providerKey === "oplug"){
 
 console.log("DATA OPLUG BUY:", {network, variation_id, provider});
 console.log("OPLUG REQUEST BEFORE PURCHASE:", {network, variation_id, dataPhone});
@@ -330,7 +315,7 @@ if(
 providerResponse?.details?.network &&
 providerResponse.details.network.toUpperCase() !== network.toUpperCase()
 ){
-throw new Error(`OPLUG network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
+throw new Error(`Provider network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
 }
 if(
 !providerResponse ||
@@ -345,14 +330,19 @@ providerResponse.msg ||
 );
 }
 
-}else{
+}else if(providerKey === "vtu"){
 
 
 
 providerResponse = await purchaseProduct(
 dataPhone,
 {
-variation_id: variation_id || plan,
+variation_id:
+  String(
+    dataPrice.providerPlanId ||
+    variation_id ||
+    plan
+  ),
 network
 }
 );
@@ -361,7 +351,7 @@ if(
 providerResponse?.details?.network &&
 providerResponse.details.network.toUpperCase() !== network.toUpperCase()
 ){
-throw new Error(`OPLUG network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
+throw new Error(`Provider network mismatch: requested ${network}, returned ${providerResponse.details.network}`);
 }
 
 
@@ -386,6 +376,15 @@ providerResponse?.error ||
 }
 
 
+
+
+else{
+
+  throw new Error(
+    `Unsupported data provider: ${providerKey || "unknown"}`
+  );
+
+}
 
 }catch(error){
 console.log("REAL DATA ERROR:", error.message);

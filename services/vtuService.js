@@ -254,6 +254,19 @@ message:error.response?.data || error.message
 
 
 
+const getDataVariations = async(serviceId = null)=>{
+
+  let endpoint = "/api/v2/variations/data";
+
+  if(serviceId){
+    endpoint += `?service_id=${encodeURIComponent(serviceId)}`;
+  }
+
+  return await vtuPublicGet(endpoint);
+
+};
+
+
 const getTVVariations = async()=>{
 
 return await vtuPublicGet("/api/v2/variations/tv");
@@ -345,6 +358,7 @@ module.exports = {
     vtuPublicGet,
   purchaseAirtime,
     purchaseProduct,
+    getDataVariations,
     getTVVariations,
     getElectricityVariations,
     verifyCustomer,

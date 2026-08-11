@@ -54,12 +54,15 @@ function calculateSellingPrice(cost) {
 }
 
 function normalizeCategory(plan) {
-  const name = String(
-    plan.data_plan ||
-    plan.type ||
-    plan.name ||
-    ""
-  ).toLowerCase();
+  const name = [
+    plan?.category,
+    plan?.type,
+    plan?.data_plan,
+    plan?.name
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
   if (
     name.includes("sme 2") ||
@@ -109,7 +112,7 @@ function normalizePlan(plan, provider) {
     return null;
   }
 
-  const providerPlanId =
+  let providerPlanId =
     plan.providerPlanId ??
     plan.provider_plan_id ??
     plan.id ??
@@ -123,6 +126,54 @@ function normalizePlan(plan, provider) {
     return null;
   }
 
+  /*
+   * OPLUG may expose the same plan using two identifiers:
+   *
+   *   85
+   *   provider_9mobile_85
+   *
+   * These are the same OPLUG route, not two routes.
+   *
+   * Canonicalize only the known OPLUG provider_<network>_<id>
+   * format. Other providers keep their original IDs untouched.
+   */
+  if (
+    String(provider).toLowerCase() === "oplug"
+  ) {
+
+    const idText =
+      String(providerPlanId).trim();
+
+    const networkSlug =
+      String(network)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "");
+
+    const match =
+      idText.match(
+        /^provider_(9mobile|etisalat|mtn|airtel|glo)_(.+)$/i
+      );
+
+    if (match) {
+
+      const idNetwork =
+        match[1]
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "");
+
+      if (
+        idNetwork === networkSlug ||
+        (
+          idNetwork === "etisalat" &&
+          networkSlug === "9mobile"
+        )
+      ) {
+        providerPlanId =
+          String(match[2]);
+      }
+    }
+  }
+
   const costPrice = normalizeNumber(
     plan.costPrice ??
     plan.providerPrice ??
@@ -134,12 +185,127 @@ function normalizePlan(plan, provider) {
     return null;
   }
 
-  // Normalize data size.
+  // Normalize data size and extract validity embedded in the
+  // datasize string.
+  //
+  // Examples:
+  //   "750mb - 1day"              -> datasize "750MB", validity "1 Days"
+  //   "2.5GB - 2days"             -> datasize "2.5GB", validity "2 Days"
+  //   "10GB - 7days"              -> datasize "10GB", validity "7 Days"
+  //   "16.5GB + 25mins - 30days"  -> datasize "16.5GB+25MINS", validity "30 Days"
+  //
+  // This prevents formatting differences from creating duplicate
+  // DataProducts.
+
   function normalizeDatasize(value) {
-    return String(value || "")
+    let text = String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toUpperCase();
+
+    /*
+     * Some providers put the network name inside the datasize/name:
+     *
+     *   "Glo 1GB"       -> "1GB"
+     *   "MTN 2GB"       -> "2GB"
+     *   "Airtel 500MB"  -> "500MB"
+     *
+     * Only remove a known network prefix.
+     * Do NOT strip arbitrary words because descriptions such as
+     * "250MB NIGHT PLAN" must remain intact.
+     */
+    const networkPrefix = new RegExp(
+      "^(?:MTN|AIRTEL|GLO|9MOBILE|ETISALAT)\\s+",
+      "i"
+    );
+
+    text = text.replace(
+      networkPrefix,
+      ""
+    );
+
+    return text
       .trim()
       .replace(/\s+/g, "")
       .toUpperCase();
+  }
+
+  function extractEmbeddedValidity(value) {
+    const text = String(value || "")
+      .trim()
+      .replace(/\s+/g, " ");
+
+    /*
+     * Validity may appear before a trailing description.
+     *
+     * Examples:
+     *
+     *   "750MB - 1day"
+     *     -> "750MB", "1 Days"
+     *
+     *   "2.5GB - 2days"
+     *     -> "2.5GB", "2 Days"
+     *
+     *   "300.0 GB - 90 days"
+     *     -> "300.0 GB", "90 Days"
+     *
+     *   "18GB - 14days (New)"
+     *     -> "18GB (New)", "14 Days"
+     *
+     *   "5GB - 30days (Promo: N399/GB)"
+     *     -> "5GB (Promo: N399/GB)", "30 Days"
+     *
+     * The old implementation required the validity to be at the
+     * very end of the string. That caused values such as
+     * "18GB - 14days (New)" to remain embedded in datasize.
+     */
+
+    const match = text.match(
+      /\s*-\s*(\d+(?:\.\d+)?)\s*(day|days|week|weeks|month|months)\b/i
+    );
+
+    if (!match) {
+      return {
+        datasize: text,
+        validity: ""
+      };
+    }
+
+    const number = match[1];
+    const unit = match[2].toLowerCase();
+
+    let normalizedUnit = "Days";
+
+    if (unit === "week" || unit === "weeks") {
+      normalizedUnit = "Weeks";
+    } else if (unit === "month" || unit === "months") {
+      normalizedUnit = "Months";
+    }
+
+    /*
+     * Remove only the "- N days/weeks/months" portion.
+     *
+     * Anything after it, such as "(New)" or "(Promo: ...)",
+     * remains part of the descriptive datasize.
+     */
+    const datasize = (
+      text.slice(0, match.index) +
+      text.slice(match.index + match[0].length)
+    )
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const normalizedValidity =
+      normalizedUnit === "Days"
+        ? `${number} Day${Number(number) === 1 ? "" : "s"}`
+        : normalizedUnit === "Weeks"
+          ? `${number} Week${Number(number) === 1 ? "" : "s"}`
+          : `${number} Month${Number(number) === 1 ? "" : "s"}`;
+
+    return {
+      datasize,
+      validity: normalizedValidity
+    };
   }
 
   // Normalize validity.
@@ -158,12 +324,37 @@ function normalizePlan(plan, provider) {
       return "";
     }
 
-    const text = String(value)
+    let text = String(value)
       .trim()
       .replace(/\s+/g, " ");
 
+    // Reject malformed/meaningless validity values.
+    // In particular, never create "0 Days".
+    if (
+      /^0(?:\.0+)?\s*(day|days|week|weeks|month|months)?$/i.test(text)
+    ) {
+      return "";
+    }
+
+    // Repair accidental duplicated units such as:
+    // "1 days days" -> "1 Day"
+    // "2 day days"  -> "2 Days"
+    const duplicated = text.match(
+      /^(\d+(?:\.\d+)?)\s*(day|days|week|weeks|month|months)\s+\2$/i
+    );
+
+    if (duplicated) {
+      text = `${duplicated[1]} ${duplicated[2]}`;
+    }
+
     if (/^\d+(?:\.\d+)?$/.test(text)) {
-      return `${text} Days`;
+      const number = Number(text);
+
+      if (!Number.isFinite(number) || number <= 0) {
+        return "";
+      }
+
+      return `${text} Day${Number(text) === 1 ? "" : "s"}`;
     }
 
     const match = text.match(
@@ -171,32 +362,94 @@ function normalizePlan(plan, provider) {
     );
 
     if (match) {
-      const number = match[1];
+      const number = Number(match[1]);
       const unit = match[2].toLowerCase();
 
+      if (!Number.isFinite(number) || number <= 0) {
+        return "";
+      }
+
       if (unit === "day" || unit === "days") {
-        return `${number} Days`;
+        return `${match[1]} Day${number === 1 ? "" : "s"}`;
       }
 
       if (unit === "week" || unit === "weeks") {
-        return `${number} Weeks`;
+        return `${match[1]} Week${number === 1 ? "" : "s"}`;
       }
 
-      return `${number} Months`;
+      return `${match[1]} Month${number === 1 ? "" : "s"}`;
     }
 
-    return text;
+    return "";
   }
 
-  const datasize = normalizeDatasize(
+  const rawDatasize =
     plan.datasize ||
-    plan.size
-  );
+    plan.size ||
+    plan.data_plan ||
+    plan.type ||
+    plan.name ||
+    "";
 
-  const validity = normalizeValidity(
+  const extracted =
+    extractEmbeddedValidity(rawDatasize);
+
+  /*
+   * Some providers put the validity in the name rather than
+   * datasize. If datasize did not contain it, inspect the name.
+   */
+  const extractedFromName =
+    extracted.validity
+      ? extracted
+      : extractEmbeddedValidity(
+          plan.name ||
+          plan.data_plan ||
+          ""
+        );
+
+  const finalExtractedValidity =
+    extracted.validity ||
+    extractedFromName.validity ||
+    "";
+
+  const datasizeSource =
+    extracted.validity
+      ? extracted.datasize
+      : extractedFromName.validity
+        ? extractedFromName.datasize
+        : rawDatasize;
+
+  const datasize =
+    normalizeDatasize(datasizeSource)
+      .replace(/\s*([+])\s*/g, "$1")
+      .replace(/\s*([/-])\s*/g, "$1");
+
+  const explicitValidity =
     plan.validity ??
-    plan.day
-  );
+    plan.day;
+
+  const explicitValidityText =
+    explicitValidity === undefined ||
+    explicitValidity === null
+      ? ""
+      : String(explicitValidity).trim();
+
+  const normalizedExplicitValidity =
+    explicitValidityText &&
+    !/^undefined\s*days?$/i.test(explicitValidityText)
+      ? normalizeValidity(explicitValidity)
+      : "";
+
+  /*
+   * Prefer a valid explicit provider value.
+   * Otherwise use validity extracted from datasize/name.
+   *
+   * Invalid values such as 0, undefined, or malformed duplicated
+   * units must never become part of productKey.
+   */
+  const validity =
+    normalizedExplicitValidity ||
+    finalExtractedValidity;
 
   let name = String(
     plan.name ||
@@ -234,13 +487,11 @@ function normalizePlan(plan, provider) {
     datasize,
     validity,
 
-    sellingPrice:
-      calculateSellingPrice(costPrice),
-
     providerRoute: {
       provider: String(provider).toLowerCase(),
       providerPlanId: String(providerPlanId),
       costPrice,
+      sellingPrice: calculateSellingPrice(costPrice),
       active: true,
       priority: 100,
       lastSeenAt: new Date()
@@ -291,10 +542,13 @@ async function syncProducts(plans) {
     }
 
     const normalized =
-      normalizePlan(
-        item.plan,
-        item.provider
-      );
+      item.productKey &&
+      item.providerRoute
+        ? item
+        : normalizePlan(
+            item.plan,
+            item.provider
+          );
 
     if (!normalized) {
       continue;
@@ -400,36 +654,33 @@ async function syncProducts(plans) {
     }
 
     /*
-     * Cheapest active provider becomes the
-     * default selling-price reference.
+     * IMPORTANT:
+     *
+     * Do NOT choose a cheapest provider.
+     *
+     * Every provider route is an independent product option.
+     *
+     * Example:
+     *   Provider A -> 1GB -> ₦300
+     *   Provider B -> 1GB -> ₦500
+     *
+     * These prices must remain attached to their respective
+     * provider routes.
+     *
+     * If Provider A fails, the system MUST NOT switch to
+     * Provider B automatically.
+     *
+     * The provider route is the source of truth.
      */
-    const cheapest =
-      product.providers
-        .filter(route => route.active)
-        .sort(
-          (a, b) =>
-            a.costPrice - b.costPrice
-        )[0];
 
-    if (cheapest) {
-
-      product.sellingPrice =
-        calculateSellingPrice(
-          cheapest.costPrice
-        );
-
-    } else {
-
-      /*
-       * Keep the product itself visible even when every
-       * provider route has been disabled.
-       *
-       * This is important because ALL plans must remain
-       * represented in the frontend/product catalogue.
-       */
-      product.active = true;
-
-    }
+    /*
+     * Keep the product visible even when every provider
+     * route has been disabled.
+     *
+     * ALL provider plans must remain represented in the
+     * frontend/product catalogue.
+     */
+    product.active = true;
   }
 
   const operations = [];
@@ -459,9 +710,6 @@ async function syncProducts(plans) {
             validity:
               product.validity,
 
-            sellingPrice:
-              product.sellingPrice,
-
             active:
               product.active,
 
@@ -473,6 +721,15 @@ async function syncProducts(plans) {
 
             lastSeenAt:
               new Date()
+          },
+
+          /*
+           * Product-level sellingPrice is intentionally removed.
+           *
+           * Prices belong to individual provider routes.
+           */
+          $unset: {
+            sellingPrice: 1
           }
         },
 

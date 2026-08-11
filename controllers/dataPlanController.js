@@ -93,7 +93,6 @@ const DATA_PLANS_CACHE_TTL = 5 * 60 * 1000;
 
 const DATA_PLANS_CACHE_KEY = "data-plans";
 
-let dataPlansRefreshing = false;
 
 const getCachedDataPlans = async()=>{
 
@@ -185,6 +184,15 @@ try{
 
   const cached = await getCachedDataPlans();
 
+  console.log(
+    "🔎 DATA PLANS REQUEST:",
+    JSON.stringify({
+      hasCache: !!cached,
+      updatedAt: cached?.updatedAt || null,
+      skipCache: !!req?._skipDataPlansCache
+    })
+  );
+
   if(cached && !req?._skipDataPlansCache){
 
     const cacheAge =
@@ -192,6 +200,10 @@ try{
 
     // Fresh cache.
     if(cacheAge < DATA_PLANS_CACHE_TTL){
+
+      console.log(
+        "🔎 DATA PLANS CACHE BRANCH: FRESH CACHE"
+      );
 
       // ---------------------------------------------------------
       // Keep the new unified DataProduct layer synchronized even
@@ -222,6 +234,119 @@ try{
           }
         ];
 
+        // =========================================================
+        // TEMPORARY CROSS-PROVIDER NORMALIZATION AUDIT
+        // =========================================================
+
+        try {
+
+          const {
+            normalizePlan
+          } = require("../services/dataProductEngine");
+
+          const auditPlans = [];
+
+          for (const result of cachedProviderResults) {
+
+            if (!result || !Array.isArray(result.plans)) {
+              continue;
+            }
+
+            for (const plan of result.plans) {
+
+              const provider =
+                String(result.provider || "").toLowerCase();
+
+              const normalized =
+                normalizePlan(plan, provider);
+
+              if (!normalized) {
+                continue;
+              }
+
+              auditPlans.push({
+                provider,
+                productKey: normalized.productKey,
+                providerPlanId:
+                  normalized.providerRoute.providerPlanId,
+                network: normalized.network,
+                category: normalized.category,
+                datasize: normalized.datasize,
+                validity: normalized.validity,
+                name: normalized.name
+              });
+
+            }
+          }
+
+          const crossProvider =
+            new Map();
+
+          for (const item of auditPlans) {
+
+            if (!crossProvider.has(item.productKey)) {
+              crossProvider.set(
+                item.productKey,
+                []
+              );
+            }
+
+            crossProvider
+              .get(item.productKey)
+              .push(item);
+          }
+
+          console.log(
+            "\n========== CACHED CROSS-PROVIDER MATCHES ==========\n"
+          );
+
+          let matchCount = 0;
+
+          for (const [productKey, routes] of crossProvider) {
+
+            const providers =
+              new Set(
+                routes.map(
+                  route => route.provider
+                )
+              );
+
+            if (providers.size > 1) {
+
+              matchCount++;
+
+              console.log(
+                JSON.stringify(
+                  {
+                    productKey,
+                    providers: [...providers],
+                    routes
+                  },
+                  null,
+                  2
+                )
+              );
+
+              if (matchCount >= 30) {
+                break;
+              }
+
+            }
+          }
+
+          console.log(
+            `\\nCross-provider unified products found: ${matchCount}\\n`
+          );
+
+        } catch(auditError) {
+
+          console.log(
+            "⚠️ Cross-provider audit error:",
+            auditError.message
+          );
+
+        }
+
         const unifiedResult =
           await syncProviderProducts(
             cachedProviderResults
@@ -244,38 +369,20 @@ try{
 
     }
 
-    // Stale-while-revalidate.
-    if(!dataPlansRefreshing){
+    // Cache is stale.
+    //
+    // IMPORTANT:
+    // Do NOT return the stale catalogue.
+    //
+    // Returning stale data here could resurrect plans from a
+    // provider that has now failed. The refresh must complete
+    // first so the response represents the current provider state.
+    //
+    // There is intentionally NO provider fallback.
 
-      dataPlansRefreshing = true;
-
-      // Refresh completely in the background.
-      // The cached response is returned immediately to the user.
-      Promise.resolve()
-        .then(()=>getDataPlans(
-          {_skipDataPlansCache:true},
-          {
-            json:()=>{}
-          }
-        ))
-        .catch(error=>{
-
-          console.log(
-            "Background data-plan refresh error:",
-            error.message
-          );
-
-        })
-        .finally(()=>{
-
-          dataPlansRefreshing = false;
-
-        });
-
-    }
-
-    // Never make the user wait for provider APIs.
-    return res.json(cached.data);
+    console.log(
+      "⚠️ Data plans cache is stale - refreshing providers before response"
+    );
 
   }
 
@@ -419,14 +526,10 @@ const vtuPlans =
     ? (vtuResult.value?.plans || [])
     : [];
 
-if(vtuFailed && cached?.providers?.vtu){
+if(vtuFailed){
 
   console.log(
-    "⚠️ VTU failed - using previous cached VTU plans"
-  );
-
-  allPlans.push(
-    ...cached.providers.vtu
+    "⚠️ VTU failed - NO fallback plans will be used"
   );
 
 }else{
@@ -473,14 +576,10 @@ const currentBlitzIds = new Set();
 
 const blitzOverrides = [];
 
-if(blitzFailed && cached?.providers?.blitzpay){
+if(blitzFailed){
 
   console.log(
-    "⚠️ BlitzPay failed - using previous cached BlitzPay plans"
-  );
-
-  allPlans.push(
-    ...cached.providers.blitzpay
+    "⚠️ BlitzPay failed - NO fallback plans will be used"
   );
 
 }else{
@@ -624,14 +723,10 @@ const oplugPlans =
     ? (oplugResult.value?.plans || [])
     : [];
 
-if(oplugFailed && cached?.providers?.oplug){
+if(oplugFailed){
 
   console.log(
-    "⚠️ OPLUG failed - using previous cached OPLUG plans"
-  );
-
-  allPlans.push(
-    ...cached.providers.oplug
+    "⚠️ OPLUG failed - NO fallback plans will be used"
   );
 
 }else{
@@ -651,10 +746,28 @@ if(oplugFailed && cached?.providers?.oplug){
 
       provider:"oplug",
 
+      /*
+       * Oplug canonical identity:
+       *
+       * Prefer numeric plan_id over legacy/non-canonical id.
+       *
+       * Example:
+       *   id: "gsubz_356"
+       *   plan_id: 356
+       *
+       * Canonical ID = 356
+       */
       variation_id:
         String(
-          plan.id ??
-          plan.plan_id
+          (
+            plan.plan_id !== undefined &&
+            plan.plan_id !== null &&
+            /^\d+$/.test(
+              String(plan.plan_id).trim()
+            )
+          )
+            ? plan.plan_id
+            : plan.id
         ),
 
       display_price:
@@ -700,7 +813,21 @@ try {
       continue;
     }
 
-    const variationId = String(plan.id);
+    /*
+     * Use the same canonical Oplug identity rule used above.
+     * Numeric plan_id wins over legacy/non-canonical id.
+     */
+    const variationId = String(
+      (
+        plan.plan_id !== undefined &&
+        plan.plan_id !== null &&
+        /^\d+$/.test(
+          String(plan.plan_id).trim()
+        )
+      )
+        ? plan.plan_id
+        : plan.id
+    );
     const providerPrice = Number(plan.price);
     const sellingPrice = calculateSellingPrice(providerPrice);
 
@@ -717,11 +844,7 @@ try {
             productId,
             provider:"oplug",
             providerPlanId:
-              String(
-                plan.providerPlanId ??
-                plan.plan_id ??
-                variationId
-              ),
+              variationId,
             network:plan.network,
             name:`${plan.network} ${plan.datasize || "DATA"}`,
             providerPrice,
@@ -798,14 +921,67 @@ try {
       ""
     ).trim().toUpperCase();
 
-    const planId =
-      plan.id ??
-      plan.plan_id ??
-      plan.providerPlanId ??
-      plan.variation_id;
+    /*
+     * Canonical Oplug cache identity.
+     *
+     * Prefer numeric plan_id over legacy/non-canonical id.
+     *
+     * Example:
+     *   id: "gsubz_356"
+     *   plan_id: 356
+     *
+     * Canonical identity = 356
+     */
+    let planId =
+      (
+        plan.plan_id !== undefined &&
+        plan.plan_id !== null &&
+        /^\d+$/.test(
+          String(plan.plan_id).trim()
+        )
+      )
+        ? plan.plan_id
+        : (
+            plan.id ??
+            plan.providerPlanId ??
+            plan.variation_id
+          );
 
     if(!network || planId === undefined || planId === null){
       return null;
+    }
+
+    /*
+     * OPLUG can cache the same plan as:
+     *
+     *   85
+     *   provider_9mobile_85
+     *
+     * Treat both as the same provider route.
+     */
+    const idText = String(planId).trim();
+
+    const match =
+      idText.match(
+        /^provider_(9mobile|etisalat|mtn|airtel|glo)_(.+)$/i
+      );
+
+    if(match){
+
+      const idNetwork =
+        match[1]
+          .toUpperCase();
+
+      if(
+        idNetwork === network ||
+        (
+          idNetwork === "ETISALAT" &&
+          network === "9MOBILE"
+        )
+      ){
+        planId = match[2];
+      }
+
     }
 
     return `oplug:${network}:${String(planId)}`;
@@ -840,10 +1016,19 @@ try {
 
       variation_id:
         String(
-          plan.id ??
-          plan.plan_id ??
-          plan.providerPlanId ??
-          plan.variation_id
+          (
+            plan.plan_id !== undefined &&
+            plan.plan_id !== null &&
+            /^\d+$/.test(
+              String(plan.plan_id).trim()
+            )
+          )
+            ? plan.plan_id
+            : (
+                plan.id ??
+                plan.providerPlanId ??
+                plan.variation_id
+              )
         ),
 
       display_price:
@@ -870,7 +1055,7 @@ try {
 // =========================================================
 //
 // At this point all provider plans have already been assembled
-// into allPlans, including persistent fallback plans.
+// into allPlans. Failed providers contribute no plans.
 //
 // The existing frontend response is NOT changed here.
 // DataProduct is built alongside the current system so we can
@@ -882,7 +1067,149 @@ try {
 
 try {
 
-  const unifiedProviderResults = [
+  
+console.log("\n========== PROVIDER NORMALIZATION AUDIT ==========\n");
+
+const {
+  normalizePlan
+} = require("../services/dataProductEngine");
+
+for (const provider of ["vtu", "blitzpay", "oplug"]) {
+
+  const providerPlans = allPlans.filter(
+    plan =>
+      String(plan.provider || "").toLowerCase() === provider
+  );
+
+  console.log(`\n===== ${provider.toUpperCase()} =====`);
+  console.log(`Raw plans: ${providerPlans.length}`);
+
+  const keys = new Map();
+
+  for (const plan of providerPlans) {
+
+    const normalized = normalizePlan(
+      plan,
+      provider
+    );
+
+    if (!normalized) {
+      continue;
+    }
+
+    const key = normalized.productKey;
+
+    if (!keys.has(key)) {
+      keys.set(key, []);
+    }
+
+    keys.get(key).push({
+      provider,
+      name: plan.name,
+      data_plan: plan.data_plan,
+      datasize: plan.datasize,
+      network: plan.network,
+      service_name: plan.service_name,
+      category: plan.category,
+      type: plan.type,
+      validity: plan.validity,
+      day: plan.day,
+      providerPlanId:
+        normalized.providerRoute.providerPlanId,
+      normalized: {
+        network: normalized.network,
+        category: normalized.category,
+        datasize: normalized.datasize,
+        validity: normalized.validity,
+        productKey: normalized.productKey
+      }
+    });
+  }
+
+  console.log(`Normalized keys: ${keys.size}`);
+
+  for (const [key, plans] of keys) {
+
+    if (plans.length > 1) {
+      console.log(
+        JSON.stringify(plans, null, 2)
+      );
+    }
+  }
+}
+
+const crossProvider = new Map();
+
+for (const plan of allPlans) {
+
+  const provider =
+    String(plan.provider || "").toLowerCase();
+
+  const normalized =
+    normalizePlan(plan, provider);
+
+  if (!normalized) {
+    continue;
+  }
+
+  if (!crossProvider.has(normalized.productKey)) {
+    crossProvider.set(
+      normalized.productKey,
+      []
+    );
+  }
+
+  crossProvider
+    .get(normalized.productKey)
+    .push({
+      provider,
+      providerPlanId:
+        normalized.providerRoute.providerPlanId,
+      name: normalized.name,
+      network: normalized.network,
+      category: normalized.category,
+      datasize: normalized.datasize,
+      validity: normalized.validity
+    });
+}
+
+console.log(
+  "\n========== CROSS-PROVIDER MATCHES ==========\n"
+);
+
+let matchCount = 0;
+
+for (const [productKey, routes] of crossProvider) {
+
+  const providers =
+    new Set(
+      routes.map(route => route.provider)
+    );
+
+  if (providers.size > 1) {
+
+    matchCount++;
+
+    console.log(
+      JSON.stringify({
+        productKey,
+        providers: [...providers],
+        routes
+      }, null, 2)
+    );
+
+    if (matchCount >= 30) {
+      break;
+    }
+  }
+}
+
+console.log(
+  `\nCross-provider unified products found: ${matchCount}`
+);
+
+
+const unifiedProviderResults = [
 
     {
       provider: "vtu",

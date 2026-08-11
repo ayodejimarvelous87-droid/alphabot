@@ -17,6 +17,11 @@ const providerRouteSchema = new mongoose.Schema(
       default: 0
     },
 
+    sellingPrice: {
+      type: Number,
+      default: 0
+    },
+
     active: {
       type: Boolean,
       default: true
@@ -71,12 +76,6 @@ const dataProductSchema = new mongoose.Schema(
     validity: {
       type: String,
       default: ""
-    },
-
-    sellingPrice: {
-      type: Number,
-      required: true,
-      default: 0
     },
 
     active: {

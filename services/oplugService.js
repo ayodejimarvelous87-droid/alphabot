@@ -195,15 +195,33 @@ const getDataPlans = async (network) => {
 
     return uniquePlans.map(plan => ({
 
-      // Keep the actual provider identifier when available.
-      // Oplug can expose both "id" and "plan_id".
+      /*
+       * Oplug may expose a legacy/non-canonical `id` such as:
+       *
+       *   id: "gsubz_356"
+       *   plan_id: 356
+       *
+       * The numeric plan_id is the canonical Oplug route.
+       * Prefer it whenever available so legacy gsubz_* identities
+       * cannot be recreated in ProductOverride/DataProduct.
+       */
       id:
-        plan.id ??
-        plan.plan_id,
+        (
+          plan.plan_id !== undefined &&
+          plan.plan_id !== null &&
+          /^\\d+$/.test(String(plan.plan_id).trim())
+        )
+          ? plan.plan_id
+          : plan.id,
 
       providerPlanId:
-        plan.id ??
-        plan.plan_id,
+        (
+          plan.plan_id !== undefined &&
+          plan.plan_id !== null &&
+          /^\\d+$/.test(String(plan.plan_id).trim())
+        )
+          ? plan.plan_id
+          : plan.id,
 
       plan_id:
         plan.plan_id,
@@ -214,10 +232,29 @@ const getDataPlans = async (network) => {
 
       datasize: plan.datasize || "DATA",
 
-      day:
-        plan.day
-          ? `${plan.day} Days`
-          : "30 Days",
+      day: (() => {
+        const rawDay = plan.day;
+
+        if (
+          rawDay === undefined ||
+          rawDay === null ||
+          String(rawDay).trim() === ""
+        ) {
+          return "30 Days";
+        }
+
+        const value = String(rawDay).trim();
+
+        if (/^\d+(?:\.\d+)?\s*days?$/i.test(value)) {
+          return value.replace(/\s*days?$/i, " Days");
+        }
+
+        if (/^\d+(?:\.\d+)?$/.test(value)) {
+          return `${value} Days`;
+        }
+
+        return value;
+      })(),
 
       name:
         `${plan.network} ${plan.datasize || "DATA"} - ${plan.type || "DATA"}`,

@@ -19,10 +19,7 @@ function adaptProviderPlans(provider, plans) {
       continue;
     }
 
-    result.push({
-      provider,
-      plan
-    });
+    result.push(normalized);
   }
 
   return result;
