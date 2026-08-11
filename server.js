@@ -120,6 +120,7 @@ const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const userRoutes = require("./routes/userRoutes");
 const twoFactorRoutes = require("./routes/twoFactorRoutes");
+const ratingRoutes = require("./routes/ratingRoutes");
 const transactionRoutes = require("./routes/transactionRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -217,6 +218,7 @@ app.use("/orders", orderRoutes);
 
 app.use("/users", userRoutes);
 app.use("/2fa", twoFactorRoutes);
+app.use("/ratings", ratingRoutes);
 
 app.post("/users/test",(req,res)=>{
   res.json({
