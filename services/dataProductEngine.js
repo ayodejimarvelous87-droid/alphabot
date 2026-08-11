@@ -38,11 +38,11 @@ function normalizeNumber(value) {
 function calculateSellingPrice(cost) {
   cost = normalizeNumber(cost);
 
-  if (cost <= 500) {
+  if (cost < 500) {
     return Math.round(cost + 22);
   }
 
-  if (cost <= 2000) {
+  if (cost <= 1000) {
     return Math.round(cost + 52);
   }
 
@@ -50,7 +50,11 @@ function calculateSellingPrice(cost) {
     return Math.round(cost + 102);
   }
 
-  return Math.round(cost + (cost * 0.02) + 2);
+  if (cost <= 10000) {
+    return Math.round(cost + 150);
+  }
+
+  return Math.round(cost + 200);
 }
 
 function normalizeCategory(plan) {
@@ -534,6 +538,80 @@ async function syncProducts(plans) {
     )
   );
 
+  /*
+   * Individual admin selling-price overrides.
+   *
+   * ProductOverride is per provider + network + providerPlanId.
+   * An override affects ONLY that specific provider route.
+   *
+   * Provider cost remains untouched.
+   */
+  let sellingPriceOverrides = [];
+
+  try {
+
+    sellingPriceOverrides =
+      await ProductOverride.find({
+        sellingPrice: {
+          $gt: 0
+        }
+      })
+      .select(
+        "productId provider network providerPlanId sellingPrice"
+      )
+      .lean();
+
+  } catch(error) {
+
+    console.log(
+      "⚠️ DataProduct selling-price override read error:",
+      error.message
+    );
+
+  }
+
+  const overridePrices = new Map();
+
+  for(const override of sellingPriceOverrides){
+
+    const provider =
+      String(
+        override.provider || ""
+      ).trim().toLowerCase();
+
+    const network =
+      String(
+        override.network || ""
+      ).trim().toUpperCase();
+
+    const providerPlanId =
+      String(
+        override.providerPlanId || ""
+      ).trim();
+
+    const sellingPrice =
+      Number(override.sellingPrice);
+
+    if(
+      !provider ||
+      !network ||
+      !providerPlanId ||
+      !Number.isFinite(sellingPrice) ||
+      sellingPrice <= 0
+    ){
+      continue;
+    }
+
+    const key =
+      `${provider}:${network}:${providerPlanId}`;
+
+    overridePrices.set(
+      key,
+      sellingPrice
+    );
+
+  }
+
   const products = new Map();
 
   for (const item of plans) {
@@ -617,6 +695,25 @@ async function syncProducts(plans) {
 
     normalized.providerRoute.active =
       routeActive;
+
+    /*
+     * Apply an individual admin selling-price override.
+     *
+     * The override is tied to this exact provider route.
+     * The provider costPrice is NEVER changed.
+     *
+     * If no override exists, the normal calculated price
+     * from calculateSellingPrice(costPrice) remains.
+     */
+    const overrideKey =
+      `${provider}:${network}:${providerPlanId}`;
+
+    if(overridePrices.has(overrideKey)){
+
+      normalized.providerRoute.sellingPrice =
+        overridePrices.get(overrideKey);
+
+    }
 
     /*
      * Keep EVERY provider plan.

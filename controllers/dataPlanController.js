@@ -733,6 +733,38 @@ if(oplugFailed){
 
   oplugPlans.forEach(plan=>{
 
+    // Never expose OPLUG plans with zero or invalid provider prices.
+    /*
+     * OPLUG exposes both `price` and `costPrice`.
+     *
+     * `costPrice` is the provider cost used by AlphaBot
+     * for providerPrice and selling-price calculation.
+     *
+     * Fall back to `price` for older cached/legacy records.
+     */
+    const providerPrice = Number(
+      plan.costPrice ?? plan.price
+    );
+
+    if(
+      !Number.isFinite(providerPrice) ||
+      providerPrice <= 0
+    ){
+      console.log(
+        "⚠️ OPLUG zero/invalid cost price skipped:",
+        JSON.stringify({
+          id: plan?.id,
+          plan_id: plan?.plan_id,
+          network: plan?.network,
+          datasize: plan?.datasize,
+          price: plan?.price,
+          costPrice: plan?.costPrice
+        })
+      );
+
+      return;
+    }
+
     allPlans.push({
 
       ...plan,
@@ -742,7 +774,7 @@ if(oplugFailed){
       name:
         `${plan.network} ${plan.datasize}`,
 
-      price:Number(plan.price),
+      price:providerPrice,
 
       provider:"oplug",
 
@@ -771,7 +803,7 @@ if(oplugFailed){
         ),
 
       display_price:
-        calculateSellingPrice(plan.price),
+        calculateSellingPrice(providerPrice),
 
       /*
        * Preserve the provider's validity value.
@@ -828,8 +860,16 @@ try {
         ? plan.plan_id
         : plan.id
     );
-    const providerPrice = Number(plan.price);
-    const sellingPrice = calculateSellingPrice(providerPrice);
+    /*
+     * OPLUG provider cost:
+     * prefer costPrice, with price as a legacy fallback.
+     */
+    const providerPrice = Number(
+      plan.costPrice ?? plan.price
+    );
+
+    const sellingPrice =
+      calculateSellingPrice(providerPrice);
 
     const productId =
       `oplug:${String(plan.network).toUpperCase()}:${variationId}`;
@@ -1004,6 +1044,34 @@ try {
 
   savedOplug.forEach(plan=>{
 
+    /*
+     * Prefer the provider's explicit costPrice.
+     * Older cached OPLUG records fall back to price.
+     */
+    const providerPrice = Number(
+      plan.costPrice ?? plan.price
+    );
+
+    // Never resurrect cached OPLUG plans with zero/invalid prices.
+    if(
+      !Number.isFinite(providerPrice) ||
+      providerPrice <= 0
+    ){
+      console.log(
+        "⚠️ Cached OPLUG zero/invalid cost price skipped:",
+        JSON.stringify({
+          id: plan?.id,
+          plan_id: plan?.plan_id,
+          network: plan?.network,
+          datasize: plan?.datasize,
+          price: plan?.price,
+          costPrice: plan?.costPrice
+        })
+      );
+
+      return;
+    }
+
     const identity = getOplugIdentity(plan);
 
     if(!identity || existingIds.has(identity)){
@@ -1032,7 +1100,7 @@ try {
         ),
 
       display_price:
-        calculateSellingPrice(plan.price)
+        calculateSellingPrice(providerPrice)
 
     });
 
@@ -1369,6 +1437,207 @@ try {
   );
 
 }
+
+// Apply individual admin selling-price overrides.
+// ProductOverride is per-product; it does NOT act as a
+// centralized pricing setting.
+//
+// The provider cost remains untouched.
+// If an admin has manually set a sellingPrice for this exact
+// provider + network + provider plan ID, that price wins.
+// Otherwise the normal calculated selling price remains.
+
+try {
+
+  const priceOverrides =
+    await ProductOverride.find({
+      sellingPrice: {
+        $gt: 0
+      }
+    })
+    .select(
+      "productId provider network providerPlanId sellingPrice"
+    )
+    .lean();
+
+  const overridePrices = new Map();
+
+  for(const override of priceOverrides){
+
+    const provider =
+      String(
+        override.provider || ""
+      ).trim().toLowerCase();
+
+    const network =
+      String(
+        override.network || ""
+      ).trim().toUpperCase();
+
+    const providerPlanId =
+      String(
+        override.providerPlanId || ""
+      ).trim();
+
+    if(
+      !provider ||
+      !network ||
+      !providerPlanId
+    ){
+      continue;
+    }
+
+    const key =
+      `${provider}:${network}:${providerPlanId}`;
+
+    const sellingPrice =
+      Number(override.sellingPrice);
+
+    if(
+      Number.isFinite(sellingPrice) &&
+      sellingPrice > 0
+    ){
+      overridePrices.set(
+        key,
+        sellingPrice
+      );
+    }
+
+  }
+
+
+  let appliedOverrides = 0;
+
+  allPlans = allPlans.map(plan => {
+
+    const provider =
+      String(
+        plan.provider || ""
+      ).trim().toLowerCase();
+
+    const network =
+      String(
+        plan.network ||
+        plan.service_name ||
+        ""
+      ).trim().toUpperCase();
+
+    const providerPlanId =
+      String(
+        plan.providerPlanId ||
+        plan.provider_plan_id ||
+        plan.variation_id ||
+        plan.id ||
+        plan.plan_id ||
+        ""
+      ).trim();
+
+    const key =
+      `${provider}:${network}:${providerPlanId}`;
+
+    const overridePrice =
+      overridePrices.get(key);
+
+    if(
+      overridePrice === undefined
+    ){
+      return plan;
+    }
+
+    appliedOverrides++;
+
+    return {
+      ...plan,
+
+      sellingPrice:
+        overridePrice,
+
+      display_price:
+        overridePrice
+    };
+
+  });
+
+
+  console.log(
+    `✅ Individual ProductOverrides applied: ${appliedOverrides}`
+  );
+
+}catch(error){
+
+  console.log(
+    "⚠️ ProductOverride selling-price application error:",
+    error.message
+  );
+
+}
+
+
+/*
+ * Final plan price normalization.
+ *
+ * Keep one consistent meaning for each price field:
+ *
+ *   providerPrice -> actual provider cost
+ *   sellingPrice  -> customer price
+ *   price         -> legacy alias for provider cost
+ *   display_price -> legacy alias for customer price
+ *
+ * This prevents provider-specific records (especially OPLUG)
+ * from exposing missing/ambiguous price fields.
+ */
+allPlans = allPlans.map(plan => {
+
+  const providerPrice =
+    Number(
+      plan.providerPrice ??
+      plan.costPrice ??
+      plan.price
+    );
+
+  const sellingPrice =
+    Number(
+      plan.sellingPrice ??
+      plan.display_price ??
+      (
+        Number.isFinite(providerPrice) &&
+        providerPrice > 0
+          ? calculateSellingPrice(providerPrice)
+          : 0
+      )
+    );
+
+  return {
+    ...plan,
+
+    providerPrice:
+      Number.isFinite(providerPrice)
+        ? providerPrice
+        : 0,
+
+    costPrice:
+      Number.isFinite(providerPrice)
+        ? providerPrice
+        : 0,
+
+    price:
+      Number.isFinite(providerPrice)
+        ? providerPrice
+        : 0,
+
+    sellingPrice:
+      Number.isFinite(sellingPrice)
+        ? sellingPrice
+        : 0,
+
+    display_price:
+      Number.isFinite(sellingPrice)
+        ? sellingPrice
+        : 0
+  };
+
+});
+
 
 const grouped = {};
 

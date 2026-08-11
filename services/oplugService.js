@@ -259,7 +259,21 @@ const getDataPlans = async (network) => {
       name:
         `${plan.network} ${plan.datasize || "DATA"} - ${plan.type || "DATA"}`,
 
-      price: Number(plan.price) || 0
+      /*
+       * Preserve both OPLUG price fields.
+       *
+       * `costPrice` is the provider cost used by AlphaBot's
+       * unified pricing layer when supplied by OPLUG.
+       *
+       * Keep `price` as the original OPLUG price for reference
+       * and backward compatibility.
+       */
+      price: Number(plan.price) || 0,
+
+      costPrice:
+        Number.isFinite(Number(plan.costPrice))
+          ? Number(plan.costPrice)
+          : 0
 
     }));
 
