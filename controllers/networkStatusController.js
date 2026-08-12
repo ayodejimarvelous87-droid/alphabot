@@ -28,8 +28,8 @@ const getAvailability = async (query) => {
 
   if(total === 0){
     return {
-      availability:null,
-      status:"unknown"
+      availability:100,
+      status:"operational"
     };
   }
 
