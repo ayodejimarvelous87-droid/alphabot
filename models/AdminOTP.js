@@ -7,6 +7,12 @@ type:String,
 required:true
 },
 
+accountType:{
+type:String,
+enum:["admin","user"],
+default:"admin"
+},
+
 otp:{
 type:String,
 required:true

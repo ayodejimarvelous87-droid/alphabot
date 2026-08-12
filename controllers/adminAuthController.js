@@ -1,6 +1,7 @@
 const AppError = require("../utils/AppError");
 const auditLogger = require("../services/auditLogger");
 const Admin = require("../models/Admin");
+const User = require("../models/User");
 const AdminOTP = require("../models/AdminOTP");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -16,15 +17,31 @@ try {
 const { username, password } = req.body;
 
 
-const admin = await Admin.findOne({
+let admin = await Admin.findOne({
 username
 });
+
+let accountType = "admin";
+
+
+// If this is not an original Admin account,
+// check whether it is an upgraded User account.
+if(!admin){
+
+admin = await User.findOne({
+phone:username,
+role:"admin"
+});
+
+accountType = "user";
+
+}
 
 
 if(!admin){
 
 return res.status(401).json({
-message:"Invalid username or password"
+message:"Invalid username/phone or password"
 });
 
 }
@@ -60,6 +77,8 @@ username
 await AdminOTP.create({
 
 username,
+
+accountType,
 
 otp,
 
@@ -190,16 +209,39 @@ _id:record._id
 
 
 
-const admin = await Admin.findOne({
+let admin;
+
+if(record.accountType === "user"){
+
+admin = await User.findOne({
+phone:username,
+role:"admin"
+});
+
+}else{
+
+admin = await Admin.findOne({
 username
 });
 
+}
+
+
+if(!admin){
+
+throw new AppError(
+"Admin account not found",
+404
+);
+
+}
 
 
 const token = jwt.sign(
 {
 id:admin._id,
 role:"admin",
+phone:admin.phone || undefined,
 tokenVersion:admin.tokenVersion,
 },
 process.env.JWT_SECRET,

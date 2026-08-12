@@ -29,9 +29,22 @@ const auth = async (req, res, next) => {
     let account;
 
     if(decoded.role === "admin"){
+
+      // Original Admin account
       account = await Admin.findById(decoded.id);
+
+      // Upgraded User account
+      if(!account){
+        account = await User.findOne({
+          _id: decoded.id,
+          role: "admin"
+        });
+      }
+
     }else{
+
       account = await User.findById(decoded.id);
+
     }
 
 

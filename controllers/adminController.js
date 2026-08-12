@@ -847,18 +847,26 @@ throw new AppError(
 
 user.role="admin";
 
+user.tokenVersion = (user.tokenVersion || 0) + 1;
+
 await user.save();
 
 
 res.json({
 message:"User upgraded to admin",
-user
+user:{
+  name:user.name,
+  phone:user.phone,
+  email:user.email,
+  role:user.role
+}
 });
 
 
 }catch(error){
 
-res.status(500).json({
+res.status(error.statusCode || 500).json({
+success:false,
 message:error.message
 });
 
@@ -868,8 +876,6 @@ message:error.message
 
 
 const demoteUserFromAdmin = async(req,res)=>{
-  sendBroadcastNotification,
-  updateSystemSettings
 
 try{
 
@@ -888,18 +894,26 @@ throw new AppError(
 
 user.role="user";
 
+user.tokenVersion = (user.tokenVersion || 0) + 1;
+
 await user.save();
 
 
 res.json({
 message:"User removed from admin role",
-user
+user:{
+  name:user.name,
+  phone:user.phone,
+  email:user.email,
+  role:user.role
+}
 });
 
 
 }catch(error){
 
-res.status(500).json({
+res.status(error.statusCode || 500).json({
+success:false,
 message:error.message
 });
 
