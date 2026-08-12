@@ -10,14 +10,15 @@ const BASE_URL = process.env.OPLUG_BASE_URL;
 const oplugRequest = async (
   endpoint,
   method = "GET",
-  data = null
+  data = null,
+  healthService = endpoint
 ) => {
 
   const startTime = Date.now();
 
   const providerAvailable = await canUseProvider({
     provider: "oplug",
-    service: endpoint
+    service: healthService
   });
 
   if (!providerAvailable) {
@@ -62,7 +63,7 @@ const oplugRequest = async (
 
     await recordProviderResult({
       provider: "oplug",
-      service: endpoint,
+      service: healthService,
       success: true,
       responseTime: Date.now() - startTime
     });
@@ -73,7 +74,7 @@ const oplugRequest = async (
 
     await recordProviderResult({
       provider: "oplug",
-      service: endpoint,
+      service: healthService,
       success: false,
       responseTime: Date.now() - startTime,
       error:
@@ -133,8 +134,16 @@ const getDataPlans = async (network) => {
 
   try {
 
+    const healthService =
+      `data_plans:${String(network || "ALL").trim().toUpperCase()}`;
+
     const response =
-      await oplugRequest("/data_plans");
+      await oplugRequest(
+        "/data_plans",
+        "GET",
+        null,
+        healthService
+      );
 
     const plans = Array.isArray(response)
       ? response

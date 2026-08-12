@@ -182,7 +182,49 @@ try{
 
 
 
+// PRIMARY AIRTIME PROVIDER: BLITZPAY
+
 try {
+
+providerResponse = await purchase({
+
+type:"airtime",
+
+network,
+
+phone:airtimePhone,
+
+amount:Number(amount)
+
+});
+
+console.log(
+"BLITZ AIRTIME RESPONSE:",
+JSON.stringify(providerResponse, null, 2)
+);
+
+
+if(
+!providerResponse ||
+providerResponse.success !== true ||
+providerResponse.status !== "success"
+){
+
+throw new Error("Primary BlitzPay airtime provider failed");
+
+}
+
+
+}catch(primaryError){
+
+
+console.log(
+"Primary BlitzPay airtime failed, trying VTU.ng:",
+primaryError.message
+);
+
+
+// FALLBACK AIRTIME PROVIDER: VTU.ng
 
 await checkProviderBalance("vtu");
 
@@ -197,7 +239,11 @@ amount:Number(amount),
 request_id:reference
 
 });
-console.log("VTU AIRTIME RESPONSE:", JSON.stringify(providerResponse, null, 2));
+
+console.log(
+"VTU AIRTIME FALLBACK RESPONSE:",
+JSON.stringify(providerResponse, null, 2)
+);
 
 
 if(
@@ -205,45 +251,7 @@ if(
 providerResponse.code !== "success"
 ){
 
-throw new Error("Primary airtime provider failed");
-
-}
-
-
-}catch(primaryError){
-
-
-console.log(
-"Primary airtime failed, trying Blitz:",
-primaryError.message
-);
-
-
-providerResponse = await purchase({
-
-type:"airtime",
-
-network,
-
-phone:airtimePhone,
-
-amount:Number(amount)
-
-});
-
-  console.log(
-  "BLITZ AIRTIME RESPONSE:",
-  JSON.stringify(providerResponse, null, 2)
-  );
-
-
-if(
-!providerResponse ||
-providerResponse.success !== true ||
-providerResponse.status !== "success"
-){
-
-throw new Error("Blitz airtime provider failed");
+throw new Error("VTU.ng airtime fallback provider failed");
 
 }
 

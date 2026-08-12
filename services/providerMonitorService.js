@@ -71,14 +71,40 @@ totalCalls
 
 
 // status calculation
+//
+// Status is based primarily on the most recent provider result,
+// rather than lifetime failure counts.
+//
+// This prevents old failures from permanently making a provider
+// appear unhealthy after it has recovered.
 
-if(record.failureCount > 5 &&
-record.failureCount > record.successCount){
+if(success){
+
+record.status = "online";
+
+}
+else{
+
+const recentFailureAge =
+  record.lastFailure
+    ? Date.now() - new Date(record.lastFailure).getTime()
+    : Infinity;
+
+// A fresh failure means the provider/service is degraded.
+// Multiple consecutive failures are handled by the circuit
+// breaker using the accumulated counters.
+
+if(
+  record.failureCount >= 3 &&
+  record.lastFailure &&
+  (!record.lastSuccess ||
+   new Date(record.lastFailure) > new Date(record.lastSuccess))
+){
 
 record.status = "offline";
 
 }
-else if(record.failureCount > 2){
+else if(recentFailureAge < 10 * 60 * 1000){
 
 record.status = "degraded";
 
@@ -86,6 +112,8 @@ record.status = "degraded";
 else{
 
 record.status = "online";
+
+}
 
 }
 
