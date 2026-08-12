@@ -50,6 +50,33 @@ const providerHealthSchema = new mongoose.Schema(
   lastError:{
     type:String,
     default:null
+  },
+
+  recentResults:{
+    type:[
+      {
+        success:{
+          type:Boolean,
+          required:true
+        },
+
+        responseTime:{
+          type:Number,
+          default:0
+        },
+
+        error:{
+          type:String,
+          default:null
+        },
+
+        timestamp:{
+          type:Date,
+          default:Date.now
+        }
+      }
+    ],
+    default:[]
   }
 },
 {

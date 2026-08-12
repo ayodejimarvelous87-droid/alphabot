@@ -10,128 +10,169 @@ const recordProviderResult = async ({
   error = null
 }) => {
 
-try{
+  try {
 
-if(mongoose.connection.readyState !== 1){
-  return;
-}
+    if (mongoose.connection.readyState !== 1) {
+      return;
+    }
 
-  let record = await ProviderHealth.findOne({
+    let record = await ProviderHealth.findOne({
+      provider,
+      service
+    });
 
-  provider,
-  service
-});
+    if (!record) {
 
+      record = await ProviderHealth.create({
+        provider,
+        service,
+        recentResults: []
+      });
 
-if(!record){
-
-record = await ProviderHealth.create({
-  provider,
-  service
-});
-
-}
-
-
-// success case
-if(success){
-
-record.successCount += 1;
-record.lastSuccess = new Date();
-
-}
+    }
 
 
-// failure case
-else{
+    /*
+     * ROLLING PROVIDER HEALTH
+     *
+     * Only the latest 20 provider results are used
+     * to calculate availability and response time.
+     */
 
-record.failureCount += 1;
-record.lastFailure = new Date();
-record.lastError = error || "Unknown provider error";
-
-}
-
-
-// calculate simple average response time
-
-const totalCalls =
-record.successCount + record.failureCount;
-
-
-record.averageResponseTime =
-Math.round(
-(
-(record.averageResponseTime * (totalCalls - 1))
-+
-responseTime
-)
-/
-totalCalls
-);
+    record.recentResults.push({
+      success: Boolean(success),
+      responseTime: Number(responseTime) || 0,
+      error: error || null,
+      timestamp: new Date()
+    });
 
 
-// status calculation
-//
-// Status is based primarily on the most recent provider result,
-// rather than lifetime failure counts.
-//
-// This prevents old failures from permanently making a provider
-// appear unhealthy after it has recovered.
+    // Keep ONLY the latest 20 results.
+    if (record.recentResults.length > 20) {
 
-if(success){
+      record.recentResults =
+        record.recentResults.slice(-20);
 
-record.status = "online";
-
-}
-else{
-
-const recentFailureAge =
-  record.lastFailure
-    ? Date.now() - new Date(record.lastFailure).getTime()
-    : Infinity;
-
-// A fresh failure means the provider/service is degraded.
-// Multiple consecutive failures are handled by the circuit
-// breaker using the accumulated counters.
-
-if(
-  record.failureCount >= 3 &&
-  record.lastFailure &&
-  (!record.lastSuccess ||
-   new Date(record.lastFailure) > new Date(record.lastSuccess))
-){
-
-record.status = "offline";
-
-}
-else if(recentFailureAge < 10 * 60 * 1000){
-
-record.status = "degraded";
-
-}
-else{
-
-record.status = "online";
-
-}
-
-}
+    }
 
 
-await record.save();
+    const results = record.recentResults;
 
 
-}catch(err){
+    const successCount =
+      results.filter(result => result.success).length;
 
-console.log(
-"Provider monitor failed:",
-err.message
-);
+    const failureCount =
+      results.length - successCount;
 
-}
+
+    /*
+     * Keep these fields synchronized with the
+     * rolling 20-result window.
+     */
+
+    record.successCount = successCount;
+    record.failureCount = failureCount;
+
+
+    /*
+     * Average response time is also based only
+     * on the latest 20 results.
+     */
+
+    if (results.length > 0) {
+
+      const totalResponseTime =
+        results.reduce(
+          (total, result) =>
+            total + (Number(result.responseTime) || 0),
+          0
+        );
+
+      record.averageResponseTime =
+        Math.round(
+          totalResponseTime / results.length
+        );
+
+    }
+    else {
+
+      record.averageResponseTime = 0;
+
+    }
+
+
+    /*
+     * Availability is:
+     *
+     * successful results / total recent results * 100
+     */
+
+    const availability =
+      results.length > 0
+        ? Math.round(
+            (successCount / results.length) * 100
+          )
+        : 100;
+
+
+    /*
+     * Update timestamps.
+     */
+
+    if (success) {
+
+      record.lastSuccess = new Date();
+
+    }
+    else {
+
+      record.lastFailure = new Date();
+      record.lastError =
+        error || "Unknown provider error";
+
+    }
+
+
+    /*
+     * Status is based on the latest rolling window.
+     */
+
+    if (results.length === 0) {
+
+      record.status = "online";
+
+    }
+    else if (availability < 50) {
+
+      record.status = "offline";
+
+    }
+    else if (availability < 90) {
+
+      record.status = "degraded";
+
+    }
+    else {
+
+      record.status = "online";
+
+    }
+
+
+    await record.save();
+
+
+  } catch (err) {
+
+    console.log(
+      "Provider monitor failed:",
+      err.message
+    );
+
+  }
 
 };
-
 
 
 
