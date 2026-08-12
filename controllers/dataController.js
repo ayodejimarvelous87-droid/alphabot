@@ -387,16 +387,56 @@ else{
 }
 
 }catch(error){
+
 console.log("REAL DATA ERROR:", error.message);
-console.log("REAL DATA ERROR OBJECT:", JSON.stringify(error, null, 2));
+console.log(
+  "REAL DATA ERROR OBJECT:",
+  JSON.stringify(error, null, 2)
+);
 
 
-// Refund
+// Record the failed DATA purchase attempt FIRST.
+// Network Status uses these purchase attempts.
+
+await Transaction.create({
+
+phone:userPhone,
+
+type:"data",
+
+direction:"debit",
+
+amount:Number(dataPrice.providerPrice),
+
+reference,
+
+idempotencyKey,
+
+providerResponse:
+providerResponse || {
+  error:error.message
+},
+
+service:"data",
+
+network:String(network).toUpperCase(),
+
+balanceBefore,
+
+balanceAfter:wallet.balance,
+
+description:`${network} data purchase failed`,
+
+status:"failed"
+
+});
+
+
+// Refund the customer's wallet.
 
 wallet.balance += Number(amount);
 
 await wallet.save();
-
 
 
 const refundTransaction = await Transaction.create({
@@ -409,13 +449,13 @@ direction:"credit",
 
 amount:Number(dataPrice.providerPrice),
 
-reference,
-
-    idempotencyKey,
+reference:`${reference}-REFUND`,
 
 originalReference:reference,
 
 service:"data",
+
+network:String(network).toUpperCase(),
 
 balanceBefore:wallet.balance - Number(amount),
 
@@ -530,6 +570,8 @@ phone:userPhone
   providerResponse: providerResponse,
 
   service:"data",
+
+  network:String(network).toUpperCase(),
 
   balanceBefore,
 

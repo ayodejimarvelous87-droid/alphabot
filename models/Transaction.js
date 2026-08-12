@@ -102,6 +102,11 @@ type:String,
 default:null
 },
 
+network:{
+type:String,
+default:null
+},
+
 
 originalReference:{
 type:String,

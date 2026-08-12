@@ -1,4 +1,4 @@
-const ProviderHealth = require("../models/ProviderHealth");
+const Transaction = require("../models/Transaction");
 
 const NETWORKS = [
   "MTN",
@@ -7,91 +7,58 @@ const NETWORKS = [
   "9MOBILE"
 ];
 
+const getAvailability = async (query) => {
 
-const getRecord = async (provider, service) => {
-
-  return await ProviderHealth.findOne({
-    provider,
-    service
-  }).lean();
-
-};
-
-
-const getAvailability = (record) => {
-
-  if (!record) {
-    return null;
-  }
-
-  const success =
-    Number(record.successCount || 0);
-
-  const failure =
-    Number(record.failureCount || 0);
-
-  const total = success + failure;
-
-  if (total === 0) {
-    return null;
-  }
-
-  return Math.round(
-    (success / total) * 100
-  );
-
-};
-
-
-const getGeneralStatus = (percentage) => {
-
-  if (percentage === null) {
-    return "unknown";
-  }
-
-  if (percentage >= 90) {
-    return "operational";
-  }
-
-  if (percentage >= 60) {
-    return "degraded";
-  }
-
-  return "unavailable";
-
-};
-
-
-const combineAvailability = (...records) => {
-
-  let success = 0;
-  let failure = 0;
-
-  for (const record of records) {
-
-    if (!record) {
-      continue;
+  const transactions = await Transaction.find({
+    ...query,
+    status:{
+      $in:[
+        "successful",
+        "failed"
+      ]
     }
+  })
+  .sort({
+    createdAt:-1
+  })
+  .limit(20)
+  .lean();
 
-    success += Number(
-      record.successCount || 0
-    );
+  const total = transactions.length;
 
-    failure += Number(
-      record.failureCount || 0
-    );
-
+  if(total === 0){
+    return {
+      availability:null,
+      status:"unknown"
+    };
   }
 
-  const total = success + failure;
+  const successful = transactions.filter(
+    transaction =>
+      transaction.status === "successful"
+  ).length;
 
-  if (total === 0) {
-    return null;
+  const availability =
+    Math.round(
+      (successful / total) * 100
+    );
+
+  let status;
+
+  if(availability >= 90){
+    status = "operational";
+  }
+  else if(availability >= 50){
+    status = "degraded";
+  }
+  else{
+    status = "unavailable";
   }
 
-  return Math.round(
-    (success / total) * 100
-  );
+  return {
+    availability,
+    status
+  };
 
 };
 
@@ -101,117 +68,63 @@ const getNetworkStatus = async (req, res) => {
   try {
 
     /*
-     * Airtime is intentionally presented
-     * as one general AlphaBot service.
+     * PUBLIC NETWORK STATUS
      *
-     * Provider identities remain internal.
+     * Based only on the latest 20 real purchase
+     * attempts.
+     *
+     * Provider names and ProviderHealth are intentionally
+     * not exposed here.
      */
 
-    const blitzAirtime = await getRecord(
-      "blitzpay",
-      "/api-purchase"
-    );
 
-    const vtuAirtime = await getRecord(
-      "VTU",
-      "/api/v2/airtime"
-    );
-
-
-    const airtimeAvailability =
-      combineAvailability(
-        blitzAirtime,
-        vtuAirtime
-      );
-
-
-    /*
-     * Data plans are grouped by mobile network.
-     * Provider information is never returned.
-     */
-
-    const dataPlanRecords =
-      await ProviderHealth.find({
-        provider: "oplug",
-        service: {
-          $in: NETWORKS.map(
-            network => `data_plans:${network}`
-          )
-        }
-      }).lean();
-
-
-    const dataPlanMap = new Map(
-      dataPlanRecords.map(record => [
-        record.service,
-        record
-      ])
-    );
+    const airtime =
+      await getAvailability({
+        type:"airtime"
+      });
 
 
     const dataPlans = {};
 
 
-    for (const network of NETWORKS) {
+    for(const network of NETWORKS){
 
-      const record =
-        dataPlanMap.get(
-          `data_plans:${network}`
-        );
-
-      const availability =
-        getAvailability(record);
-
-      dataPlans[network] = {
-
-        availability,
-
-        status:
-          getGeneralStatus(
-            availability
-          )
-
-      };
+      dataPlans[network] =
+        await getAvailability({
+          type:"data",
+          network
+        });
 
     }
 
 
     return res.json({
 
-      success: true,
+      success:true,
 
-      checkedAt: new Date(),
+      checkedAt:new Date(),
 
-      airtime: {
-
-        availability:
-          airtimeAvailability,
-
-        status:
-          getGeneralStatus(
-            airtimeAvailability
-          )
-
-      },
+      airtime,
 
       dataPlans
 
     });
 
 
-  } catch (error) {
+  } catch(error){
 
     console.log(
       "Network status error:",
       error.message
     );
 
+
     return res.status(500).json({
 
-      success: false,
+      success:false,
 
       message:
-        "Unable to retrieve current service availability"
+        "Unable to retrieve network status"
 
     });
 

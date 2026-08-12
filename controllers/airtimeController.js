@@ -262,6 +262,55 @@ throw new Error("VTU.ng airtime fallback provider failed");
 
 }catch(error){
 
+console.log(
+"AIRTIME PURCHASE ERROR:",
+error.message
+);
+
+
+// Record the failed purchase attempt FIRST.
+// This is used by Network Status availability.
+
+await Transaction.create({
+
+phone:userPhone,
+
+type:"airtime",
+
+direction:"debit",
+
+amount:Number(amount),
+
+reference,
+
+idempotencyKey,
+
+vtuRequestId:
+providerResponse?.reference ||
+providerResponse?.request_id ||
+reference,
+
+providerResponse:
+providerResponse || {
+  error:error.message
+},
+
+service:"airtime",
+
+network:String(network).toUpperCase(),
+
+balanceBefore,
+
+balanceAfter:wallet.balance,
+
+description:`${network} airtime purchase failed`,
+
+status:"failed"
+
+});
+
+
+// Refund the customer's wallet.
 
 wallet.balance += Number(amount);
 
@@ -278,22 +327,20 @@ direction:"credit",
 
 amount:Number(amount),
 
-reference,
-
-  idempotencyKey,
+reference:`${reference}-REFUND`,
 
 vtuRequestId:
 providerResponse?.reference ||
 providerResponse?.request_id ||
 reference,
 
-
 providerResponse: providerResponse,
-
 
 originalReference:reference,
 
 service:"airtime",
+
+network:String(network).toUpperCase(),
 
 balanceBefore:wallet.balance - Number(amount),
 
@@ -389,6 +436,9 @@ reference,
 
 providerResponse: providerResponse,
 
+service:"airtime",
+
+network:String(network).toUpperCase(),
 
 balanceBefore,
 
