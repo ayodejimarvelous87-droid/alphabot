@@ -21,6 +21,7 @@ const {
   getProfile,
   updateProfile,
   changePassword,
+  logoutUser,
   sendProfileOTP,
   sendRegistrationOTP,
   verifyRegistrationOTP,
@@ -45,6 +46,14 @@ router.post(
     console.log("USER LOGIN ROUTE HIT");
     loginUser(req,res,next);
   }
+);
+
+
+// Logout from all devices
+router.post(
+  "/logout",
+  auth,
+  logoutUser
 );
 
 

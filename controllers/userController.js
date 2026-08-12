@@ -282,6 +282,8 @@ newPassword,
 10
 );
 
+user.tokenVersion += 1;
+
 await user.save();
 
 await PasswordReset.deleteOne({
@@ -1089,6 +1091,8 @@ const changePassword = async(req,res,next)=>{
       10
     );
 
+    user.tokenVersion += 1;
+
     await user.save();
 
     res.json({
@@ -1343,6 +1347,27 @@ const getAccountTier = async(req,res,next)=>{
   }
 };
 
+// Logout from all devices by revoking every existing JWT.
+const logoutUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    user.tokenVersion += 1;
+
+    await user.save();
+
+    res.json({
+      message: "Logged out from all devices successfully"
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAccountTier,
   purchaseMembership,
@@ -1362,6 +1387,8 @@ module.exports = {
   updateProfile,
 
   changePassword,
+
+  logoutUser,
 
   sendProfileOTP,
 
