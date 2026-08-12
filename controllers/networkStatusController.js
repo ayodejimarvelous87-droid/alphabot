@@ -126,8 +126,8 @@ const getNetworkAvailability = async (type, network) => {
 
   if(total === 0){
     return {
-      availability:null,
-      status:"unknown"
+      availability:100,
+      status:"operational"
     };
   }
 
