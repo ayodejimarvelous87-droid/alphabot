@@ -90,9 +90,20 @@ const userSchema = new mongoose.Schema(
     type:String,
     enum:[
       "active",
-      "suspended"
+      "suspended",
+      "deleted"
     ],
     default:"active"
+  },
+
+  deletionReason:{
+    type:String,
+    default:null
+  },
+
+  deletedAt:{
+    type:Date,
+    default:null
   },
 
 

@@ -1293,20 +1293,63 @@ next(error);
 
 
 
-const deleteOwnAccount = async (req,res)=>{
+const deleteOwnAccount = async (req,res,next)=>{
   try{
 
-    const phone = req.user.phone;
+    const {
+      password,
+      reason
+    } = req.body;
 
-    const User = require("../models/User");
+    if(!password){
+      throw new AppError(
+        "Password is required",
+        400
+      );
+    }
 
-    await User.findOneAndUpdate(
-      {phone},
-      {
-        status:"deleted",
-        deletedAt:new Date()
-      }
+    const user = await User.findById(
+      req.user.id
     );
+
+    if(!user){
+      throw new AppError(
+        "User not found",
+        404
+      );
+    }
+
+    if(!user.password){
+      throw new AppError(
+        "This account does not have a login password. Please contact support.",
+        400
+      );
+    }
+
+    const passwordMatch =
+      await bcrypt.compare(
+        password,
+        user.password
+      );
+
+    if(!passwordMatch){
+      throw new AppError(
+        "Incorrect password",
+        400
+      );
+    }
+
+    user.status = "deleted";
+    user.deletedAt = new Date();
+    user.deletionReason =
+      typeof reason === "string"
+        ? reason.trim().slice(0, 1000) || null
+        : null;
+
+    // Revoke every existing login token.
+    user.tokenVersion += 1;
+
+    await user.save();
 
     res.json({
       success:true,
@@ -1314,12 +1357,7 @@ const deleteOwnAccount = async (req,res)=>{
     });
 
   }catch(error){
-
-    res.status(500).json({
-      success:false,
-      message:error.message
-    });
-
+    next(error);
   }
 };
 

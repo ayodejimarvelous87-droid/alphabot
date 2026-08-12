@@ -163,13 +163,12 @@ router.get(
 );
 
 
-module.exports = router;
-
-
 // Delete own account
 router.delete(
   "/delete-account",
   auth,
   deleteOwnAccount
 );
+
+module.exports = router;
 
