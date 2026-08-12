@@ -40,7 +40,7 @@ type:String
 
 status:{
 type:String,
-enum:["pending","available","paid"],
+enum:["pending","available","processed","paid"],
 default:"pending"
 },
 

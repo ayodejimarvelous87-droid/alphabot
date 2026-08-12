@@ -10,7 +10,6 @@ const xss = require("xss");
 const startCron = require("./services/cron");
 const startOTPCleanup = require("./services/otpCleanup");
 const { startFlutterwaveCron } = require("./services/flutterwaveCron");
-const { startBlogPayoutReminderCron } = require("./services/blogPayoutReminderCron");
 const { startBlogCommissionUnlockCron } = require("./services/blogCommissionUnlockCron");
 const { connectRedis } = require("./services/redisService");
 require("./services/recurringService");
@@ -315,7 +314,6 @@ mongoose.connect(process.env.MONGO_URI,{
   startCron();
   startOTPCleanup();
   startFlutterwaveCron();
-  startBlogPayoutReminderCron();
   startBlogCommissionUnlockCron();
   connectRedis();
 

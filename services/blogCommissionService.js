@@ -1,102 +1,198 @@
-
 const User = require("../models/User");
 const BlogPartner = require("../models/BlogPartner");
+const BlogCommission = require("../models/BlogCommission");
 const BlogWeeklyCommission = require("../models/BlogWeeklyCommission");
 
 
 function getWeek(){
 
-const d=new Date();
+  const d = new Date();
 
-const year=d.getFullYear();
+  const year = d.getFullYear();
 
-const week=Math.ceil(
-(
-(
-d - new Date(year,0,1)
-)/86400000 + 1
-)/7
-);
+  const week = Math.ceil(
+    (
+      (
+        d - new Date(year,0,1)
+      ) / 86400000 + 1
+    ) / 7
+  );
 
-return `${year}-${week}`;
+  return `${year}-${week}`;
 
 }
 
 
 const addBlogCommission = async({
-phone,
-amount
-})=>{
+  phone,
+  amount,
+  reference,
+  service
+}) => {
 
-try{
+  try{
 
-const user=await User.findOne({phone});
-
-if(!user || !user.blogPartner){
-return;
-}
-
-
-const blog=await BlogPartner.findById(
-user.blogPartner
-);
+    if(!phone || !reference || !Number.isFinite(Number(amount))){
+      console.log("Blog commission skipped: invalid data");
+      return;
+    }
 
 
-if(!blog || blog.status!=="active"){
-return;
-}
+    /*
+     * The transaction reference is the idempotency key.
+     * One successful transaction can create only one
+     * partner commission.
+     */
+
+    const existingCommission =
+      await BlogCommission.findOne({
+        reference
+      });
+
+    if(existingCommission){
+      return existingCommission;
+    }
 
 
-const week=getWeek();
+    const user = await User.findOne({
+      phone
+    });
+
+    if(!user || !user.blogPartner){
+      return;
+    }
 
 
-let earning =
-await BlogWeeklyCommission.findOne({
-
-blogPartner:blog._id,
-week
-
-});
+    const blog = await BlogPartner.findById(
+      user.blogPartner
+    );
 
 
-if(!earning){
-
-earning =
-await BlogWeeklyCommission.create({
-
-blogPartner:blog._id,
-week
-
-});
-
-}
+    if(!blog || blog.status !== "active"){
+      return;
+    }
 
 
-earning.totalSales += Number(amount);
+    const transactionAmount =
+      Number(amount);
+
+    const commissionRate =
+      Number(blog.commissionRate || 30);
+
+    const commissionAmount =
+      (
+        transactionAmount *
+        commissionRate
+      ) / 100;
 
 
-earning.commission =
-(
-earning.totalSales *
-Number(blog.commissionRate || 30)
-)/100;
+    /*
+     * Individual locked commission.
+     */
+
+    const commission =
+      await BlogCommission.create({
+
+        blogPartner: blog._id,
+
+        user: user._id,
+
+        reference,
+
+        amount: commissionAmount,
+
+        transactionAmount,
+
+        service: service || "unknown",
+
+        transactionReference: reference,
+
+        status: "pending",
+
+        availableAt:
+          new Date(
+            Date.now() +
+            7 * 24 * 60 * 60 * 1000
+          )
+
+      });
 
 
-await earning.save();
+    /*
+     * Keep the existing weekly aggregate for
+     * dashboard/reporting purposes.
+     */
+
+    const week = getWeek();
 
 
-}catch(error){
+    let earning =
+      await BlogWeeklyCommission.findOne({
 
-console.log(
-"Weekly blog commission error:",
-error.message
-);
+        blogPartner: blog._id,
 
-}
+        week
+
+      });
+
+
+    if(!earning){
+
+      earning =
+        await BlogWeeklyCommission.create({
+
+          blogPartner: blog._id,
+
+          week
+
+        });
+
+    }
+
+
+    earning.totalSales +=
+      transactionAmount;
+
+
+    earning.commission +=
+      commissionAmount;
+
+
+    await earning.save();
+
+
+    return commission;
+
+
+  }catch(error){
+
+    /*
+     * A duplicate reference can happen if two requests
+     * reach this function at nearly the same time.
+     *
+     * MongoDB's unique index on BlogCommission.reference
+     * protects the database from creating two commissions.
+     */
+
+    if(error.code === 11000){
+
+      return await BlogCommission.findOne({
+        reference
+      });
+
+    }
+
+
+    console.log(
+      "Blog commission error:",
+      error.message
+    );
+
+  }
 
 };
 
 
-module.exports={
-addBlogCommission
+module.exports = {
+  addBlogCommission
 };
