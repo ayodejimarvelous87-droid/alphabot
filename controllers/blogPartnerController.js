@@ -260,11 +260,10 @@ blogPartner: partner._id
 });
 
 
-const earnings = await BlogCommission.aggregate([
+const lifetimeEarnings = await BlogCommission.aggregate([
 {
 $match:{
-blogPartner: partner._id,
-status:"available"
+blogPartner: partner._id
 }
 },
 {
@@ -309,7 +308,12 @@ code:partner.code,
 
 users,
 
-totalEarned: earnings[0]?.total || 0,
+lifetimeCommission:
+lifetimeEarnings[0]?.total || 0,
+
+// Keep totalEarned for existing frontend compatibility
+totalEarned:
+lifetimeEarnings[0]?.total || 0,
 
 pendingPayout:
 pendingPayout?.commissionAmount || 0,
