@@ -7,6 +7,7 @@ const normalizePhone = require("../utils/phone");
 const axios = require("axios");
 const { recordProviderResult, canUseProvider } = require("../services/providerMonitorService");
 const { createNotification } = require("../services/notificationService");
+const { completeFlutterwaveFunding } = require("../services/flutterwaveFundingService");
 
 const flw = new Flutterwave(
   process.env.FLW_PUBLIC_KEY,
@@ -254,39 +255,22 @@ response.data.meta.phone !== pending.phone
 throw new AppError("Payment owner mismatch", 400);
 
 }
-    const balanceBefore = wallet.balance;
-
-    wallet.balance += Number(response.data.amount);
-
-    await wallet.save();
-
-
-    const transaction = await Transaction.create({
-
+    const fundingResult = await completeFlutterwaveFunding({
+      txRef,
+      flutterwaveId: String(response.data.id),
+      flutterwaveReference: response.data.flw_ref,
+      amount: Number(response.data.amount),
       phone: pending.phone,
-
-      type:"fund",
-
-      direction:"credit",
-
-      amount:Number(response.data.amount),
-
-      reference:txRef,
-
-      flutterwaveId:String(response.data.id),
-
-      flutterwaveReference:response.data.flw_ref,
-
-      balanceBefore,
-
-      balanceAfter:wallet.balance,
-
-      description:"Flutterwave wallet funding",
-
-      status:"successful"
-
+      currency: response.data.currency
     });
 
+    if (fundingResult.alreadyProcessed) {
+      return res.json({
+        message: "Payment already processed"
+      });
+    }
+
+    const transaction = fundingResult.transaction;
 
     await createNotification(
       pending.phone,
@@ -297,21 +281,9 @@ throw new AppError("Payment owner mismatch", 400);
     );
 
 
-    pending.status = "successful";
-
-    pending.flutterwaveId = String(response.data.id);
-
-    pending.flutterwaveReference = response.data.flw_ref;
-
-    await pending.save();
-
-
     res.json({
-
-      message:"Wallet funded successfully",
-
-      wallet
-
+      message: "Wallet funded successfully",
+      wallet: fundingResult.wallet
     });
 
 
@@ -490,6 +462,17 @@ const flutterwaveWebhook = async (req, res, next) => {
         throw new AppError("Payment amount mismatch",400);
       }
 
+      if(verified.data.tx_ref !== pending.reference){
+        throw new AppError("Payment reference mismatch",400);
+      }
+
+      if(
+        verified.data.meta?.phone &&
+        verified.data.meta.phone !== pending.phone
+      ){
+        throw new AppError("Payment owner mismatch",400);
+      }
+
     const phone = pending.phone;
 
     const amount = Number(verified.data.amount);
@@ -498,42 +481,22 @@ const flutterwaveWebhook = async (req, res, next) => {
       throw new AppError("Invalid amount", 400);
     }
 
-    let wallet = await Wallet.findOne({
-      phone
+    const fundingResult = await completeFlutterwaveFunding({
+      txRef,
+      flutterwaveId: String(verified.data.id),
+      flutterwaveReference: verified.data.flw_ref,
+      amount,
+      phone,
+      currency: verified.data.currency
     });
 
-    if (!wallet) {
-      wallet = await Wallet.create({
-        phone,
-        balance: 0
+    if (fundingResult.alreadyProcessed) {
+      return res.status(200).json({
+        message: "Already processed"
       });
     }
 
-    const balanceBefore = wallet.balance;
-
-    wallet.balance += amount;
-
-    await wallet.save();
-
-    const transaction = await Transaction.create({
-      phone,
-      type: "fund",
-      direction: "credit",
-      amount,
-      reference: txRef,
-      flutterwaveId: verified.data.id,
-      flutterwaveReference: verified.data.flw_ref,
-      balanceBefore,
-      balanceAfter: wallet.balance,
-      description: "Flutterwave wallet funding",
-      status: "successful"
-    });
-
-    pending.status = "successful";
-    pending.flutterwaveId = String(verified.data.id);
-    pending.flutterwaveReference = verified.data.flw_ref;
-    await pending.save();
-
+    const transaction = fundingResult.transaction;
 
     await createNotification(
       phone,

@@ -162,6 +162,7 @@ status:{
 type:String,
 enum:[
 "pending",
+"processing",
 "successful",
 "failed",
 "cancelled",

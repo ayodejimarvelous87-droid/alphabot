@@ -6,6 +6,7 @@ const Transaction = require("../models/Transaction");
 const User = require("../models/User");
 const sendEmail = require("../services/emailService");
 const { createNotification } = require("../services/notificationService");
+const { completeFlutterwaveFunding } = require("./flutterwaveFundingService");
 
 
 async function findFlutterwaveTransaction(tx_ref){
@@ -106,51 +107,28 @@ function startFlutterwaveCron(){
 
 
 
-          let wallet = await Wallet.findOne({
-            phone:payment.phone
+          const fundingResult = await completeFlutterwaveFunding({
+            txRef: payment.reference,
+            flutterwaveId: String(tx.id),
+            flutterwaveReference: tx.flw_ref,
+            amount: Number(tx.amount),
+            phone: payment.phone,
+            currency: tx.currency
           });
 
+          if (fundingResult.alreadyProcessed) {
 
-          if(!wallet){
+            console.log(
+              `⏭️ Already processed ${payment.phone} ${payment.reference}`
+            );
 
-            wallet = await Wallet.create({
-              phone:payment.phone,
-              balance:0
-            });
-
-          }
-
-
-          const balanceBefore = wallet.balance;
-
-
-          payment.flutterwaveId = String(tx.id);
-
-          payment.flutterwaveReference = tx.flw_ref;
-
-          payment.balanceBefore = balanceBefore;
-
-          payment.balanceAfter = balanceBefore + Number(tx.amount);
-
-          const transaction = payment;
-
-
-          if(payment.walletCredited !== true){
-
-            wallet.balance += Number(tx.amount);
-
-            await wallet.save();
-
-            payment.walletCredited = true;
+            continue;
 
           }
 
-          payment.description = "Flutterwave wallet funding completed";
+          const transaction = fundingResult.transaction;
 
-          payment.status = "successful";
-
-
-          if(payment.notificationSent !== true){
+          if (transaction && payment.notificationSent !== true) {
 
             await createNotification(
               payment.phone,
@@ -164,13 +142,11 @@ function startFlutterwaveCron(){
 
           }
 
-
           const user = await User.findOne({
             phone: payment.phone
           });
 
-
-          if(user?.email && payment.emailSent !== true){
+          if (user?.email && payment.emailSent !== true) {
 
             await sendEmail(
               user.email,
@@ -182,12 +158,7 @@ function startFlutterwaveCron(){
 
           }
 
-
           await payment.save();
-
-
-
-
 
           console.log(
             `✅ Credited ${payment.phone} ${payment.reference}`
