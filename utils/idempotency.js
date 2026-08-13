@@ -1,40 +1,18 @@
 const Transaction = require("../models/Transaction");
 
+const checkIdempotency = async (idempotencyKey) => {
 
-const checkIdempotency = async(idempotencyKey)=>{
+  if (!idempotencyKey) {
+    return null;
+  }
 
-if(!idempotencyKey){
-return null;
-}
-
-
-const existing = await Transaction.findOne({
-idempotencyKey
-});
-
-
-return existing || null;
+  return await Transaction.findOne({
+    idempotencyKey
+  });
 
 };
-
-
-
-const saveIdempotencyKey = async(transaction,key)=>{
-
-if(!key){
-return;
-}
-
-
-transaction.idempotencyKey = key;
-
-await transaction.save();
-
-};
-
 
 
 module.exports = {
-checkIdempotency,
-saveIdempotencyKey
+  checkIdempotency
 };

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
@@ -15,8 +16,7 @@ const normalizePhone = require("../utils/phone");
 const getErrorMessage = require("../utils/errorHandler");
 
 const {
-checkIdempotency,
-saveIdempotencyKey
+checkIdempotency
 } = require("../utils/idempotency");
 
 const { vtuRequest, purchaseProduct } = require("../services/vtuService");
@@ -48,21 +48,25 @@ provider
 const idempotencyKey =
 req.headers["idempotency-key"];
 
+if(!idempotencyKey){
+throw new AppError("Idempotency key required",400);
+}
+
 const existingTransaction =
 await checkIdempotency(idempotencyKey);
 
 if(existingTransaction){
 
 return res.json({
-message:"Transaction already processed",
+message:
+  existingTransaction.status === "successful"
+    ? "Transaction already processed"
+    : existingTransaction.status === "processing"
+      ? "Transaction is already being processed"
+      : "Transaction already processed",
 transaction:existingTransaction
 });
 
-}
-
-
-if(!idempotencyKey){
-throw new AppError("Idempotency key required",400);
 }
 
 
@@ -236,16 +240,142 @@ const reference =
 "DATA-" + Date.now();
 
 
-const balanceBefore =
-wallet.balance;
+let balanceBefore;
+let reservationCreated = false;
 
 
+// ---------------------------------------------------------
+// Atomically reserve the idempotency key AND debit wallet.
+// The unique idempotencyKey prevents concurrent requests
+// from reaching the provider twice.
+// ---------------------------------------------------------
 
-// Debit first
+const reservationSession =
+await mongoose.startSession();
 
-wallet.balance -= Number(amount);
+try {
 
-await wallet.save();
+await reservationSession.withTransaction(async () => {
+
+  const existing =
+    await Transaction.findOne({
+      idempotencyKey
+    }).session(reservationSession);
+
+  if(existing){
+    throw new AppError(
+      "Transaction already processed",
+      409
+    );
+  }
+
+
+  const walletForUpdate =
+    await Wallet.findOne({
+      phone:userPhone,
+      balance:{$gte:Number(amount)}
+    }).session(reservationSession);
+
+  if(!walletForUpdate){
+    throw new AppError(
+      "Insufficient balance",
+      400
+    );
+  }
+
+
+  balanceBefore =
+    walletForUpdate.balance;
+
+
+  walletForUpdate.balance -= Number(amount);
+
+  await walletForUpdate.save({
+    session:reservationSession
+  });
+
+
+  await Transaction.create([{
+
+    phone:userPhone,
+
+    type:"data",
+
+    direction:"debit",
+
+    amount:Number(amount),
+
+    reference,
+
+    idempotencyKey,
+
+    providerResponse:null,
+
+    service:"data",
+
+    network:String(network).toUpperCase(),
+
+    balanceBefore,
+
+    balanceAfter:walletForUpdate.balance,
+
+    description:`${network} data purchase`,
+
+    status:"processing"
+
+  }], {
+    session:reservationSession
+  });
+
+
+  reservationCreated = true;
+
+});
+
+} catch(error) {
+
+  // A concurrent request may have won the unique
+  // idempotencyKey race. Return that transaction instead
+  // of allowing another provider purchase.
+
+  if(error?.code === 11000){
+
+    const existing =
+      await Transaction.findOne({
+        idempotencyKey
+      });
+
+    if(existing){
+
+      return res.json({
+        message:"Transaction already processed",
+        transaction:existing
+      });
+
+    }
+
+  }
+
+  throw error;
+
+} finally {
+
+  await reservationSession.endSession();
+
+}
+
+
+if(!reservationCreated){
+
+  throw new AppError(
+    "Unable to reserve transaction",
+    500
+  );
+
+}
+
+// The wallet was already atomically debited during reservation.
+// Reload it so later balance calculations use the reserved balance.
 
 
 
@@ -319,13 +449,18 @@ throw new Error(`Provider network mismatch: requested ${network}, returned ${pro
 }
 if(
 !providerResponse ||
-providerResponse.status === "fail" ||
-providerResponse.Status === "failed"
+String(
+  providerResponse.status ||
+  providerResponse.Status ||
+  providerResponse.data?.status ||
+  ""
+).trim().toLowerCase() !== "success"
 ){
 throw new Error(
-providerResponse.message ||
-providerResponse.error ||
-providerResponse.msg ||
+providerResponse?.message ||
+providerResponse?.error ||
+providerResponse?.msg ||
+providerResponse?.data?.message ||
 "OPLUG data purchase failed"
 );
 }
@@ -395,92 +530,182 @@ console.log(
 );
 
 
-// Record the failed DATA purchase attempt FIRST.
-// Network Status uses these purchase attempts.
+let refundTransaction = null;
 
-await Transaction.create({
+const recoverySession =
+await mongoose.startSession();
 
-phone:userPhone,
+try {
 
-type:"data",
+await recoverySession.withTransaction(async () => {
 
-direction:"debit",
+  // Lock the original transaction so a retry/recovery
+  // cannot refund the same purchase twice.
 
-amount:Number(dataPrice.providerPrice),
+  const originalTransaction =
+    await Transaction.findOne({
+      idempotencyKey
+    }).session(recoverySession);
 
-reference,
+  if(!originalTransaction){
 
-idempotencyKey,
+    throw new Error(
+      "Original data transaction not found during refund"
+    );
 
-providerResponse:
-providerResponse || {
-  error:error.message
-},
+  }
 
-service:"data",
 
-network:String(network).toUpperCase(),
+  // If another recovery already completed the refund,
+  // do absolutely nothing again.
 
-balanceBefore,
+  if(originalTransaction.status === "refunded"){
 
-balanceAfter:wallet.balance,
+    return;
 
-description:`${network} data purchase failed`,
+  }
 
-status:"failed"
+
+  const existingRefund =
+    await Transaction.findOne({
+      originalReference:reference,
+      type:"refund"
+    }).session(recoverySession);
+
+  if(existingRefund){
+
+    await Transaction.updateOne(
+      {_id:originalTransaction._id},
+      {
+        $set:{
+          status:"refunded",
+          providerResponse:
+            providerResponse || {
+              error:error.message
+            }
+        }
+      },
+      {
+        session:recoverySession
+      }
+    );
+
+    refundTransaction = existingRefund;
+
+    return;
+
+  }
+
+
+  const walletForRefund =
+    await Wallet.findOne({
+      phone:userPhone
+    }).session(recoverySession);
+
+  if(!walletForRefund){
+
+    throw new Error(
+      "Wallet not found during automatic refund"
+    );
+
+  }
+
+
+  const refundBalanceBefore =
+    walletForRefund.balance;
+
+
+  walletForRefund.balance += Number(amount);
+
+  await walletForRefund.save({
+    session:recoverySession
+  });
+
+
+  await Transaction.updateOne(
+    {_id:originalTransaction._id},
+    {
+      $set:{
+        status:"refunded",
+        providerResponse:
+          providerResponse || {
+            error:error.message
+          },
+        balanceAfter:walletForRefund.balance
+      }
+    },
+    {
+      session:recoverySession
+    }
+  );
+
+
+  const createdRefund =
+    await Transaction.create([{
+
+      phone:userPhone,
+
+      type:"refund",
+
+      direction:"credit",
+
+      amount:Number(amount),
+
+      reference:`${reference}-REFUND`,
+
+      originalReference:reference,
+
+      service:"data",
+
+      network:String(network).toUpperCase(),
+
+      balanceBefore:refundBalanceBefore,
+
+      balanceAfter:walletForRefund.balance,
+
+      description:"Automatic refund - Data failed",
+
+      status:"successful"
+
+    }], {
+      session:recoverySession
+    });
+
+
+  refundTransaction = createdRefund[0];
 
 });
 
+} finally {
 
-// Refund the customer's wallet.
+  await recoverySession.endSession();
 
-wallet.balance += Number(amount);
-
-await wallet.save();
-
-
-const refundTransaction = await Transaction.create({
-
-phone:userPhone,
-
-type:"refund",
-
-direction:"credit",
-
-amount:Number(dataPrice.providerPrice),
-
-reference:`${reference}-REFUND`,
-
-originalReference:reference,
-
-service:"data",
-
-network:String(network).toUpperCase(),
-
-balanceBefore:wallet.balance - Number(amount),
-
-balanceAfter:wallet.balance,
-
-description:"Automatic refund - Data failed",
-
-status:"successful"
-
-});
+}
 
 
-await createNotification(
-  userPhone,
-  "Data Purchase Failed",
-  `Your ₦${Number(amount).toLocaleString()} has been refunded to your wallet.`,
-  "warning",
-  refundTransaction._id
-);
+if(refundTransaction){
 
+  await createNotification(
+    userPhone,
+    "Data Purchase Failed",
+    `Your ₦${Number(amount).toLocaleString()} has been refunded to your wallet.`,
+    "warning",
+    refundTransaction._id
+  );
+
+}
 
 
 console.log("DATA PURCHASE ERROR:", error.message);
-console.log("DATA PURCHASE FULL ERROR:", JSON.stringify(error.response?.data || error,null,2));
-throw new AppError(error.message || "Data purchase failed", 400);
+console.log(
+  "DATA PURCHASE FULL ERROR:",
+  JSON.stringify(error.response?.data || error,null,2)
+);
+
+throw new AppError(
+  error.message || "Data purchase failed",
+  400
+);
 
 }
 
@@ -495,7 +720,7 @@ phone:dataPhone,
 network,
 plan,
 
-amount:Number(dataPrice.providerPrice),
+amount:Number(amount),
 
 reference,
 
@@ -542,46 +767,64 @@ phone:userPhone
 
 
 
-  const transaction = await Transaction.create({
+    const refreshedWallet = await Wallet.findOne({
+      phone:userPhone
+    });
 
-  phone:userPhone,
+    if(!refreshedWallet){
+      throw new AppError(
+        "Wallet not found while completing data transaction",
+        500
+      );
+    }
 
-  type:"data",
+    const transaction =
+      await Transaction.findOneAndUpdate(
 
-  direction:"debit",
+        {
+          idempotencyKey
+        },
 
-  amount:Number(dataPrice.providerPrice),
+        {
+          $set:{
+            status:"successful",
 
-  reference,
+            vtuRequestId:
+              providerResponse?.reference ||
+              providerResponse?.request_id ||
+              reference,
 
-  vtuRequestId:
-    providerResponse?.reference ||
-    providerResponse?.request_id ||
-    reference,
+            ...(providerResponse?.data?.order ||
+                providerResponse?.order_id
+              ? {
+                  vtuOrderId:
+                    providerResponse?.data?.order ||
+                    providerResponse?.order_id
+                }
+              : {}),
 
-  ...(providerResponse?.data?.order || providerResponse?.order_id
-    ? {
-        vtuOrderId:
-          providerResponse?.data?.order ||
-          providerResponse?.order_id
-      }
-    : {}),
+            providerResponse,
 
-  providerResponse: providerResponse,
+            balanceAfter:refreshedWallet.balance,
 
-  service:"data",
+            description:`${network} data purchase`
+          }
+        },
 
-  network:String(network).toUpperCase(),
+        {
+          new:true
+        }
 
-  balanceBefore,
+      );
 
-  balanceAfter:wallet.balance,
+  if(!transaction){
 
-  description:`${network} data purchase`,
+    throw new AppError(
+      "Successful transaction record not found",
+      500
+    );
 
-  status:"successful"
-
-  });
+  }
 
 
 

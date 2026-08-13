@@ -7,6 +7,10 @@ const {
 
 const BASE_URL = process.env.OPLUG_BASE_URL;
 
+const oplugAxios = axios.create({
+  timeout:30000
+});
+
 const oplugRequest = async (
   endpoint,
   method = "GET",
@@ -46,7 +50,7 @@ const oplugRequest = async (
 
       console.log("OPLUG AXIOS BODY:", data);
 
-      response = await axios.post(
+      response = await oplugAxios.post(
         BASE_URL + endpoint,
         data,
         config
@@ -54,7 +58,7 @@ const oplugRequest = async (
 
     } else {
 
-      response = await axios.get(
+      response = await oplugAxios.get(
         BASE_URL + endpoint,
         config
       );
