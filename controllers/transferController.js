@@ -146,6 +146,20 @@ throw new AppError("Idempotency key required",400);
 }
 
 
+const existingTransfer = await Transaction.findOne({
+idempotencyKey
+});
+
+if(existingTransfer){
+
+return res.json({
+message:"Transfer already processed",
+transaction:existingTransfer
+});
+
+}
+
+
 const authorized =
 await verifyTransactionAuthorization({
   phone,
@@ -180,24 +194,6 @@ Number(amount)+fee;
 
 const reference =
 "ALPHATRANS-"+Date.now();
-
-
-if(idempotencyKey){
-
-const existingTransfer = await Transaction.findOne({
-idempotencyKey
-});
-
-if(existingTransfer){
-
-return res.json({
-message:"Transfer already processed",
-transaction:existingTransfer
-});
-
-}
-
-}
 
 
 
