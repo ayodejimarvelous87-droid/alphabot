@@ -529,6 +529,21 @@ console.log(
   JSON.stringify(error, null, 2)
 );
 
+console.log(
+  "REAL DATA ERROR RESPONSE:",
+  JSON.stringify(error.response?.data, null, 2)
+);
+
+console.log(
+  "REAL DATA ERROR STATUS:",
+  error.response?.status
+);
+
+console.log(
+  "REAL DATA ERROR HEADERS:",
+  JSON.stringify(error.response?.headers, null, 2)
+);
+
 
 let refundTransaction = null;
 
