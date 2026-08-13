@@ -341,11 +341,58 @@ quantity:Number(quantity)
 };
 
 
-const requeryOrder = async(order_id)=>{
+const requeryOrder = async(request_id)=>{
 
-return await vtuRequest("/api/v2/requery",{
-order_id
-});
+  try{
+
+    const accessToken = await getToken();
+
+    const response = await vtuAxios.post(
+      `${process.env.VTU_BASE_URL}/api/v2/requery`,
+      {
+        request_id:String(request_id)
+      },
+      {
+        headers:{
+          Authorization:`Bearer ${accessToken}`,
+          "Content-Type":"application/json",
+          "User-Agent":"Mozilla/5.0"
+        }
+      }
+    );
+
+    return response.data;
+
+  }catch(error){
+
+    // Refresh token once if VTU rejects the token
+    if(error.response?.status === 401){
+
+      token = null;
+
+      const newToken = await getToken();
+
+      const retry = await vtuAxios.post(
+        `${process.env.VTU_BASE_URL}/api/v2/requery`,
+        {
+          request_id:String(request_id)
+        },
+        {
+          headers:{
+            Authorization:`Bearer ${newToken}`,
+            "Content-Type":"application/json",
+            "User-Agent":"Mozilla/5.0"
+          }
+        }
+      );
+
+      return retry.data;
+
+    }
+
+    throw error;
+
+  }
 
 };
 

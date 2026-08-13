@@ -9,6 +9,7 @@ const sendEmail = require("../services/emailService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
 const User = require("../models/User");
+const { syncEPin } = require("../services/ePinRequeryService");
 
 const normalizePhone = (phone)=>{
 
@@ -166,16 +167,18 @@ pins,
 reference,
 
       vtuRequestId:
-      apiResponse.reference ||
+      apiResponse.data?.request_id ||
       apiResponse.request_id ||
+      apiResponse.reference ||
       reference,
 
       vtuOrderId:
+      apiResponse.data?.order_id ||
       apiResponse.data?.order ||
       apiResponse.order_id ||
       null,
 
-      apiResponse: apiResponse,
+      providerResponse:apiResponse,
 
 order_id:orderId,
 
@@ -184,25 +187,7 @@ status:epinStatus
 });
 
 
-const user = await User.findOne({
-  phone: buyerPhone
-});
-
-
-if(user?.email && pins.length > 0){
-
-  await sendEmail(
-    user.email,
-    "Your ePIN Purchase",
-    `Your ${network} ePIN codes are:\n\n${pins.join("\n")}\n\nThank you for using AlphaBot.`
-  );
-
-}
-
-
-
-
-await Transaction.create({
+const transactionData = {
 
 phone:buyerPhone,
 
@@ -210,23 +195,15 @@ type:"recharge_pin",
 
 service:"recharge_pin",
 
+network,
+
 direction:"debit",
 
 amount:total,
 
 reference,
 
-      vtuRequestId:
-      apiResponse.reference ||
-      apiResponse.request_id ||
-      reference,
-
-      vtuOrderId:
-      apiResponse.data?.order ||
-      apiResponse.order_id ||
-      null,
-
-      apiResponse: apiResponse,
+providerResponse:apiResponse,
 
 balanceBefore,
 
@@ -234,9 +211,59 @@ balanceAfter:wallet.balance,
 
 description:`${network} recharge PIN purchase`,
 
-status:"successful"
+pin:pins.length > 0
+  ? pins.join("\n")
+  : null,
 
-});
+status:epinStatus
+
+};
+
+const vtuRequestId =
+apiResponse.data?.request_id ||
+apiResponse.request_id ||
+apiResponse.reference ||
+reference;
+
+const vtuOrderId =
+apiResponse.data?.order_id ||
+apiResponse.data?.order ||
+apiResponse.order_id;
+
+if(vtuRequestId){
+  transactionData.vtuRequestId = String(vtuRequestId);
+}
+
+if(vtuOrderId){
+  transactionData.vtuOrderId = String(vtuOrderId);
+}
+
+const transaction =
+  await Transaction.create(transactionData);
+
+
+const user =
+  await User.findOne({
+    phone:buyerPhone
+  });
+
+
+if(
+  user?.email &&
+  pins.length > 0
+){
+
+  await sendEmail(
+    user.email,
+    "Your ePIN Purchase",
+    `Your ${network} ePIN codes are:\n\n${pins.join("\n")}\n\nThank you for using AlphaBot.`
+  );
+
+  transaction.emailSent = true;
+
+  await transaction.save();
+
+}
 
 
 await addBlogCommission({
@@ -258,7 +285,9 @@ epinStatus === "successful"
 ? `${network} recharge PIN generated successfully`
 : `${network} recharge PIN order is processing`,
 
-epinStatus === "successful" ? "success" : "info"
+epinStatus === "successful" ? "success" : "info",
+
+transaction._id
 
 );
 
@@ -301,6 +330,119 @@ message:error.response?.data?.message || error.message
 };
 
 
+const getEPinStatus = async(req,res)=>{
+
+  try{
+
+    const { reference } = req.params;
+
+    if(!reference){
+      return res.status(400).json({
+        message:"Reference is required"
+      });
+    }
+
+
+    const buyerPhone =
+      normalizePhone(req.user.phone);
+
+
+    let epin =
+      await EPin.findOne({
+        reference,
+        phone:buyerPhone
+      });
+
+
+    if(!epin){
+      return res.status(404).json({
+        message:"ePIN order not found"
+      });
+    }
+
+
+    // ----------------------------------------------------------
+    // If still processing, ask VTU for the latest status.
+    // This is what allows a PIN that arrives later to be saved.
+    // ----------------------------------------------------------
+
+    if(
+      epin.status === "processing" ||
+      epin.status === "pending"
+    ){
+
+      try{
+
+        const synced =
+          await syncEPin(reference);
+
+        if(synced?.epin){
+          epin = synced.epin;
+        }else{
+
+          epin =
+            await EPin.findOne({
+              reference,
+              phone:buyerPhone
+            });
+
+        }
+
+      }catch(syncError){
+
+        console.log(
+          "EPIN STATUS REQUERY ERROR:",
+          syncError.response?.data ||
+          syncError.message
+        );
+
+      }
+
+    }
+
+
+    return res.json({
+
+      status:epin.status,
+
+      epin:{
+
+        reference:epin.reference,
+
+        network:epin.network,
+
+        amount:epin.amount,
+
+        quantity:epin.quantity,
+
+        status:epin.status,
+
+        pins:Array.isArray(epin.pins)
+          ? epin.pins
+          : []
+
+      }
+
+    });
+
+
+  }catch(error){
+
+    console.log(
+      "GET EPIN STATUS ERROR:",
+      error.message
+    );
+
+    return res.status(500).json({
+      message:"Unable to check ePIN status"
+    });
+
+  }
+
+};
+
+
 module.exports={
-buyEPin
+buyEPin,
+getEPinStatus
 };

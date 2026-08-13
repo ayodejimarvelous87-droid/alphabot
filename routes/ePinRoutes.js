@@ -6,7 +6,8 @@ const auth = require("../middleware/auth");
 const { purchaseLimiter } = require("../middleware/rateLimiter");
 
 const {
-buyEPin
+buyEPin,
+getEPinStatus
 } = require("../controllers/ePinController");
 
 
@@ -15,6 +16,12 @@ router.post(
 auth,
 purchaseLimiter,
 buyEPin
+);
+
+router.get(
+"/status/:reference",
+auth,
+getEPinStatus
 );
 
 

@@ -107,6 +107,11 @@ type:String,
 default:null
 },
 
+pin:{
+type:String,
+default:null
+},
+
 
 originalReference:{
 type:String,
