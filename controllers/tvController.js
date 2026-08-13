@@ -408,39 +408,27 @@ const getTVPlans = async (req, res) => {
 
   try {
 
-    const plans = await getCablePackages();
+    const plans = await TVPlan.find({
+      active: true
+    })
+    .sort({
+      provider: 1,
+      sellingPrice: 1
+    })
+    .lean();
 
-    
-if(user?.email){
-
-  try{
-
-    await sendEmail(
-      user.email,
-      "TV Subscription Successful",
-      `Your TV subscription purchase was successful.`
-    );
-
-  }catch(emailError){
-
-    console.log(
-      "TV email failed:",
-      emailError.message
-    );
-
-  }
-
-}
-
-
-res.json({
+    res.json({
       success: true,
       plans
     });
 
   } catch (error) {
 
-    console.log("TV Plans error:", error.response?.data || error.message);
+    console.log(
+      "TV Plans error:",
+      error.response?.data || error.message
+    );
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch TV plans"
@@ -448,6 +436,7 @@ res.json({
 
   }
 };
+
 
 module.exports = {
   subscribeTV, getTVPlans
