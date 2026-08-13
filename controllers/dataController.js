@@ -441,6 +441,11 @@ planId: dataPrice.providerPlanId || variation_id,
 phone:dataPhone
 });
 
+console.log(
+  "OPLUG RAW PROVIDER RESPONSE:",
+  JSON.stringify(providerResponse, null, 2)
+);
+
 if(
 providerResponse?.details?.network &&
 providerResponse.details.network.toUpperCase() !== network.toUpperCase()
