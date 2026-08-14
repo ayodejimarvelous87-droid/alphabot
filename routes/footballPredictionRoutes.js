@@ -12,6 +12,17 @@ router.get("/matches", async(req,res)=>{
 
 try{
 
+const now = new Date();
+
+const day = now.getDay(); // Sunday = 0
+
+const weekStart = new Date(now);
+weekStart.setDate(now.getDate() - day);
+weekStart.setHours(0,0,0,0);
+
+const nextWeekStart = new Date(weekStart);
+nextWeekStart.setDate(weekStart.getDate() + 7);
+
 const matches = await FootballMatch.find({
 status:{
 $in:[
@@ -22,7 +33,8 @@ $in:[
 ]
 },
 matchDate:{
-$gt:new Date()
+$gt:now,
+$lt:nextWeekStart
 }
 })
 .sort({matchDate:1})
