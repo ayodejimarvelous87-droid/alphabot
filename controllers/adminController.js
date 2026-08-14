@@ -994,7 +994,10 @@ maintenanceMode,
 announcement,
 referralPercentage,
 airtimeCashMode,
-providerMinimumBalance
+providerMinimumBalance,
+abCoinsPer100Naira,
+abCoinsRedemptionTarget,
+abCoinsRedemptionReward
 }=req.body;
 
 
@@ -1025,6 +1028,45 @@ setting.airtimeCashMode = airtimeCashMode;
 
 if(providerMinimumBalance !== undefined)
 setting.providerMinimumBalance = Number(providerMinimumBalance);
+
+if(abCoinsPer100Naira !== undefined){
+
+const value = Number(abCoinsPer100Naira);
+
+if(!Number.isFinite(value) || value <= 0)
+return res.status(400).json({
+message:"AB Coins per ₦100 must be greater than 0"
+});
+
+setting.abCoinsPer100Naira = value;
+
+}
+
+if(abCoinsRedemptionTarget !== undefined){
+
+const value = Number(abCoinsRedemptionTarget);
+
+if(!Number.isInteger(value) || value <= 0)
+return res.status(400).json({
+message:"AB Coins redemption target must be a positive whole number"
+});
+
+setting.abCoinsRedemptionTarget = value;
+
+}
+
+if(abCoinsRedemptionReward !== undefined){
+
+const value = Number(abCoinsRedemptionReward);
+
+if(!Number.isFinite(value) || value <= 0)
+return res.status(400).json({
+message:"AB Coins redemption reward must be greater than 0"
+});
+
+setting.abCoinsRedemptionReward = value;
+
+}
 
 
 

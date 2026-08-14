@@ -3,6 +3,7 @@ const EPin = require("../models/EPin");
 const { addBlogCommission } = require("../services/blogCommissionService");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const { awardPurchaseCoins } = require("../services/abCoinService");
 const { purchaseEPins } = require("../services/vtuService");
 const { createNotification } = require("../services/notificationService");
 const sendEmail = require("../services/emailService");
@@ -240,6 +241,9 @@ if(vtuOrderId){
 
 const transaction =
   await Transaction.create(transactionData);
+
+
+await awardPurchaseCoins(transaction);
 
 
 const user =

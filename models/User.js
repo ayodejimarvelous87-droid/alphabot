@@ -153,6 +153,13 @@ const userSchema = new mongoose.Schema(
   },
 
 
+  abCoins:{
+    type:Number,
+    default:0,
+    min:0
+  },
+
+
   firstPurchaseCompleted:{
     type:Boolean,
     default:false

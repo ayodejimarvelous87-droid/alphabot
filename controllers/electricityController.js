@@ -19,6 +19,7 @@ const { purchase } = require("../services/blitzPayService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
 const { addBlogCommission } = require("../services/blogCommissionService");
+const { awardPurchaseCoins } = require("../services/abCoinService");
 
 const payElectricity = async (req, res) => {
 
@@ -307,6 +308,12 @@ const payElectricity = async (req, res) => {
 
     });
 
+
+    const electricityTransaction =
+      await Transaction.findOne({ reference });
+
+
+    await awardPurchaseCoins(electricityTransaction);
 
 
     await createNotification(

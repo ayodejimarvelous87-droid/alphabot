@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const { awardPurchaseCoins } = require("../services/abCoinService");
 
 
 
@@ -157,6 +158,9 @@ description:`${network} ${plan} data purchase`,
 status:"successful"
 
 });
+
+
+await awardPurchaseCoins(transaction);
 
 
 

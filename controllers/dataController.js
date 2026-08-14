@@ -847,6 +847,9 @@ phone:userPhone
   }
 
 
+  await awardPurchaseCoins(transaction);
+
+
 
 
 await createNotification(

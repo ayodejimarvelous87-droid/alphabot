@@ -19,6 +19,7 @@ const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
 const { addBlogCommission } = require("../services/blogCommissionService");
 const sendEmail = require("../services/emailService");
+const { awardPurchaseCoins } = require("../services/abCoinService");
 
 
 // Buy airtime
@@ -450,6 +451,8 @@ status:"successful"
 
 });
 
+
+await awardPurchaseCoins(transaction);
 
 
 await Profit.create({

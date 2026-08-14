@@ -11,6 +11,7 @@ const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 
 const { purchaseProduct } = require("../services/vtuService");
+const { awardPurchaseCoins } = require("../services/abCoinService");
 
 
 // Buy product
@@ -126,7 +127,7 @@ const buyProduct = async (req, res) => {
 
 
 
-    await Transaction.create({
+    const transaction = await Transaction.create({
 
       phone: cleanPhone,
 
@@ -147,6 +148,8 @@ const buyProduct = async (req, res) => {
       status:"successful"
 
     });
+
+    await awardPurchaseCoins(transaction);
 
 
 

@@ -10,6 +10,7 @@ const { checkIdempotency } = require("../utils/idempotency");
 const User = require("../models/User");
 const sendEmail = require("../services/emailService");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
+const { awardPurchaseCoins } = require("../services/abCoinService");
 
 
 const buyExamPin = async(req,res)=>{
@@ -237,6 +238,13 @@ description:`${exam} PIN purchase`,
 status:"successful"
 
 });
+
+
+const examTransaction =
+  await Transaction.findOne({ reference });
+
+
+await awardPurchaseCoins(examTransaction);
 
 
 await addBlogCommission({

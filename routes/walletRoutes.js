@@ -9,7 +9,8 @@ const {
   fundWallet,
   checkBalance,
   transactionHistory,
-  payWallet
+  payWallet,
+  redeemCoins
 } = require("../controllers/walletController");
 
 
@@ -42,6 +43,14 @@ router.post(
   auth,
   maintenance,
   payWallet
+);
+
+
+router.post(
+  "/redeem-coins",
+  auth,
+  maintenance,
+  redeemCoins
 );
 
 

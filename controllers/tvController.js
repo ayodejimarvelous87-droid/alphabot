@@ -17,6 +17,7 @@ const { purchase, getCablePackages } = require("../services/blitzPayService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
 const { addBlogCommission } = require("../services/blogCommissionService");
+const { awardPurchaseCoins } = require("../services/abCoinService");
 
 
 const subscribeTV = async (req, res) => {
@@ -310,7 +311,7 @@ providerResponse.status !== "success"
 
 
 
-    await Transaction.create({
+    const transaction = await Transaction.create({
 
       phone,
 
@@ -343,6 +344,8 @@ providerResponse.status !== "success"
       status: "successful"
 
     });
+
+    await awardPurchaseCoins(transaction);
 
 
     await addBlogCommission({

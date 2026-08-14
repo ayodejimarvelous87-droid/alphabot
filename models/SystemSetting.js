@@ -95,6 +95,24 @@ const systemSettingSchema = new mongoose.Schema({
     default:50
   },
 
+
+  // AB Coins
+  abCoinsPer100Naira:{
+    type:Number,
+    default:0.2
+  },
+
+  abCoinsRedemptionTarget:{
+    type:Number,
+    default:1000
+  },
+
+  abCoinsRedemptionReward:{
+    type:Number,
+    default:200
+  },
+
+
     providerMinimumBalance:{
       type:Number,
       default:500

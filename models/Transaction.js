@@ -32,7 +32,8 @@ enum:[
 "referral_reward",
 "cashback",
 "football_reward",
-"bank_transfer"
+"bank_transfer",
+"ab_coin_redemption"
 ],
 
 required:true

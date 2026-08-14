@@ -6,6 +6,7 @@ const {
   verifyTransactionAuthorization
 } = require("../utils/transactionAuthorization");
 const Wallet = require("../models/wallet");
+const { redeemABCoins, awardPurchaseCoins } = require("../services/abCoinService");
 const Transaction = require("../models/Transaction");
 const normalizePhone = require("../utils/phone");
 
@@ -238,7 +239,7 @@ const payWallet = async(req,res,next)=>{
 
 
 
-    await Transaction.create({
+    const transaction = await Transaction.create({
 
       phone:cleanPhone,
 
@@ -254,9 +255,14 @@ const payWallet = async(req,res,next)=>{
 
       balanceAfter: wallet.balance,
 
-      description:description || "VTU purchase"
+      description:description || "VTU purchase",
+
+      status:"successful"
 
     });
+
+
+    await awardPurchaseCoins(transaction);
 
 
 
@@ -283,6 +289,60 @@ const payWallet = async(req,res,next)=>{
 
 
 
+const redeemCoins = async (req, res, next) => {
+
+  try {
+
+    const phone =
+      String(
+        req.user?.phone ||
+        ""
+      ).trim();
+
+    const idempotencyKey =
+      String(
+        req.body.idempotencyKey ||
+        req.headers["idempotency-key"] ||
+        ""
+      ).trim();
+
+    if (!phone) {
+      throw new AppError(
+        "Phone number is required",
+        400
+      );
+    }
+
+    if (!idempotencyKey) {
+      throw new AppError(
+        "Idempotency key is required",
+        400
+      );
+    }
+
+    const result =
+      await redeemABCoins(
+        phone,
+        idempotencyKey
+      );
+
+    return res.json({
+      message:
+        result.redeemed
+          ? "AB Coins redeemed successfully"
+          : "Redemption already processed",
+
+      ...result
+    });
+
+  } catch (error) {
+
+    next(error);
+
+  }
+};
+
+
 module.exports = {
 
 fundWallet,
@@ -291,6 +351,8 @@ checkBalance,
 
 transactionHistory,
 
-payWallet
+payWallet,
+
+redeemCoins
 
 };

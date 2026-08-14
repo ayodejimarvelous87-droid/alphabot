@@ -9,6 +9,7 @@ const { createNotification } = require("../services/notificationService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
 const { addBlogCommission } = require("../services/blogCommissionService");
+const { awardPurchaseCoins } = require("../services/abCoinService");
 
 const {
   verifyCustomer,
@@ -287,6 +288,11 @@ description:`Betting wallet funding for ${service_id}`,
 status:"successful"
 
 });
+
+
+await awardPurchaseCoins(
+  await Transaction.findOne({ reference })
+);
 
 
 await addBlogCommission({

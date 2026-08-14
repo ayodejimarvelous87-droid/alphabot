@@ -21,7 +21,12 @@ res.json({
   footballSecondMinimumPoints: setting.footballSecondMinimumPoints,
   footballMinimumPredictions: setting.footballMinimumPredictions,
   footballMinimumWins: setting.footballMinimumWins,
-  providerMinimumBalance: setting.providerMinimumBalance
+  providerMinimumBalance: setting.providerMinimumBalance,
+
+  // AB Coins
+  abCoinsPer100Naira: setting.abCoinsPer100Naira,
+  abCoinsRedemptionTarget: setting.abCoinsRedemptionTarget,
+  abCoinsRedemptionReward: setting.abCoinsRedemptionReward
 });
 
 
