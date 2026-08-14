@@ -32,6 +32,8 @@ app.use(helmet());
 // CORS
 app.use(cors({
   origin: [
+    "https://alphabothq.com",
+    "https://www.alphabothq.com",
     "https://alphabot-frontend-chi.vercel.app",
     "http://localhost:3000",
     "http://localhost:3001"
