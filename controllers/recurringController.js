@@ -128,7 +128,8 @@ message:"Unauthorized"
 
 
 const recurring = await Recurring.find({
-phone:cleanPhone
+phone:cleanPhone,
+status: { $ne: "cancelled" }
 }).sort({
 createdAt:-1
 });
