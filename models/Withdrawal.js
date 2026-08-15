@@ -50,6 +50,12 @@ const withdrawalSchema = new mongoose.Schema(
   reference:{
     type:String,
     unique:true
+  },
+
+  idempotencyKey:{
+    type:String,
+    unique:true,
+    sparse:true
   }
 
 },

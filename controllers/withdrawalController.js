@@ -18,10 +18,11 @@ try{
 
 
 const {
-phone,
 amount,
 pin
 }=req.body;
+
+const phone = req.user.phone;
 
 
 const idempotencyKey =
@@ -88,7 +89,7 @@ const verifyResponse = await axios.post(
 
 {
 account_number: accountNumber,
-account_bank: req.body.bankCode
+account_bank: bankCode
 },
 
 {
@@ -124,7 +125,7 @@ throw new AppError("Unable to verify bank account", 400);
 
 
 
-const wallet = await Wallet.findOne({
+let wallet = await Wallet.findOne({
 phone
 });
 

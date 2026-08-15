@@ -47,8 +47,20 @@ const processRecurringPayments = async () => {
 
       if(payment.service === "data"){
 
+        const recurringProvider =
+          String(payment.provider || "").trim().toLowerCase();
+
+        const recurringNetwork =
+          String(payment.network || "").trim().toUpperCase();
+
+        const recurringVariationId =
+          String(payment.variationId || "").trim();
+
+        const recurringProductId =
+          `${recurringProvider}:${recurringNetwork}:${recurringVariationId}`;
+
         const dataPrice = await ProductOverride.findOne({
-          productId:String(payment.variationId)
+          productId:recurringProductId
         });
 
         if(!dataPrice || dataPrice.active === false){

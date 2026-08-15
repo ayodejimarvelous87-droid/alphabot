@@ -877,7 +877,8 @@ async function syncProducts(plans) {
           },
           {
             $set: {
-              active: false
+              active: false,
+              "providers.$[].active": false
             }
           }
         );

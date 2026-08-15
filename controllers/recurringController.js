@@ -60,6 +60,19 @@ if(service === "data"){
     });
   }
 
+  const normalizedProvider =
+    String(provider || "").trim().toLowerCase();
+
+  if(
+    !["vtu", "blitzpay", "oplug"].includes(
+      normalizedProvider
+    )
+  ){
+    return res.status(400).json({
+      message:"Invalid data provider"
+    });
+  }
+
 }
 
 const recurring = await Recurring.create({
@@ -67,7 +80,10 @@ const recurring = await Recurring.create({
 phone:cleanPhone,
 targetPhone:cleanTargetPhone,
 service,
-provider:service === "data" ? provider : "",
+provider:
+  service === "data"
+    ? String(provider || "").trim().toLowerCase()
+    : "",
 productId:service === "airtime" ? productId : null,
 variationId:service === "data" ? String(variationId) : "",
 network:service === "data" ? network : "",
