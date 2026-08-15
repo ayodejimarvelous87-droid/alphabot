@@ -545,14 +545,49 @@ if(vtuFailed){
   }
 
   allPlans.push({
+
     ...plan,
+
     network:plan.service_name,
+
     service_name:plan.service_name,
+
     name:plan.data_plan,
-    price:Number(plan.reseller_price),
+
+    variation_id:
+      String(plan.variation_id),
+
+    providerPlanId:
+      String(plan.variation_id),
+
+    validity:
+      plan.validity ||
+      (
+        String(plan.data_plan)
+          .split(" - ")
+          .slice(1)
+          .join(" - ")
+          .trim()
+      ),
+
+    price:
+      Number(plan.reseller_price),
+
+    providerPrice:
+      Number(plan.reseller_price),
+
     provider:"vtu",
+
+    sellingPrice:
+      calculateSellingPrice(
+        plan.reseller_price
+      ),
+
     display_price:
-      calculateSellingPrice(plan.reseller_price)
+      calculateSellingPrice(
+        plan.reseller_price
+      )
+
   });
 
 });
@@ -611,7 +646,9 @@ for(const plan of blitzPlans){
     name:plan.name,
     network:plan.network,
     provider:"blitzpay",
+    providerPlanId:variationId,
     providerPrice,
+    costPrice:providerPrice,
     sellingPrice,
     display_price:sellingPrice
   });

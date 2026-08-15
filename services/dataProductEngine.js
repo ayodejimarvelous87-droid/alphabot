@@ -182,7 +182,8 @@ function normalizePlan(plan, provider) {
     plan.costPrice ??
     plan.providerPrice ??
     plan.reseller_price ??
-    plan.price
+    plan.price ??
+    plan.amount
   );
 
   if (costPrice <= 0) {
@@ -391,7 +392,7 @@ function normalizePlan(plan, provider) {
     plan.datasize ||
     plan.size ||
     plan.data_plan ||
-    plan.type ||
+    plan.plan ||
     plan.name ||
     "";
 
@@ -452,8 +453,12 @@ function normalizePlan(plan, provider) {
    * units must never become part of productKey.
    */
   const validity =
-    normalizedExplicitValidity ||
-    finalExtractedValidity;
+    String(provider).toLowerCase() === "oplug"
+      ? normalizedExplicitValidity
+      : (
+          normalizedExplicitValidity ||
+          finalExtractedValidity
+        );
 
   let name = String(
     plan.name ||

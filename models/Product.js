@@ -45,7 +45,7 @@ const productSchema = new mongoose.Schema(
 
     validity: {
       type: String,
-      default: "30 Days"
+      default: ""
     },
 
     providerCode: {

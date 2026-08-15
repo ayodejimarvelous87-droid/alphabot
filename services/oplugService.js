@@ -222,7 +222,7 @@ const getDataPlans = async (network) => {
         (
           plan.plan_id !== undefined &&
           plan.plan_id !== null &&
-          /^\\d+$/.test(String(plan.plan_id).trim())
+          /^\d+$/.test(String(plan.plan_id).trim())
         )
           ? plan.plan_id
           : plan.id,
@@ -231,7 +231,7 @@ const getDataPlans = async (network) => {
         (
           plan.plan_id !== undefined &&
           plan.plan_id !== null &&
-          /^\\d+$/.test(String(plan.plan_id).trim())
+          /^\d+$/.test(String(plan.plan_id).trim())
         )
           ? plan.plan_id
           : plan.id,
@@ -243,7 +243,11 @@ const getDataPlans = async (network) => {
 
       type: plan.type || "DATA",
 
-      datasize: plan.datasize || "DATA",
+      datasize:
+        plan.datasize ||
+        plan.plan ||
+        plan.name ||
+        "DATA",
 
       day: (() => {
         const rawDay = plan.day;
@@ -253,7 +257,7 @@ const getDataPlans = async (network) => {
           rawDay === null ||
           String(rawDay).trim() === ""
         ) {
-          return "30 Days";
+          return "";
         }
 
         const value = String(rawDay).trim();
@@ -269,8 +273,43 @@ const getDataPlans = async (network) => {
         return value;
       })(),
 
+      /*
+       * Preserve OPLUG's explicit validity field.
+       *
+       * OPLUG may return both:
+       *   day: "30"
+       *   validity: "30 Days"
+       *
+       * Keep validity when supplied. The unified product engine
+       * already prefers plan.validity and falls back to plan.day.
+       */
+      validity: (() => {
+        const rawValidity = plan.validity;
+
+        if (
+          rawValidity === undefined ||
+          rawValidity === null ||
+          String(rawValidity).trim() === ""
+        ) {
+          return "";
+        }
+
+        return String(rawValidity)
+          .trim()
+          .replace(/\s+/g, " ");
+      })(),
+
+      variation_id: plan.variation_id,
+
+      display_price:
+        Number.isFinite(Number(plan.display_price))
+          ? Number(plan.display_price)
+          : undefined,
+
+      service_name: plan.service_name,
+
       name:
-        `${plan.network} ${plan.datasize || "DATA"} - ${plan.type || "DATA"}`,
+        `${plan.network} ${plan.datasize || plan.plan || plan.name || "DATA"} - ${plan.type || "DATA"}`,
 
       /*
        * Preserve both OPLUG price fields.
@@ -281,12 +320,43 @@ const getDataPlans = async (network) => {
        * Keep `price` as the original OPLUG price for reference
        * and backward compatibility.
        */
-      price: Number(plan.price) || 0,
+      /*
+       * OPLUG /data_plans returns the provider price
+       * in the `amount` field.
+       *
+       * Example:
+       *   {
+       *     id: 8,
+       *     network: "MTN",
+       *     plan: "2.0GB",
+       *     amount: 690,
+       *     type: "SME"
+       *   }
+       *
+       * AlphaBot's unified product engine expects this
+       * provider price as costPrice.
+       */
+      price:
+        Number.isFinite(Number(plan.amount))
+          ? Number(plan.amount)
+          : (
+              Number.isFinite(Number(plan.price))
+                ? Number(plan.price)
+                : 0
+            ),
 
       costPrice:
-        Number.isFinite(Number(plan.costPrice))
-          ? Number(plan.costPrice)
-          : 0
+        Number.isFinite(Number(plan.amount))
+          ? Number(plan.amount)
+          : (
+              Number.isFinite(Number(plan.costPrice))
+                ? Number(plan.costPrice)
+                : (
+                    Number.isFinite(Number(plan.price))
+                      ? Number(plan.price)
+                      : 0
+                  )
+            )
 
     }));
 
