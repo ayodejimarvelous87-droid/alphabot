@@ -147,14 +147,11 @@ const recurringRoutes = require("./routes/recurringRoutes");
 const airtimeCashRoutes = require("./routes/airtimeCashRoutes");
 const examPinRoutes = require("./routes/examPinRoutes");
 const whatsappExamRoutes = require("./routes/whatsappExamRoutes");
-const withdrawalRoutes = require("./routes/withdrawalRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const adminExamPinRoutes = require("./routes/adminExamPinRoutes");
-const adminWithdrawalRoutes = require("./routes/adminWithdrawalRoutes");
 const adminAirtimeCashRoutes = require("./routes/adminAirtimeCashRoutes");
 const beneficiaryRoutes = require("./routes/beneficiaryRoutes");
 const vtuRoutes = require("./routes/vtuRoutes");
-const transferRoutes = require("./routes/transferRoutes");
 const aiRoutes = require("./routes/aiRoutes");
 const footballRoutes = require("./routes/footballRoutes");
 const footballPredictionRoutes = require("./routes/footballPredictionRoutes");
@@ -171,8 +168,6 @@ const adminTVRoutes = require("./routes/adminTVRoutes");
 const adminElectricityRoutes = require("./routes/adminElectricityRoutes");
 const adminBettingRoutes = require("./routes/adminBettingRoutes");
 const adminRecurringRoutes = require("./routes/adminRecurringRoutes");
-const adminTransferRoutes = require("./routes/adminTransferRoutes");
-const transferSettingsRoutes = require("./routes/transferSettingsRoutes");
 const flutterwaveRoutes = require("./routes/flutterwaveRoutes");
 const blogPartnerRoutes = require("./routes/blogPartnerRoutes");
 const blogPayoutRoutes = require("./routes/blogPayoutRoutes");
@@ -228,7 +223,6 @@ app.post("/users/test",(req,res)=>{
 });
 
 app.use("/transactions", transactionRoutes);
-app.use("/admin/withdrawal", adminWithdrawalRoutes);
 app.use("/admin", adminRoutes);
 app.use("/admin/data-prices", adminDataPriceRoutes);
 app.use("/admin/airtime-prices", adminAirtimeRoutes);
@@ -237,13 +231,11 @@ app.use("/admin/services", adminServiceRoutes);
 app.use("/admin/tv-plans", adminTVRoutes);
 app.use("/admin/betting-settings", adminBettingRoutes);
 app.use("/admin/recurring", adminRecurringRoutes);
-app.use("/admin/transfer-settings", adminTransferRoutes);
 app.use("/admin/electricity-settings", adminElectricityRoutes);
 app.use("/admin/dashboard", adminDashboardRoutes);
 app.use("/funding", fundingRoutes);
 app.use("/flutterwave", flutterwaveRoutes);
 app.use("/bank", bankRoutes);
-app.use("/transfer/settings", transferSettingsRoutes);
 app.use("/webhook", whatsappWebhook);
 
 app.use("/receipts", receiptRoutes);
@@ -274,14 +266,12 @@ app.use("/airtime-cash", airtimeCashRoutes);
 app.use("/whatsapp-exam", whatsappExamRoutes);
 app.use("/exam-pin", examPinRoutes);
 
-app.use("/withdrawal", withdrawalRoutes);
 app.use("/settings", settingsRoutes);
 
 app.use("/admin/exam-pin", adminExamPinRoutes);
 app.use("/admin/airtime-cash", adminAirtimeCashRoutes);
 
 app.use("/epin", ePinRoutes);
-app.use("/transfer", transferRoutes);
 app.use("/blog-partner", blogPartnerRoutes);
 app.use("/blog-payout", blogPayoutRoutes);
 app.use("/wake", wakeRoutes);
