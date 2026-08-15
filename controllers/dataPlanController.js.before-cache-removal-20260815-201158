@@ -2,9 +2,24 @@ const { vtuPublicGet } = require("../services/vtuService");
 const { getPlans } = require("../services/blitzPayService");
 const { getDataPlans: getOplugPlans } = require("../services/oplugService");
 const SystemSetting = require("../models/SystemSetting");
+const DataPlanCache = require("../models/DataPlanCache");
 const ProductOverride = require("../models/ProductOverride");
 
+const {
+  syncProviderProducts
+} = require("../services/dataProductSync");
 
+const savedPlans = require("../plans.json");
+
+
+const categoriesList = [
+"SME",
+"SME 2",
+"Awoof",
+"Gifting",
+"Corporate",
+"Standard"
+];
 
 function calculateSellingPrice(cost){
   cost = Number(cost);
@@ -31,27 +46,353 @@ function calculateSellingPrice(cost){
 }
 
 
-const formatCategory = (plan) => {
+const formatCategory = (plan)=>{
 
-  const rawCategory =
-    plan.type ??
-    plan.category ??
-    "";
+const name = (
+plan.data_plan || plan.type ||
+plan.name ||
+""
+).toLowerCase();
 
-  const category =
-    String(rawCategory).trim();
 
-  if (category) {
-    return category;
+if(name.includes("sme 2") || name.includes("sme2")){
+return "SME 2";
+}
+
+if(name.includes("sme")){
+return "SME";
+}
+
+if(name.includes("gift")){
+return "Gifting";
+}
+
+if(name.includes("corporate")){
+return "Corporate";
+}
+
+if(
+name.includes("awoof") ||
+name.includes("weekend") ||
+name.includes("sunday") ||
+name.includes("1 day") ||
+Number(plan.reseller_price || plan.price) <= 500
+){
+
+return "Awoof";
+
+}
+
+return "Standard";
+
+};
+
+
+
+const DATA_PLANS_CACHE_TTL = 5 * 60 * 1000;
+
+const DATA_PLANS_CACHE_KEY = "data-plans";
+
+
+const getCachedDataPlans = async()=>{
+
+  try{
+
+    // The Express server connects MongoDB during startup.
+    // Never create another MongoDB connection here.
+    if(DataPlanCache.db.readyState !== 1){
+      console.log(
+        "⚠️ MongoDB is not connected - cache unavailable"
+      );
+      return null;
+    }
+
+    return await DataPlanCache.findOne({
+      key:DATA_PLANS_CACHE_KEY
+    }).lean();
+
+  }catch(error){
+
+    console.log(
+      "Data plans cache read error:",
+      error.message
+    );
+
+    return null;
   }
 
-  return "Standard";
+};
+
+
+const saveDataPlansCache = async(data, providers)=>{
+
+  try{
+
+    // Use the existing Express/Mongoose connection.
+    if(DataPlanCache.db.readyState !== 1){
+
+      console.log(
+        "⚠️ MongoDB is not connected - cache not saved"
+      );
+
+      return false;
+    }
+
+    await DataPlanCache.findOneAndUpdate(
+      {
+        key:DATA_PLANS_CACHE_KEY
+      },
+      {
+        $set:{
+          data,
+          providers,
+          updatedAt:new Date()
+        },
+        $setOnInsert:{
+          key:DATA_PLANS_CACHE_KEY
+        }
+      },
+      {
+        upsert:true,
+        new:true,
+        setDefaultsOnInsert:true
+      }
+    );
+
+    console.log(
+      "✅ Data plans persistent cache updated"
+    );
+
+    return true;
+
+  }catch(error){
+
+    console.log(
+      "Data plans cache save error:",
+      error.message
+    );
+
+    return false;
+  }
+
 };
 
 
 const getDataPlans = async(req,res)=>{
 
 try{
+
+  const cached = await getCachedDataPlans();
+
+  console.log(
+    "🔎 DATA PLANS REQUEST:",
+    JSON.stringify({
+      hasCache: !!cached,
+      updatedAt: cached?.updatedAt || null,
+      skipCache: !!req?._skipDataPlansCache
+    })
+  );
+
+  if(cached && !req?._skipDataPlansCache){
+
+    const cacheAge =
+      Date.now() - new Date(cached.updatedAt).getTime();
+
+    // Fresh cache.
+    if(cacheAge < DATA_PLANS_CACHE_TTL){
+
+      console.log(
+        "🔎 DATA PLANS CACHE BRANCH: FRESH CACHE"
+      );
+
+      // ---------------------------------------------------------
+      // Keep the new unified DataProduct layer synchronized even
+      // when the legacy frontend response is being served from
+      // the persistent cache.
+      //
+      // This is important during migration because the frontend
+      // must continue receiving the exact cached response while
+      // DataProduct is populated independently.
+      // ---------------------------------------------------------
+
+      try {
+
+        const cachedProviderResults = [
+          {
+            provider: "vtu",
+            plans: cached.providers?.vtu || []
+          },
+
+          {
+            provider: "blitzpay",
+            plans: cached.providers?.blitzpay || []
+          },
+
+          {
+            provider: "oplug",
+            plans: cached.providers?.oplug || []
+          }
+        ];
+
+        // =========================================================
+        // TEMPORARY CROSS-PROVIDER NORMALIZATION AUDIT
+        // =========================================================
+
+        try {
+
+          const {
+            normalizePlan
+          } = require("../services/dataProductEngine");
+
+          const auditPlans = [];
+
+          for (const result of cachedProviderResults) {
+
+            if (!result || !Array.isArray(result.plans)) {
+              continue;
+            }
+
+            for (const plan of result.plans) {
+
+              const provider =
+                String(result.provider || "").toLowerCase();
+
+              const normalized =
+                normalizePlan(plan, provider);
+
+              if (!normalized) {
+                continue;
+              }
+
+              auditPlans.push({
+                provider,
+                productKey: normalized.productKey,
+                providerPlanId:
+                  normalized.providerRoute.providerPlanId,
+                network: normalized.network,
+                category: normalized.category,
+                datasize: normalized.datasize,
+                validity: normalized.validity,
+                name: normalized.name
+              });
+
+            }
+          }
+
+          const crossProvider =
+            new Map();
+
+          for (const item of auditPlans) {
+
+            if (!crossProvider.has(item.productKey)) {
+              crossProvider.set(
+                item.productKey,
+                []
+              );
+            }
+
+            crossProvider
+              .get(item.productKey)
+              .push(item);
+          }
+
+          console.log(
+            "\n========== CACHED CROSS-PROVIDER MATCHES ==========\n"
+          );
+
+          let matchCount = 0;
+
+          for (const [productKey, routes] of crossProvider) {
+
+            const providers =
+              new Set(
+                routes.map(
+                  route => route.provider
+                )
+              );
+
+            if (providers.size > 1) {
+
+              matchCount++;
+
+              console.log(
+                JSON.stringify(
+                  {
+                    productKey,
+                    providers: [...providers],
+                    routes
+                  },
+                  null,
+                  2
+                )
+              );
+
+              if (matchCount >= 30) {
+                break;
+              }
+
+            }
+          }
+
+          console.log(
+            `\\nCross-provider unified products found: ${matchCount}\\n`
+          );
+
+        } catch(auditError) {
+
+          console.log(
+            "⚠️ Cross-provider audit error:",
+            auditError.message
+          );
+
+        }
+
+        const unifiedResult =
+          await syncProviderProducts(
+            cachedProviderResults
+          );
+
+        console.log(
+          `✅ Cached DataProduct sync: ${unifiedResult.synced} unified products`
+        );
+
+      } catch(error) {
+
+        console.log(
+          "⚠️ Cached DataProduct sync error:",
+          error.message
+        );
+
+      }
+
+      return res.json({
+        success: true,
+        providers: {
+          vtu: cached.providers?.vtu || [],
+          blitzpay: cached.providers?.blitzpay || [],
+          oplug: cached.providers?.oplug || []
+        }
+      });
+
+    }
+
+    // Cache is stale.
+    //
+    // IMPORTANT:
+    // Do NOT return the stale catalogue.
+    //
+    // Returning stale data here could resurrect plans from a
+    // provider that has now failed. The refresh must complete
+    // first so the response represents the current provider state.
+    //
+    // There is intentionally NO provider fallback.
+
+    console.log(
+      "⚠️ Data plans cache is stale - refreshing providers before response"
+    );
+
+  }
+
 
 const setting = await SystemSetting.findOne();
 
@@ -66,7 +407,7 @@ let allPlans = [];
 // A provider failure is preserved as a rejected result so we can
 // safely fall back to its previous persistent cache.
 
-
+const ProductOverride = require("../models/ProductOverride");
 
 const [
   vtuResult,
@@ -202,12 +543,61 @@ if(vtuFailed){
 
   vtuPlans.forEach(plan=>{
 
-    allPlans.push({
-      ...plan,
-      provider:"vtu"
-    });
+  if(
+    !plan.data_plan ||
+    !plan.service_name ||
+    plan.availability === "Unavailable"
+  ){
+    return;
+  }
+
+  allPlans.push({
+
+    ...plan,
+
+    network:plan.service_name,
+
+    service_name:plan.service_name,
+
+    name:plan.data_plan,
+
+    variation_id:
+      String(plan.variation_id),
+
+    providerPlanId:
+      String(plan.variation_id),
+
+    validity:
+      plan.validity ||
+      (
+        String(plan.data_plan)
+          .split(" - ")
+          .slice(1)
+          .join(" - ")
+          .trim()
+      ),
+
+    price:
+      Number(plan.reseller_price),
+
+    providerPrice:
+      Number(plan.reseller_price),
+
+    provider:"vtu",
+
+    sellingPrice:
+      calculateSellingPrice(
+        plan.reseller_price
+      ),
+
+    display_price:
+      calculateSellingPrice(
+        plan.reseller_price
+      )
 
   });
+
+});
 
 }
 
@@ -641,6 +1031,200 @@ try {
 }
 
 
+// Add missing Oplug plans from saved cache
+// Use a stable provider + network + plan ID identity so
+// cached plans cannot duplicate freshly fetched plans.
+try {
+
+  const savedOplug = [];
+
+  for(const network in savedPlans.networks){
+
+    for(const category in savedPlans.networks[network]){
+
+      savedPlans.networks[network][category].forEach(plan=>{
+
+        if(plan.provider === "oplug"){
+          savedOplug.push(plan);
+        }
+
+      });
+
+    }
+
+  }
+
+
+  const getOplugIdentity = (plan) => {
+
+    if(!plan || plan.provider !== "oplug"){
+      return null;
+    }
+
+    const network = String(
+      plan.network ||
+      plan.service_name ||
+      ""
+    ).trim().toUpperCase();
+
+    /*
+     * Canonical Oplug cache identity.
+     *
+     * Prefer numeric plan_id over legacy/non-canonical id.
+     *
+     * Example:
+     *   id: "gsubz_356"
+     *   plan_id: 356
+     *
+     * Canonical identity = 356
+     */
+    let planId =
+      (
+        plan.plan_id !== undefined &&
+        plan.plan_id !== null &&
+        /^\d+$/.test(
+          String(plan.plan_id).trim()
+        )
+      )
+        ? plan.plan_id
+        : (
+            plan.id ??
+            plan.providerPlanId ??
+            plan.variation_id
+          );
+
+    if(!network || planId === undefined || planId === null){
+      return null;
+    }
+
+    /*
+     * OPLUG can cache the same plan as:
+     *
+     *   85
+     *   provider_9mobile_85
+     *
+     * Treat both as the same provider route.
+     */
+    const idText = String(planId).trim();
+
+    const match =
+      idText.match(
+        /^provider_(9mobile|etisalat|mtn|airtel|glo)_(.+)$/i
+      );
+
+    if(match){
+
+      const idNetwork =
+        match[1]
+          .toUpperCase();
+
+      if(
+        idNetwork === network ||
+        (
+          idNetwork === "ETISALAT" &&
+          network === "9MOBILE"
+        )
+      ){
+        planId = match[2];
+      }
+
+    }
+
+    return `oplug:${network}:${String(planId)}`;
+
+  };
+
+
+  const existingIds = new Set();
+
+  for(const plan of allPlans){
+
+    const identity = getOplugIdentity(plan);
+
+    if(identity){
+      existingIds.add(identity);
+    }
+
+  }
+
+
+  savedOplug.forEach(plan=>{
+
+    /*
+     * Prefer the provider's explicit costPrice.
+     * Older cached OPLUG records fall back to price.
+     */
+    const providerPrice = Number(
+      plan.costPrice ?? plan.price
+    );
+
+    // Never resurrect cached OPLUG plans with zero/invalid prices.
+    if(
+      !Number.isFinite(providerPrice) ||
+      providerPrice <= 0
+    ){
+      console.log(
+        "⚠️ Cached OPLUG zero/invalid cost price skipped:",
+        JSON.stringify({
+          id: plan?.id,
+          plan_id: plan?.plan_id,
+          network: plan?.network,
+          datasize: plan?.datasize,
+          price: plan?.price,
+          costPrice: plan?.costPrice
+        })
+      );
+
+      return;
+    }
+
+    const identity = getOplugIdentity(plan);
+
+    if(!identity || existingIds.has(identity)){
+      return;
+    }
+
+    allPlans.push({
+
+      ...plan,
+
+      variation_id:
+        String(
+          (
+            plan.plan_id !== undefined &&
+            plan.plan_id !== null &&
+            /^\d+$/.test(
+              String(plan.plan_id).trim()
+            )
+          )
+            ? plan.plan_id
+            : (
+                plan.id ??
+                plan.providerPlanId ??
+                plan.variation_id
+              )
+        ),
+
+      display_price:
+        calculateSellingPrice(providerPrice)
+
+    });
+
+    existingIds.add(identity);
+
+  });
+
+
+}catch(e){
+
+  console.log(
+    "Saved Oplug merge error:",
+    e.message
+  );
+
+}
+
+// =========================================================
 // Remove plans manually deactivated through ProductOverride.
 // ProductOverride is the source of truth for admin-disabled plans.
 try {
@@ -955,102 +1539,93 @@ allPlans = allPlans.map(plan => {
 const grouped = {};
 
 
-// ============================================================
-// GROUP BY NETWORK -> CATEGORY
-//
-// Categories are unified across providers.
-//
-// Example:
-//
-//   OPLUG     -> SME
-//   VTU       -> SME
-//   BlitzPay  -> SME
-//
-// All three appear under the same SME category.
-//
-// Provider plan objects themselves are NOT merged.
-// Each provider plan remains its own record.
-// ============================================================
 
-allPlans.forEach(plan => {
+allPlans.forEach(plan=>{
 
-  let network =
-    plan.network ||
-    plan.service_name ||
-    "Other";
 
-  network =
-    String(network).trim().toLowerCase();
+let network =
+  plan.network ||
+  plan.service_name ||
+  "Other";
 
-  if(network.includes("mtn")){
-    network = "MTN";
-  }
-  else if(network.includes("airtel")){
-    network = "Airtel";
-  }
-  else if(network.includes("glo")){
-    network = "Glo";
-  }
-  else if(
-    network.includes("9mobile") ||
-    network.includes("etisalat")
-  ){
-    network = "9mobile";
-  }
-  else{
-    network = "Other";
-  }
+network = network.toString().trim().toLowerCase();
 
-  // Keep unknown networks out of the customer catalogue.
-  if(network === "Other"){
-    return;
-  }
+if(network.includes("mtn")){
+network = "MTN";
+}
+else if(network.includes("airtel")){
+network = "Airtel";
+}
+else if(network.includes("glo")){
+network = "Glo";
+}
+else if(network.includes("9mobile") || network.includes("etisalat")){
+network = "9mobile";
+}
+else{
+network = "Other";
+}
 
-  if(!grouped[network]){
-    grouped[network] = {};
-  }
 
-  const category =
-    String(formatCategory(plan) || "Standard")
-      .trim();
 
-  if(!grouped[network][category]){
-    grouped[network][category] = [];
-  }
+if(!grouped[network]){
 
-  // IMPORTANT:
-  // Do not merge, deduplicate, rename, or replace provider plans.
-  // Just place the original plan record into its category.
-  grouped[network][category].push(plan);
+grouped[network] = {};
+
+
+categoriesList.forEach(category=>{
+
+grouped[network][category] = [];
+
+});
+
+}
+
+
+
+const category = formatCategory(plan);
+
+
+grouped[network][category].push(plan);
+
 
 });
 
 
-// Remove empty categories/networks only.
-Object.keys(grouped).forEach(network => {
 
-  Object.keys(grouped[network]).forEach(category => {
-
-    if(
-      !Array.isArray(grouped[network][category]) ||
-      grouped[network][category].length === 0
-    ){
-      delete grouped[network][category];
-    }
-
-  });
-
-  if(Object.keys(grouped[network]).length === 0){
-    delete grouped[network];
-  }
-
+Object.keys(grouped).forEach(network=>{
+Object.keys(grouped[network]).forEach(category=>{
+if(grouped[network][category].length===0){
+delete grouped[network][category];
+}
 });
-
+if(Object.keys(grouped[network]).length===0 || network==="Other"){
+delete grouped[network];
+}
+});
 
 const responseData = {
   success: true,
-  providers: grouped
+  networks: grouped
 };
+
+// Save the fully processed plans to persistent MongoDB cache.
+const cacheSaved = await saveDataPlansCache(
+  responseData,
+  {
+    vtu: vtuPlans,
+    blitzpay: blitzPlans,
+    oplug: oplugPlans
+  }
+);
+
+if(!cacheSaved){
+
+  console.log(
+    "⚠️ Data plans loaded but persistent cache was not updated"
+  );
+
+}
 
 res.json(responseData);
 

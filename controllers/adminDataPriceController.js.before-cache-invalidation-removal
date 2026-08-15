@@ -1,4 +1,5 @@
 const ProductOverride = require("../models/ProductOverride");
+const DataPlanCache = require("../models/DataPlanCache");
 
 
 // Save/update plan settings
@@ -72,6 +73,29 @@ new:true,
 upsert:true
 }
 );
+
+
+// Invalidate the data-plan catalogue cache so the next
+// /data/plans request rebuilds the catalogue and applies
+// this newly saved ProductOverride.
+try{
+
+  await DataPlanCache.deleteOne({
+    key:"data-plans"
+  });
+
+  console.log(
+    "✅ Data plans cache invalidated after admin price save"
+  );
+
+}catch(cacheError){
+
+  console.log(
+    "⚠️ Data plans cache invalidation failed:",
+    cacheError.message
+  );
+
+}
 
 
 res.json({

@@ -6,6 +6,15 @@ const ProductOverride = require("../models/ProductOverride");
 
 
 
+const categoriesList = [
+"SME",
+"SME 2",
+"Awoof",
+"Gifting",
+"Corporate",
+"Standard"
+];
+
 function calculateSellingPrice(cost){
   cost = Number(cost);
 
@@ -31,22 +40,47 @@ function calculateSellingPrice(cost){
 }
 
 
-const formatCategory = (plan) => {
+const formatCategory = (plan)=>{
 
-  const rawCategory =
-    plan.type ??
-    plan.category ??
-    "";
+const name = (
+plan.data_plan || plan.type ||
+plan.name ||
+""
+).toLowerCase();
 
-  const category =
-    String(rawCategory).trim();
 
-  if (category) {
-    return category;
-  }
+if(name.includes("sme 2") || name.includes("sme2")){
+return "SME 2";
+}
 
-  return "Standard";
+if(name.includes("sme")){
+return "SME";
+}
+
+if(name.includes("gift")){
+return "Gifting";
+}
+
+if(name.includes("corporate")){
+return "Corporate";
+}
+
+if(
+name.includes("awoof") ||
+name.includes("weekend") ||
+name.includes("sunday") ||
+name.includes("1 day") ||
+Number(plan.reseller_price || plan.price) <= 500
+){
+
+return "Awoof";
+
+}
+
+return "Standard";
+
 };
+
 
 
 const getDataPlans = async(req,res)=>{
@@ -66,7 +100,7 @@ let allPlans = [];
 // A provider failure is preserved as a rejected result so we can
 // safely fall back to its previous persistent cache.
 
-
+const ProductOverride = require("../models/ProductOverride");
 
 const [
   vtuResult,
@@ -202,12 +236,61 @@ if(vtuFailed){
 
   vtuPlans.forEach(plan=>{
 
-    allPlans.push({
-      ...plan,
-      provider:"vtu"
-    });
+  if(
+    !plan.data_plan ||
+    !plan.service_name ||
+    plan.availability === "Unavailable"
+  ){
+    return;
+  }
+
+  allPlans.push({
+
+    ...plan,
+
+    network:plan.service_name,
+
+    service_name:plan.service_name,
+
+    name:plan.data_plan,
+
+    variation_id:
+      String(plan.variation_id),
+
+    providerPlanId:
+      String(plan.variation_id),
+
+    validity:
+      plan.validity ||
+      (
+        String(plan.data_plan)
+          .split(" - ")
+          .slice(1)
+          .join(" - ")
+          .trim()
+      ),
+
+    price:
+      Number(plan.reseller_price),
+
+    providerPrice:
+      Number(plan.reseller_price),
+
+    provider:"vtu",
+
+    sellingPrice:
+      calculateSellingPrice(
+        plan.reseller_price
+      ),
+
+    display_price:
+      calculateSellingPrice(
+        plan.reseller_price
+      )
 
   });
+
+});
 
 }
 
@@ -955,101 +1038,74 @@ allPlans = allPlans.map(plan => {
 const grouped = {};
 
 
-// ============================================================
-// GROUP BY NETWORK -> CATEGORY
-//
-// Categories are unified across providers.
-//
-// Example:
-//
-//   OPLUG     -> SME
-//   VTU       -> SME
-//   BlitzPay  -> SME
-//
-// All three appear under the same SME category.
-//
-// Provider plan objects themselves are NOT merged.
-// Each provider plan remains its own record.
-// ============================================================
 
-allPlans.forEach(plan => {
+allPlans.forEach(plan=>{
 
-  let network =
-    plan.network ||
-    plan.service_name ||
-    "Other";
 
-  network =
-    String(network).trim().toLowerCase();
+let network =
+  plan.network ||
+  plan.service_name ||
+  "Other";
 
-  if(network.includes("mtn")){
-    network = "MTN";
-  }
-  else if(network.includes("airtel")){
-    network = "Airtel";
-  }
-  else if(network.includes("glo")){
-    network = "Glo";
-  }
-  else if(
-    network.includes("9mobile") ||
-    network.includes("etisalat")
-  ){
-    network = "9mobile";
-  }
-  else{
-    network = "Other";
-  }
+network = network.toString().trim().toLowerCase();
 
-  // Keep unknown networks out of the customer catalogue.
-  if(network === "Other"){
-    return;
-  }
+if(network.includes("mtn")){
+network = "MTN";
+}
+else if(network.includes("airtel")){
+network = "Airtel";
+}
+else if(network.includes("glo")){
+network = "Glo";
+}
+else if(network.includes("9mobile") || network.includes("etisalat")){
+network = "9mobile";
+}
+else{
+network = "Other";
+}
 
-  if(!grouped[network]){
-    grouped[network] = {};
-  }
 
-  const category =
-    String(formatCategory(plan) || "Standard")
-      .trim();
 
-  if(!grouped[network][category]){
-    grouped[network][category] = [];
-  }
+if(!grouped[network]){
 
-  // IMPORTANT:
-  // Do not merge, deduplicate, rename, or replace provider plans.
-  // Just place the original plan record into its category.
-  grouped[network][category].push(plan);
+grouped[network] = {};
+
+
+categoriesList.forEach(category=>{
+
+grouped[network][category] = [];
+
+});
+
+}
+
+
+
+const category = formatCategory(plan);
+
+
+grouped[network][category].push(plan);
+
 
 });
 
 
-// Remove empty categories/networks only.
-Object.keys(grouped).forEach(network => {
 
-  Object.keys(grouped[network]).forEach(category => {
-
-    if(
-      !Array.isArray(grouped[network][category]) ||
-      grouped[network][category].length === 0
-    ){
-      delete grouped[network][category];
-    }
-
-  });
-
-  if(Object.keys(grouped[network]).length === 0){
-    delete grouped[network];
-  }
-
+Object.keys(grouped).forEach(network=>{
+Object.keys(grouped[network]).forEach(category=>{
+if(grouped[network][category].length===0){
+delete grouped[network][category];
+}
 });
-
+if(Object.keys(grouped[network]).length===0 || network==="Other"){
+delete grouped[network];
+}
+});
 
 const responseData = {
   success: true,
-  providers: grouped
+  networks: grouped
 };
 
 res.json(responseData);

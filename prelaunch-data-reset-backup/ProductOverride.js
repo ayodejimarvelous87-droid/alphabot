@@ -59,14 +59,6 @@ const productOverrideSchema = new mongoose.Schema(
     default:0
   },
 
-  // True when an administrator has intentionally set
-  // a custom selling price.
-  priceOverridden:{
-    type:Boolean,
-    default:false,
-    index:true
-  },
-
   // Admin controls.
   active:{
     type:Boolean,

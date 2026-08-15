@@ -149,16 +149,6 @@ const getDataPlans = async (network) => {
         healthService
       );
 
-    console.log(
-      "========== OPLUG RAW /data_plans RESPONSE =========="
-    );
-    console.log(
-      JSON.stringify(response, null, 2)
-    );
-    console.log(
-      "===================================================="
-    );
-
     const plans = Array.isArray(response)
       ? response
       : response.plans || [];
