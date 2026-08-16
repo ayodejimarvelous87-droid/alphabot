@@ -23,11 +23,11 @@ const rpName = process.env.WEBAUTHN_RP_NAME || "AlphaBot";
 
 const rpID =
   process.env.WEBAUTHN_RP_ID ||
-  "alphabot-frontend-chi.vercel.app";
+  "alphabothq.com";
 
 const origin =
   process.env.WEBAUTHN_ORIGIN ||
-  "https://alphabot-frontend-chi.vercel.app";
+  "https://alphabothq.com";
 
 
 const getUser = async (req) => {
