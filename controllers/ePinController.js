@@ -1,13 +1,14 @@
+const crypto = require("crypto");
 const AppError = require("../utils/AppError");
+const mongoose = require("mongoose");
+const { verifyTransactionAuthorization } = require("../utils/transactionAuthorization");
 const EPin = require("../models/EPin");
-const { addBlogCommission } = require("../services/blogCommissionService");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const { awardPurchaseCoins } = require("../services/abCoinService");
 const { purchaseEPins } = require("../services/vtuService");
 const { createNotification } = require("../services/notificationService");
 const sendEmail = require("../services/emailService");
-const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
 const User = require("../models/User");
 const { syncEPin } = require("../services/ePinRequeryService");
@@ -29,88 +30,89 @@ return phone;
 
 const buyEPin = async(req,res)=>{
 
+let phone;
+let total = 0;
+let reference = "";
+
 try{
 
 const {
 network,
 amount,
-quantity
+quantity,
+pin,
+biometricToken
 }=req.body;
 
 const idempotencyKey =
 req.headers["idempotency-key"];
 
-
-const existingTransaction =
-await checkIdempotency(idempotencyKey);
-
-
-if(existingTransaction){
-
-return res.json({
-message:"Transaction already processed",
-transaction:existingTransaction
-});
-
+if(!idempotencyKey){
+throw new AppError(
+"Idempotency-Key header is required",
+400
+);
 }
 
-
-
+phone = normalizePhone(req.user.phone);
 
 if(!network || !amount || !quantity){
 
 throw new AppError(
-  "Network, amount and quantity are required",
-  400
+"Network, amount and quantity are required",
+400
 );
 
 }
 
+if(Number(amount) <= 0 || isNaN(Number(amount))){
 
-const buyerPhone = normalizePhone(req.user.phone);
+throw new AppError(
+"Invalid amount",
+400
+);
 
-const wallet = await Wallet.findOne({
-phone:buyerPhone
+}
+
+if(
+Number(quantity) <= 0 ||
+isNaN(Number(quantity)) ||
+!Number.isInteger(Number(quantity))
+){
+
+throw new AppError(
+"Invalid quantity",
+400
+);
+
+}
+
+const authorized =
+await verifyTransactionAuthorization({
+phone,
+pin,
+biometricToken
 });
 
-
-if(!wallet){
+if(!authorized){
 
 throw new AppError(
-  "Wallet not found",
-  404
+biometricToken
+? "Fingerprint authorization expired or invalid"
+: "Incorrect transaction PIN",
+400
 );
 
 }
 
-
-const total =
+total =
 Number(amount) * Number(quantity);
-
-
-if(wallet.balance < total){
-
-throw new AppError(
-  "Insufficient wallet balance",
-  400
-);
-
-}
-
-
-const balanceBefore = wallet.balance;
-
-
-const reference =
-"EPIN-" + Date.now();
-
-
 
 await checkFraudLimits({
 
-phone: buyerPhone,
+phone,
 
-amount: total,
+amount:total,
 
 type:"recharge_pin",
 
@@ -120,8 +122,12 @@ userAgent:req.headers["user-agent"]
 
 });
 
+reference =
+"EPIN-" + Date.now() + "-" +
+crypto.randomBytes(4).toString("hex");
 
-const apiResponse = await purchaseEPins({
+const apiResponse =
+await purchaseEPins({
 
 network,
 amount:Number(amount),
@@ -129,33 +135,113 @@ quantity:Number(quantity),
 request_id:reference
 
 });
-console.log("EPIN VTU RESPONSE:", JSON.stringify(apiResponse,null,2));
 
+console.log(
+"EPIN VTU RESPONSE:",
+JSON.stringify(apiResponse,null,2)
+);
 
 if(
 !apiResponse ||
 apiResponse.code !== "success"
 ){
+
 throw new Error("EPIN provider failed");
+
 }
 
+const epinList =
+apiResponse.data?.epins ||
+apiResponse.data?.pins ||
+apiResponse.epins ||
+apiResponse.pins ||
+[];
 
+const pins =
+epinList
+.map(p =>
+typeof p === "string"
+? p
+: p?.pin
+)
+.filter(Boolean);
 
-const epinList = apiResponse.data?.epins || apiResponse.data?.pins || apiResponse.epins || apiResponse.pins || [];
+const orderId =
+apiResponse.data?.order_id ||
+apiResponse.data?.order ||
+apiResponse.order_id ||
+null;
 
-const pins = epinList.map(p => typeof p === "string" ? p : p.pin);
+const epinStatus =
+pins.length > 0
+? "successful"
+: "processing";
 
-const orderId = apiResponse.data?.order_id || null;
+const vtuRequestId =
+apiResponse.data?.request_id ||
+apiResponse.request_id ||
+apiResponse.reference ||
+reference;
 
-const epinStatus = pins.length > 0 ? "successful" : "processing";
+const vtuOrderId =
+apiResponse.data?.order_id ||
+apiResponse.data?.order ||
+apiResponse.order_id ||
+null;
+
+const session =
+await mongoose.startSession();
+
+let walletBalance = 0;
+let epin;
+let transaction;
+
+try{
+
+await session.withTransaction(async()=>{
+
+const existingTransaction =
+await Transaction.findOne({
+idempotencyKey
+}).session(session);
+
+if(existingTransaction){
+
+throw new AppError(
+"Transaction already processed",
+409
+);
+
+}
+
+const wallet =
+await Wallet.findOne({
+phone,
+balance:{$gte:total}
+}).session(session);
+
+if(!wallet){
+
+throw new AppError(
+"Insufficient wallet balance",
+400
+);
+
+}
+
+const balanceBefore =
+wallet.balance;
 
 wallet.balance -= total;
 
-await wallet.save();
+await wallet.save({
+session
+});
 
-const epin = await EPin.create({
+epin =
+await EPin.create([{
 
-phone:buyerPhone,
+phone,
 
 network,
 
@@ -167,30 +253,27 @@ pins,
 
 reference,
 
-      vtuRequestId:
-      apiResponse.data?.request_id ||
-      apiResponse.request_id ||
-      apiResponse.reference ||
-      reference,
+vtuRequestId:String(vtuRequestId),
 
-      vtuOrderId:
-      apiResponse.data?.order_id ||
-      apiResponse.data?.order ||
-      apiResponse.order_id ||
-      null,
+vtuOrderId:vtuOrderId
+? String(vtuOrderId)
+: null,
 
-      providerResponse:apiResponse,
+providerResponse:apiResponse,
 
-order_id:orderId,
+order_id:orderId
+? String(orderId)
+: null,
 
 status:epinStatus
 
+}],{
+session
 });
-
 
 const transactionData = {
 
-phone:buyerPhone,
+phone,
 
 type:"recharge_pin",
 
@@ -213,75 +296,86 @@ balanceAfter:wallet.balance,
 description:`${network} recharge PIN purchase`,
 
 pin:pins.length > 0
-  ? pins.join("\n")
-  : null,
+? pins.join("\n")
+: null,
 
-status:epinStatus
+status:epinStatus,
+
+idempotencyKey
 
 };
 
-const vtuRequestId =
-apiResponse.data?.request_id ||
-apiResponse.request_id ||
-apiResponse.reference ||
-reference;
-
-const vtuOrderId =
-apiResponse.data?.order_id ||
-apiResponse.data?.order ||
-apiResponse.order_id;
-
 if(vtuRequestId){
-  transactionData.vtuRequestId = String(vtuRequestId);
+transactionData.vtuRequestId =
+String(vtuRequestId);
 }
 
 if(vtuOrderId){
-  transactionData.vtuOrderId = String(vtuOrderId);
+transactionData.vtuOrderId =
+String(vtuOrderId);
 }
 
-const transaction =
-  await Transaction.create(transactionData);
+transaction =
+await Transaction.create(
+[transactionData],
+{session}
+);
 
+walletBalance =
+wallet.balance;
 
-await awardPurchaseCoins(transaction);
-
-
-const user =
-  await User.findOne({
-    phone:buyerPhone
-  });
-
-
-if(
-  user?.email &&
-  pins.length > 0
-){
-
-  await sendEmail(
-    user.email,
-    "Your ePIN Purchase",
-    `Your ${network} ePIN codes are:\n\n${pins.join("\n")}\n\nThank you for using AlphaBot.`
-  );
-
-  transaction.emailSent = true;
-
-  await transaction.save();
-
-}
-
-
-await addBlogCommission({
-  phone:buyerPhone,
-  amount:Number(total),
-  reference,
-  service:"recharge_pin"
 });
 
+}finally{
 
+await session.endSession();
+
+}
+
+epin = Array.isArray(epin)
+? epin[0]
+: epin;
+
+if(transaction.status === "successful"){
+  await awardPurchaseCoins(transaction);
+}
+
+const user =
+await User.findOne({
+phone
+});
+
+if(
+user?.email &&
+pins.length > 0
+){
+
+try{
+
+await sendEmail(
+user.email,
+"Your ePIN Purchase",
+`Your ${network} ePIN codes are:\n\n${pins.join("\n")}\n\nThank you for using AlphaBot.`
+);
+
+transaction.emailSent = true;
+
+await transaction.save();
+
+}catch(error){
+
+console.log(
+"EPIN email error:",
+error.message
+);
+
+}
+
+}
 
 await createNotification(
 
-buyerPhone,
+phone,
 
 "ePIN Purchase",
 
@@ -289,31 +383,33 @@ epinStatus === "successful"
 ? `${network} recharge PIN generated successfully`
 : `${network} recharge PIN order is processing`,
 
-epinStatus === "successful" ? "success" : "info",
+epinStatus === "successful"
+? "success"
+: "info",
 
 transaction._id
 
 );
 
-
-
-
-
-res.json({
+return res.json({
 
 message:
 epinStatus === "successful"
 ? "ePIN purchase successful"
 : "ePIN order is processing",
 
-status: epinStatus,
+status:epinStatus,
 
 epin,
 
-balance:wallet.balance
+transaction:{
+reference:transaction.reference,
+status:transaction.status
+},
+
+balance:walletBalance
 
 });
-
 
 }catch(error){
 
@@ -322,17 +418,19 @@ console.log(
 error.response?.data || error.message
 );
 
+return res.status(
+error.statusCode || 500
+).json({
 
-res.status(500).json({
-
-message:error.response?.data?.message || error.message
+message:
+error.response?.data?.message ||
+error.message
 
 });
 
 }
 
 };
-
 
 const getEPinStatus = async(req,res)=>{
 

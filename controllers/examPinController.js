@@ -1,12 +1,13 @@
 const AppError = require("../utils/AppError");
-const bcrypt = require("bcryptjs");
+const {
+  verifyTransactionAuthorization
+} = require("../utils/transactionAuthorization");
 const ExamPin = require("../models/ExamPin");
 const { addBlogCommission } = require("../services/blogCommissionService");
 const Wallet = require("../models/wallet");
+const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction");
-const TransactionPin = require("../models/TransactionPin");
 const { createNotification } = require("../services/notificationService");
-const { checkIdempotency } = require("../utils/idempotency");
 const User = require("../models/User");
 const sendEmail = require("../services/emailService");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
@@ -18,44 +19,27 @@ const buyExamPin = async(req,res)=>{
 let phone;
 let total = 0;
 let reference = "";
-let balanceBefore = 0;
 
 try{
 
 const {
 exam,
 quantity,
-pin
+pin,
+biometricToken
 }=req.body;
 
 const idempotencyKey =
 req.headers["idempotency-key"];
 
-
-const existingTransaction =
-await checkIdempotency(idempotencyKey);
-
-
-if(existingTransaction){
-
-return res.json({
-message:"Transaction already processed",
-transaction:existingTransaction
-});
-
-}
-
-
-
-
 phone = req.user.phone;
 
 
-if(!exam || !quantity || !pin){
+if(!exam || !quantity){
 
 throw new AppError(
-  "Exam type, quantity and transaction PIN are required",
-  400
+"Exam type and quantity are required",
+400
 );
 
 }
@@ -64,66 +48,52 @@ throw new AppError(
 if(Number(quantity) <= 0 || isNaN(Number(quantity))){
 
 throw new AppError(
-  "Invalid quantity",
-  400
+"Invalid quantity",
+400
 );
 
 }
 
 
-
-const userPin = await TransactionPin.findOne({
-phone
+const authorized =
+await verifyTransactionAuthorization({
+phone,
+pin,
+biometricToken
 });
 
-
-if(!userPin){
+if(!authorized){
 
 throw new AppError(
-  "Create transaction PIN first",
-  400
+biometricToken
+? "Fingerprint authorization expired or invalid"
+: "Incorrect transaction PIN",
+400
 );
 
 }
-
-
-if(!(await bcrypt.compare(pin,userPin.pin))){
-
-throw new AppError(
-  "Incorrect transaction PIN",
-  400
-);
-
-}
-
 
 
 const pins = await ExamPin.find({
-
 exam,
 status:"available"
-
 })
 .limit(Number(quantity));
-
-
 
 if(pins.length < Number(quantity)){
 
 throw new AppError(
-  "Insufficient PIN stock",
-  400
+"Insufficient PIN stock",
+400
 );
 
 }
-
 
 
 total = pins.reduce(
 (sum,item)=>sum + item.price,
 0
 );
-
 
 
 await checkFraudLimits({
@@ -141,81 +111,102 @@ userAgent:req.headers["user-agent"]
 });
 
 
-const wallet = await Wallet.findOne({
-phone
-});
+reference =
+"EXAM-" + Date.now();
 
+
+const session =
+await mongoose.startSession();
+
+let purchasedPins = [];
+let balance = 0;
+
+try{
+
+await session.withTransaction(async()=>{
+
+const existingTransaction =
+await Transaction.findOne({
+idempotencyKey
+}).session(session);
+
+if(existingTransaction){
+
+throw new AppError(
+"Transaction already processed",
+409
+);
+
+}
+
+
+const wallet =
+await Wallet.findOne({
+phone,
+balance:{$gte:total}
+}).session(session);
 
 if(!wallet){
 
 throw new AppError(
-  "Wallet not found",
-  404
+"Insufficient wallet balance",
+400
 );
 
 }
 
 
-
-if(wallet.balance < total){
-
-throw new AppError(
-  "Insufficient wallet balance",
-  400
-);
-
-}
-
-
-
-balanceBefore = wallet.balance;
+const balanceBefore =
+wallet.balance;
 
 
 wallet.balance -= total;
 
-
-await wallet.save();
-
-
-
-let purchasedPins=[];
-
-
-reference = "EXAM-" + Date.now();
+await wallet.save({
+session
+});
 
 
 for(const item of pins){
 
-item.status="used";
-item.usedBy=phone;
-item.usedAt=new Date();
-item.reference = reference;
+const updatedPin =
+await ExamPin.findOneAndUpdate(
+{
+_id:item._id,
+status:"available"
+},
+{
+$set:{
+status:"used",
+usedBy:phone,
+usedAt:new Date(),
+reference
+}
+},
+{
+new:true,
+session
+}
+);
 
-await item.save();
+if(!updatedPin){
 
-purchasedPins.push(item.pin);
+throw new AppError(
+"Exam PIN stock changed. Please try again.",
+409
+);
 
 }
 
-
-const user = await User.findOne({
-phone
-});
-
-
-if(user?.email && purchasedPins.length > 0){
-
-await sendEmail(
-user.email,
-"Your Exam PIN Purchase",
-`Your ${exam} PIN code(s):\n\n${purchasedPins.join("\n")}\n\nThank you for using AlphaBot.`
+purchasedPins.push(
+updatedPin.pin
 );
 
 }
 
 
-await Transaction.create({
-
+await Transaction.create(
+[{
 phone,
 
 type:"exam_pin",
@@ -228,33 +219,113 @@ amount:total,
 
 reference,
 
-
 balanceBefore,
 
 balanceAfter:wallet.balance,
 
 description:`${exam} PIN purchase`,
 
-status:"successful"
+status:"successful",
+
+idempotencyKey
+
+}],
+{
+session
+}
+);
+
+
+balance =
+wallet.balance;
 
 });
+
+}catch(error){
+
+throw error;
+
+}finally{
+
+await session.endSession();
+
+}
+
+
+const user =
+await User.findOne({
+phone
+});
+
+
+if(user?.email && purchasedPins.length > 0){
+
+try{
+
+await sendEmail(
+user.email,
+"Your Exam PIN Purchase",
+`Your ${exam} PIN code(s):\n\n${purchasedPins.join("\n")}\n\nThank you for using AlphaBot.`
+);
+
+}catch(error){
+
+console.log(
+"Exam PIN email error:",
+error.message
+);
+
+}
+
+}
 
 
 const examTransaction =
-  await Transaction.findOne({ reference });
-
-
-await awardPurchaseCoins(examTransaction);
-
-
-await addBlogCommission({
-  phone,
-  amount:Number(total),
-  reference,
-  service:"exam_pin"
+await Transaction.findOne({
+reference
 });
 
 
+if(examTransaction){
+
+try{
+
+await awardPurchaseCoins(
+examTransaction
+);
+
+}catch(error){
+
+console.log(
+"Exam PIN coin award error:",
+error.message
+);
+
+}
+
+
+try{
+
+await addBlogCommission({
+phone,
+amount:Number(total),
+reference,
+service:"exam_pin"
+});
+
+}catch(error){
+
+console.log(
+"Exam PIN commission error:",
+error.message
+);
+
+}
+
+}
+
+
+try{
 
 await createNotification(
 
@@ -268,15 +339,23 @@ phone,
 
 );
 
+}catch(error){
+
+console.log(
+"Exam PIN notification error:",
+error.message
+);
+
+}
 
 
-res.json({
+return res.json({
 
 message:"Exam PIN purchase successful",
 
 pins:purchasedPins,
 
-balance:wallet.balance
+balance
 
 });
 
@@ -289,49 +368,9 @@ error.message
 );
 
 
-const refundWallet = await Wallet.findOne({
-phone
-});
-
-if(refundWallet){
-
-const balanceBeforeRefund = refundWallet.balance;
-
-refundWallet.balance += total;
-
-await refundWallet.save();
-
-await Transaction.create({
-
-phone,
-
-type:"refund",
-
-direction:"credit",
-
-amount:total,
-
-reference,
-
-
-originalReference:reference,
-
-
-service:"exam_pin",
-
-balanceBefore:balanceBeforeRefund,
-
-balanceAfter:refundWallet.balance,
-
-description:"Automatic refund - Exam PIN failed",
-
-status:"successful"
-
-});
-
-}
-
-res.status(500).json({
+return res.status(
+error.statusCode || 500
+).json({
 
 message:error.message
 
@@ -340,7 +379,6 @@ message:error.message
 }
 
 };
-
 
 module.exports={
 buyExamPin

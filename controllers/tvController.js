@@ -1,6 +1,7 @@
 const AppError = require("../utils/AppError");
-const bcrypt = require("bcryptjs");
-const TransactionPin = require("../models/TransactionPin");
+const {
+  verifyTransactionAuthorization
+} = require("../utils/transactionAuthorization");
 const TVSubscription = require("../models/TVSubscription");
 const Wallet = require("../models/wallet");
 const TVPlan = require("../models/TVPlan");
@@ -30,7 +31,8 @@ const subscribeTV = async (req, res) => {
       variation_id,
         vtu_variation_id,
       amount,
-      pin
+      pin,
+      biometricToken
     } = req.body;
 
       const idempotencyKey =
@@ -56,28 +58,28 @@ const subscribeTV = async (req, res) => {
     const phone = normalizePhone(req.user.phone);
 
 
-    if (!provider || !smartCardNumber || !variation_id || !amount || !pin) {
+    if (!provider || !smartCardNumber || !variation_id || !amount) {
 
-      throw new AppError("Provider, smart card, package, amount and PIN required", 400);
-
-    }
-
-
-    const userPin = await TransactionPin.findOne({
-      phone
-    });
-
-
-    if (!userPin) {
-
-      throw new AppError("Create transaction PIN first", 400);
+      throw new AppError("Provider, smart card, package and amount required", 400);
 
     }
 
 
-    if (!(await bcrypt.compare(pin,userPin.pin))) {
+    const authorized =
+      await verifyTransactionAuthorization({
+        phone,
+        pin,
+        biometricToken
+      });
 
-      throw new AppError("Incorrect transaction PIN", 400);
+    if (!authorized) {
+
+      throw new AppError(
+        biometricToken
+          ? "Fingerprint authorization expired or invalid"
+          : "Incorrect transaction PIN",
+        400
+      );
 
     }
 
@@ -351,6 +353,7 @@ providerResponse.status !== "success"
     await addBlogCommission({
       phone,
       amount:Number(chargeAmount),
+      profit,
       reference,
       service:"tv"
     });

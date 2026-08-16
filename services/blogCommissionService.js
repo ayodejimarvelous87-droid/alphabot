@@ -32,6 +32,14 @@ const addBlogCommission = async({
 
   try{
 
+    /*
+     * Blog commission is intentionally excluded from
+     * low-margin services.
+     */
+    if(["betting", "recharge_pin"].includes(service)){
+      return;
+    }
+
     if(!phone || !reference || !Number.isFinite(Number(amount))){
       console.log("Blog commission skipped: invalid data");
       return;
@@ -76,14 +84,19 @@ const addBlogCommission = async({
     const transactionAmount =
       Number(amount);
 
+    const transactionProfit =
+      ["data", "electricity", "tv"].includes(service)
+        ? Number(profit)
+        : transactionAmount;
+
     const commissionRate =
       Number(blog.commissionRate || 30);
 
     const commissionAmount =
-      (
-        transactionAmount *
-        commissionRate
-      ) / 100;
+      Math.max(
+        0,
+        (transactionProfit * commissionRate) / 100
+      );
 
 
     /*

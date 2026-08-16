@@ -749,20 +749,21 @@ status:"successful"
 });
 
 
-await addBlogCommission({
-  phone:userPhone,
-  amount:Number(amount),
-  reference,
-  service:"data"
-});
-
-
 const providerCost =
 Number(dataPrice.providerPrice || amount);
 
 
 const profit =
 Number(amount) - providerCost;
+
+
+await addBlogCommission({
+  phone:userPhone,
+  amount:Number(amount),
+  profit,
+  reference,
+  service:"data"
+});
 
 
 await Profit.create({

@@ -17,7 +17,6 @@ const { purchase } = require("../services/blitzPayService");
 const { checkProviderBalance } = require("../services/providerGuard");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
-const { addBlogCommission } = require("../services/blogCommissionService");
 const sendEmail = require("../services/emailService");
 const { awardPurchaseCoins } = require("../services/abCoinService");
 
@@ -408,12 +407,7 @@ status:"successful"
 });
 
 
-await addBlogCommission({
-  phone:userPhone,
-  amount:Number(amount),
-  reference,
-  service:"airtime"
-});
+
 
 
 

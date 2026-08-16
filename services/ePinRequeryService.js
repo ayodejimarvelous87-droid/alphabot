@@ -1,9 +1,11 @@
 const EPin = require("../models/EPin");
 const Transaction = require("../models/Transaction");
+const Wallet = require("../models/wallet");
 const { requeryOrder } = require("./vtuService");
 const { createNotification } = require("./notificationService");
 const User = require("../models/User");
 const sendEmail = require("./emailService");
+const { awardPurchaseCoins } = require("./abCoinService");
 
 const syncEPin = async (reference) => {
 
@@ -138,6 +140,20 @@ const syncEPin = async (reference) => {
         pins.join("\n");
 
       await transaction.save();
+
+      try{
+
+        await awardPurchaseCoins(transaction);
+
+      }catch(error){
+
+        console.log(
+          "EPIN requery coin award error:",
+          error.message
+        );
+
+      }
+
 
     }
 
@@ -308,6 +324,98 @@ const syncEPin = async (reference) => {
 
     if(transaction){
 
+      /*
+       * The provider has explicitly confirmed the order
+       * was refunded. Return the customer's wallet debit.
+       *
+       * walletCredited makes this operation idempotent:
+       * repeated status checks can never refund twice.
+       */
+
+      if(
+        transaction.walletCredited !== true &&
+        transaction.status !== "refunded"
+      ){
+
+        const wallet =
+          await Wallet.findOne({
+            phone:epin.phone
+          });
+
+        if(!wallet){
+          throw new Error(
+            "Wallet not found for ePIN refund"
+          );
+        }
+
+
+        const refundAmount =
+          Number(transaction.amount);
+
+
+        if(
+          !Number.isFinite(refundAmount) ||
+          refundAmount <= 0
+        ){
+          throw new Error(
+            "Invalid ePIN refund amount"
+          );
+        }
+
+
+        const balanceBefore =
+          Number(wallet.balance);
+
+
+        wallet.balance +=
+          refundAmount;
+
+
+        await wallet.save();
+
+
+        await Transaction.create({
+
+          phone:epin.phone,
+
+          type:"refund",
+
+          service:"recharge_pin",
+
+          network:epin.network,
+
+          direction:"credit",
+
+          amount:refundAmount,
+
+          reference:
+            `${epin.reference}-REFUND`,
+
+          originalReference:
+            epin.reference,
+
+          providerResponse:
+            result,
+
+          balanceBefore,
+
+          balanceAfter:
+            wallet.balance,
+
+          description:
+            "Automatic refund - ePIN provider refunded order",
+
+          status:"successful"
+
+        });
+
+
+        transaction.walletCredited =
+          true;
+
+      }
+
+
       transaction.status =
         "refunded";
 
@@ -325,7 +433,7 @@ const syncEPin = async (reference) => {
     await createNotification(
       epin.phone,
       "ePIN Refund",
-      `${epin.network} ePIN order was refunded.`,
+      `${epin.network} ePIN order was refunded and your wallet has been credited.`,
       "warning"
     );
 

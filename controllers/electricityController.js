@@ -1,6 +1,8 @@
 const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
-const TransactionPin = require("../models/TransactionPin");
+const {
+  verifyTransactionAuthorization
+} = require("../utils/transactionAuthorization");
 const Electricity = require("../models/Electricity");
 const Wallet = require("../models/wallet");
 const ElectricitySetting = require("../models/ElectricitySetting");
@@ -30,7 +32,8 @@ const payElectricity = async (req, res) => {
       meterNumber,
       meterType,
       amount,
-      pin
+      pin,
+      biometricToken
     } = req.body;
 
       const idempotencyKey =
@@ -56,28 +59,28 @@ const payElectricity = async (req, res) => {
     const phone = normalizePhone(req.user.phone);
 
 
-    if (!disco || !meterNumber || !amount || !pin) {
+    if (!disco || !meterNumber || !amount) {
 
-      throw new AppError("Disco, meter number, amount and PIN required", 400);
-
-    }
-
-
-    const userPin = await TransactionPin.findOne({
-      phone
-    });
-
-
-    if (!userPin) {
-
-      throw new AppError("Create transaction PIN first", 400);
+      throw new AppError("Disco, meter number and amount required", 400);
 
     }
 
 
-    if (!(await bcrypt.compare(pin,userPin.pin))) {
+    const authorized =
+      await verifyTransactionAuthorization({
+        phone,
+        pin,
+        biometricToken
+      });
 
-      throw new AppError("Incorrect transaction PIN", 400);
+    if (!authorized) {
+
+      throw new AppError(
+        biometricToken
+          ? "Fingerprint authorization expired or invalid"
+          : "Incorrect transaction PIN",
+        400
+      );
 
     }
 
@@ -238,20 +241,21 @@ const payElectricity = async (req, res) => {
     });
 
 
-    await addBlogCommission({
-      phone,
-      amount:Number(totalAmount),
-      reference,
-      service:"electricity"
-    });
-
-
     const providerCost =
       Number(amount);
 
 
     const profit =
       Number(totalAmount) - providerCost;
+
+
+    await addBlogCommission({
+      phone,
+      amount:Number(totalAmount),
+      profit,
+      reference,
+      service:"electricity"
+    });
 
 
     await Profit.create({

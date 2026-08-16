@@ -151,7 +151,7 @@ const otpLimiter = createLimiter(
 
 const otpPhoneLimiter = createLimiter(
   60 * 60 * 1000,
-  3,
+  10,
   "Too many OTP requests for this phone. Try again later.",
   (req)=>{
     return req.body.phone || ipKeyGenerator(req.ip);

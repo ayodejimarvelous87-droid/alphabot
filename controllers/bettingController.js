@@ -1,6 +1,7 @@
 const AppError = require("../utils/AppError");
-const bcrypt = require("bcryptjs");
-const TransactionPin = require("../models/TransactionPin");
+const {
+  verifyTransactionAuthorization
+} = require("../utils/transactionAuthorization");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
 const BettingSetting = require("../models/BettingSetting");
@@ -8,7 +9,6 @@ const normalizePhone = require("../utils/phone");
 const { createNotification } = require("../services/notificationService");
 const { checkIdempotency } = require("../utils/idempotency");
 const { checkFraudLimits } = require("../services/fraudDetectionService");
-const { addBlogCommission } = require("../services/blogCommissionService");
 const { awardPurchaseCoins } = require("../services/abCoinService");
 
 const {
@@ -25,7 +25,8 @@ const {
 customer_id,
 service_id,
 amount,
-pin
+pin,
+biometricToken
 }=req.body;
 
 const idempotencyKey =
@@ -51,10 +52,10 @@ transaction:existingTransaction
 const phone = normalizePhone(req.user.phone);
 
 
-if(!customer_id || !service_id || !amount || !pin){
+if(!customer_id || !service_id || !amount){
 
 throw new AppError(
-"Customer ID, service, amount and PIN required",
+"Customer ID, service and amount required",
 400
 );
 
@@ -71,33 +72,21 @@ throw new AppError(
 }
 
 
-const userPin = await TransactionPin.findOne({
-  phone:{
-    $in:[
-      req.user.phone,
-      phone,
-      "+234" + phone.replace(/^0/,"")
-    ]
-  }
-});
+const authorized =
+  await verifyTransactionAuthorization({
+    phone,
+    pin,
+    biometricToken
+  });
 
+if (!authorized) {
 
-if(!userPin){
-
-throw new AppError(
-"Create transaction PIN first",
-400
-);
-
-}
-
-
-if(!(await bcrypt.compare(pin,userPin.pin))){
-
-throw new AppError(
-"Incorrect transaction PIN",
-400
-);
+  throw new AppError(
+    biometricToken
+      ? "Fingerprint authorization expired or invalid"
+      : "Incorrect transaction PIN",
+    400
+  );
 
 }
 
@@ -293,14 +282,6 @@ status:"successful"
 await awardPurchaseCoins(
   await Transaction.findOne({ reference })
 );
-
-
-await addBlogCommission({
-  phone,
-  amount:Number(amount),
-  reference,
-  service:"betting"
-});
 
 
 

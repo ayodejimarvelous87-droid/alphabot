@@ -377,13 +377,8 @@ const {phone,otp}=req.body;
 const cleanPhone=normalizePhone(phone);
 
 const verify = await RegistrationOTP.findOne({
-phone:cleanPhone,
-otp
+phone:cleanPhone
 });
-if(verify.attempts >= 5){
-throw new AppError("Too many OTP attempts", 429);
-}
-
 
 if(!verify){
 throw new AppError("Invalid OTP", 400);
@@ -391,6 +386,21 @@ throw new AppError("Invalid OTP", 400);
 
 if(verify.expiresAt < new Date()){
 throw new AppError("OTP expired", 400);
+}
+
+if(verify.attempts >= 10){
+throw new AppError("Too many OTP attempts", 429);
+}
+
+if(verify.otp !== String(otp)){
+verify.attempts = (verify.attempts || 0) + 1;
+await verify.save();
+
+if(verify.attempts >= 10){
+throw new AppError("Too many OTP attempts", 429);
+}
+
+throw new AppError("Invalid OTP", 400);
 }
 
 let wallet = await Wallet.findOne({phone:cleanPhone});
