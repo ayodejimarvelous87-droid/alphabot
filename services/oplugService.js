@@ -309,7 +309,14 @@ const getDataPlans = async (network) => {
           .replace(/\s+/g, " ");
       })(),
 
-      variation_id: plan.variation_id,
+      variation_id:
+        (
+          plan.plan_id !== undefined &&
+          plan.plan_id !== null &&
+          /^\d+$/.test(String(plan.plan_id).trim())
+        )
+          ? plan.plan_id
+          : plan.id,
 
       display_price:
         Number.isFinite(Number(plan.display_price))

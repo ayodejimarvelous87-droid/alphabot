@@ -202,12 +202,170 @@ if(vtuFailed){
 
   vtuPlans.forEach(plan=>{
 
+    const providerPlanId =
+      String(
+        plan.variation_id
+      ).trim();
+
+    const providerPrice =
+      Number(
+        plan.reseller_price
+      );
+
+    if(
+      !providerPlanId ||
+      !Number.isFinite(providerPrice) ||
+      providerPrice <= 0
+    ){
+      return;
+    }
+
+    const sellingPrice =
+      calculateSellingPrice(providerPrice);
+
     allPlans.push({
       ...plan,
-      provider:"vtu"
+
+      provider:"vtu",
+
+      providerPlanId,
+
+      providerPrice,
+
+      costPrice:providerPrice,
+
+      sellingPrice,
+
+      display_price:sellingPrice
+
     });
 
   });
+
+}
+
+
+// Sync VTU ProductOverrides using provider + network + variation ID
+try {
+
+  const vtuOverrides = [];
+
+  for(const plan of vtuPlans){
+
+    const providerPlanId =
+      String(
+        plan?.variation_id ?? ""
+      ).trim();
+
+    const network =
+      String(
+        plan?.service_name ??
+        ""
+      ).trim();
+
+    const providerPrice =
+      Number(
+        plan?.reseller_price
+      );
+
+    if(
+      !providerPlanId ||
+      !network ||
+      !Number.isFinite(providerPrice) ||
+      providerPrice <= 0
+    ){
+      continue;
+    }
+
+    const sellingPrice =
+      calculateSellingPrice(providerPrice);
+
+    const productId =
+      `vtu:${network.toUpperCase()}:${providerPlanId}`;
+
+    vtuOverrides.push({
+      updateOne:{
+        filter:{
+          productId
+        },
+        update:[
+          {
+            $set:{
+              productId,
+
+              provider:"vtu",
+
+              providerPlanId,
+
+              network,
+
+              name:
+                plan.data_plan ||
+                `${network} DATA`,
+
+              providerPrice,
+
+              priceOverridden:{
+                $ifNull:[
+                  "$priceOverridden",
+                  false
+                ]
+              },
+
+              sellingPrice:{
+                $cond:[
+                  {
+                    $eq:[
+                      {
+                        $ifNull:[
+                          "$priceOverridden",
+                          false
+                        ]
+                      },
+                      true
+                    ]
+                  },
+                  "$sellingPrice",
+                  sellingPrice
+                ]
+              },
+
+              active:{
+                $ifNull:[
+                  "$active",
+                  true
+                ]
+              }
+            }
+          }
+        ],
+        upsert:true
+      }
+    });
+
+  }
+
+  if(vtuOverrides.length > 0){
+
+    await ProductOverride.bulkWrite(
+      vtuOverrides,
+      {
+        ordered:false
+      }
+    );
+
+    console.log(
+      `VTU ProductOverride sync: ${vtuOverrides.length} plans`
+    );
+
+  }
+
+}catch(error){
+
+  console.log(
+    "VTU ProductOverride sync error:",
+    error.message
+  );
 
 }
 
