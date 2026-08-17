@@ -329,11 +329,6 @@ amount:Number(amount),
 
 reference:`${reference}-REFUND`,
 
-vtuRequestId:
-providerResponse?.reference ||
-providerResponse?.request_id ||
-reference,
-
 providerResponse: providerResponse,
 
 originalReference:reference,
@@ -392,12 +387,6 @@ profit,
 source: providerResponse.source || "provider",
 
 reference,
-
-vtuRequestId:
-providerResponse?.reference ||
-providerResponse?.request_id ||
-reference,
-
 
 providerResponse: providerResponse,
 
@@ -463,12 +452,6 @@ source: providerResponse.source || "provider",
 
 reference,
 
-vtuRequestId:
-providerResponse?.reference ||
-providerResponse?.request_id ||
-reference,
-
-
 providerResponse: providerResponse,
 
 
@@ -506,11 +489,6 @@ direction:"credit",
 
 amount:cashback,
 
-reference,
-
-vtuRequestId:
-providerResponse?.reference ||
-providerResponse?.request_id ||
 reference,
 
 
