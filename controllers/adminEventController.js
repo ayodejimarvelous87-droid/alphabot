@@ -8,6 +8,7 @@ try{
 const {
 title,
 description,
+reward,
 icon,
 type,
 startsAt,
@@ -53,6 +54,7 @@ const event = await Event.create({
 
 title,
 description:description || "",
+reward:reward || "",
 icon:icon || "🎉",
 type,
 startsAt:start,

@@ -13,6 +13,11 @@ const eventSchema = new mongoose.Schema({
     default:""
   },
 
+  reward:{
+    type:String,
+    default:""
+  },
+
   icon:{
     type:String,
     default:"🎉"

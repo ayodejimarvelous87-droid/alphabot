@@ -118,10 +118,10 @@ const getServicePurchasesLeaderboard = async(event)=>{
         user?.name ||
         "AlphaBot User",
 
-      amount:
+      points:
         Math.round(
-          Number(row.amount) * 100
-        ) / 100
+          Number(row.amount) * 10
+        )
 
     };
 
