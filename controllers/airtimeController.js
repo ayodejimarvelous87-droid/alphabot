@@ -133,7 +133,7 @@ throw new AppError("Insufficient wallet balance", 400);
 
 // Create unique VTU request ID
 
-const reference = "AIRTIME-" + Date.now();
+const reference = "AIRTIME-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
 
 
 
@@ -228,6 +228,16 @@ primaryError.message
 
 await checkProviderBalance("vtu");
 
+console.log(
+"VTU AIRTIME REQUEST:",
+JSON.stringify({
+reference,
+phone:airtimePhone,
+network,
+amount:Number(amount)
+},null,2)
+);
+
 providerResponse = await purchaseAirtime({
 
 phone: airtimePhone,
@@ -285,10 +295,7 @@ reference,
 
 idempotencyKey,
 
-vtuRequestId:
-providerResponse?.reference ||
-providerResponse?.request_id ||
-reference,
+vtuRequestId:null,
 
 providerResponse:
 providerResponse || {
@@ -415,7 +422,7 @@ reference,
 vtuRequestId:
 providerResponse?.reference ||
 providerResponse?.request_id ||
-reference,
+null,
 
 
 providerResponse: providerResponse,
