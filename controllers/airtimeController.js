@@ -295,8 +295,6 @@ reference,
 
 idempotencyKey,
 
-vtuRequestId:null,
-
 providerResponse:
 providerResponse || {
   error:error.message
@@ -421,8 +419,7 @@ reference,
 
 vtuRequestId:
 providerResponse?.reference ||
-providerResponse?.request_id ||
-null,
+providerResponse?.request_id,
 
 
 providerResponse: providerResponse,
