@@ -29,6 +29,20 @@ const eventSchema = new mongoose.Schema({
     trim:true
   },
 
+  // Event-specific leaderboard scoring rule.
+  // Example: 100 amount = 5 points.
+  pointsUnitAmount:{
+    type:Number,
+    default:null,
+    min:1
+  },
+
+  pointsPerUnit:{
+    type:Number,
+    default:null,
+    min:1
+  },
+
   startsAt:{
     type:Date,
     required:true

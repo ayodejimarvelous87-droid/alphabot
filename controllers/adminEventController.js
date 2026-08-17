@@ -11,16 +11,61 @@ description,
 reward,
 icon,
 type,
+pointsUnitAmount,
+pointsPerUnit,
 startsAt,
 endsAt
 } = req.body;
 
 
-if(!title || !type || !startsAt || !endsAt){
+if(
+!title ||
+!type ||
+!startsAt ||
+!endsAt
+){
 
 return res.status(400).json({
 message:"Title, type, startsAt and endsAt are required"
 });
+
+}
+
+
+let unitAmount = null;
+let unitPoints = null;
+
+
+if(type === "service_purchases"){
+
+if(
+pointsUnitAmount === undefined ||
+pointsPerUnit === undefined
+){
+
+return res.status(400).json({
+message:"pointsUnitAmount and pointsPerUnit are required for service purchase events"
+});
+
+}
+
+
+unitAmount = Number(pointsUnitAmount);
+unitPoints = Number(pointsPerUnit);
+
+
+if(
+!Number.isFinite(unitAmount) ||
+!Number.isFinite(unitPoints) ||
+unitAmount <= 0 ||
+unitPoints <= 0
+){
+
+return res.status(400).json({
+message:"pointsUnitAmount and pointsPerUnit must be positive numbers"
+});
+
+}
 
 }
 
@@ -57,6 +102,11 @@ description:description || "",
 reward:reward || "",
 icon:icon || "🎉",
 type,
+
+pointsUnitAmount:unitAmount,
+
+pointsPerUnit:unitPoints,
+
 startsAt:start,
 endsAt:end,
 status:"draft"
