@@ -23,6 +23,8 @@ res.json({
   footballMinimumWins: setting.footballMinimumWins,
   providerMinimumBalance: setting.providerMinimumBalance,
 
+  referralPercentage: setting.referralPercentage,
+
   // AB Coins
   abCoinsPer100Naira: setting.abCoinsPer100Naira,
   abCoinsRedemptionTarget: setting.abCoinsRedemptionTarget,
