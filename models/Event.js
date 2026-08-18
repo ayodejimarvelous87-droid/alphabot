@@ -18,6 +18,14 @@ const eventSchema = new mongoose.Schema({
     default:""
   },
 
+  // Team Rush target.
+  // Only used when type === "team_rush".
+  target:{
+    type:Number,
+    default:null,
+    min:1
+  },
+
   icon:{
     type:String,
     default:"🎉"

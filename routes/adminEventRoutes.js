@@ -9,6 +9,7 @@ const {
 createEvent,
 getEvents,
 updateEventStatus,
+updateTeamRushTarget,
 resetEventLeaderboard
 } = require("../controllers/adminEventController");
 
@@ -34,6 +35,14 @@ router.put(
 auth,
 admin,
 updateEventStatus
+);
+
+
+router.put(
+"/:id/team-rush",
+auth,
+admin,
+updateTeamRushTarget
 );
 
 

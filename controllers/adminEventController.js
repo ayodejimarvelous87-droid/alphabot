@@ -13,6 +13,7 @@ icon,
 type,
 pointsUnitAmount,
 pointsPerUnit,
+target,
 startsAt,
 endsAt
 } = req.body;
@@ -70,6 +71,34 @@ message:"pointsUnitAmount and pointsPerUnit must be positive numbers"
 }
 
 
+let eventTarget = null;
+
+if(type === "team_rush"){
+
+if(target === undefined || target === null){
+
+return res.status(400).json({
+message:"target is required for Team Rush events"
+});
+
+}
+
+eventTarget = Number(target);
+
+if(
+!Number.isFinite(eventTarget) ||
+eventTarget <= 0
+){
+
+return res.status(400).json({
+message:"target must be a positive number"
+});
+
+}
+
+}
+
+
 const start = new Date(startsAt);
 const end = new Date(endsAt);
 
@@ -106,6 +135,8 @@ type,
 pointsUnitAmount:unitAmount,
 
 pointsPerUnit:unitPoints,
+
+target:eventTarget,
 
 startsAt:start,
 endsAt:end,
@@ -205,6 +236,80 @@ message:error.message
 
 
 
+const updateTeamRushTarget = async(req,res)=>{
+
+try{
+
+const { id } = req.params;
+const { target } = req.body;
+
+
+const event = await Event.findById(id);
+
+if(!event){
+
+return res.status(404).json({
+message:"Event not found"
+});
+
+}
+
+
+if(event.type !== "team_rush"){
+
+return res.status(400).json({
+message:"This event is not a Team Rush event"
+});
+
+}
+
+
+const newTarget = Number(target);
+
+
+if(
+!Number.isFinite(newTarget) ||
+newTarget <= 0
+){
+
+return res.status(400).json({
+message:"target must be a positive number"
+});
+
+}
+
+
+event.target = newTarget;
+
+await event.save();
+
+
+res.json({
+
+message:"Team Rush target updated",
+
+event
+
+});
+
+
+}catch(error){
+
+console.error(
+"UPDATE TEAM RUSH TARGET ERROR:",
+error
+);
+
+res.status(500).json({
+message:error.message
+});
+
+}
+
+};
+
+
+
 const resetEventLeaderboard = async(req,res)=>{
 
 try{
@@ -262,5 +367,6 @@ module.exports={
 createEvent,
 getEvents,
 updateEventStatus,
+updateTeamRushTarget,
 resetEventLeaderboard
 };
