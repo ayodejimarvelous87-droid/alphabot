@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+const hashResetOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 const BlogPartner = require("../models/BlogPartner");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -47,9 +49,7 @@ message:"Partner already exists"
 
 const hashed = await bcrypt.hash(password,10);
 
-const otp = Math.floor(
-100000 + Math.random() * 900000
-).toString();
+const otp = crypto.randomInt(100000, 1000000).toString();
 
 const partner = await BlogPartner.create({
 
@@ -758,9 +758,7 @@ message:"Partner not found"
 });
 }
 
-const otp = Math.floor(
-100000 + Math.random()*900000
-).toString();
+const otp = crypto.randomInt(100000, 1000000).toString();
 
 
 await PasswordReset.deleteMany({
@@ -770,7 +768,7 @@ email:partner.email
 
 await PasswordReset.create({
 email:partner.email,
-otp,
+otp:hashResetOTP(otp),
 expiresAt:new Date(
 Date.now()+10*60*1000
 )
@@ -816,12 +814,21 @@ const cleanEmail=email.toLowerCase().trim();
 
 
 const reset=await PasswordReset.findOne({
-email:cleanEmail,
-otp
+email:cleanEmail
 });
 
 
 if(!reset){
+
+return res.status(400).json({
+message:"Invalid OTP"
+});
+
+}
+
+const otpHash = hashResetOTP(otp);
+
+if(reset.otp !== otpHash && reset.otp !== otp){
 
 return res.status(400).json({
 message:"Invalid OTP"

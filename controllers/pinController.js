@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const AppError = require("../utils/AppError");
 const bcrypt = require("bcryptjs");
 const TransactionPin = require("../models/TransactionPin");
@@ -25,7 +26,7 @@ throw new AppError(
 );
 }
 
-const otp=Math.floor(100000 + Math.random()*900000).toString();
+const otp=crypto.randomInt(100000,1000000).toString();
 
 await PinOTP.deleteMany({phone:cleanPhone});
 

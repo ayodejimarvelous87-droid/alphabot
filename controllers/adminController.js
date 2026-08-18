@@ -424,6 +424,7 @@ throw new AppError(
 
 
 user.status="suspended";
+user.tokenVersion = (user.tokenVersion || 0) + 1;
 
 await user.save();
 

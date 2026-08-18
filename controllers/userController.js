@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+const hashResetOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 const auditLogger = require("../services/auditLogger");
 const AppError = require("../utils/AppError");
 const User = require("../models/User");
@@ -186,9 +188,7 @@ throw new AppError("User not found",404);
 
 }
 
-const otp=Math.floor(
-100000 + Math.random()*900000
-).toString();
+const otp=crypto.randomInt(100000,1000000).toString();
 
 await PasswordReset.deleteMany({
 email:user.email
@@ -198,7 +198,7 @@ await PasswordReset.create({
 
 email:user.email,
 
-otp,
+otp:hashResetOTP(otp),
 
 expiresAt:new Date(
 Date.now()+10*60*1000
@@ -241,9 +241,7 @@ const cleanEmail=email.toLowerCase().trim();
 
 const reset=await PasswordReset.findOne({
 
-email:cleanEmail,
-
-otp
+email:cleanEmail
 
 });
 
@@ -262,6 +260,29 @@ throw new AppError("Too many OTP attempts",429);
 if(reset.expiresAt < new Date()){
 
 throw new AppError("OTP expired",400);
+
+}
+
+const otpHash = hashResetOTP(otp);
+const otpValid = reset.otp === otpHash || reset.otp === otp;
+
+if(!otpValid){
+
+reset.attempts += 1;
+
+await reset.save();
+
+if(reset.attempts >= 5){
+
+await PasswordReset.deleteOne({
+_id:reset._id
+});
+
+throw new AppError("Too many OTP attempts",429);
+
+}
+
+throw new AppError("Invalid OTP",400);
 
 }
 
@@ -340,7 +361,7 @@ throw new AppError("User already exists", 400);
 
 const hashedPassword = await bcrypt.hash(password,10);
 
-const otp=Math.floor(100000 + Math.random()*900000).toString();
+const otp=crypto.randomInt(100000,1000000).toString();
 
 await RegistrationOTP.deleteMany({email:email.toLowerCase().trim()});
 
@@ -667,7 +688,6 @@ const userReferralCode = generateReferralCode();
 const loginUser = async (req,res,next)=>{
 
 
-    console.log("LOGIN ROUTE HIT");
   try{
 
     const { phone, password } = req.body || {};
@@ -679,7 +699,6 @@ const loginUser = async (req,res,next)=>{
 
 
 
-    console.log("Login DB state:", require("mongoose").connection.readyState);
     const user = await User.findOne({
 
       phone: cleanPhone
@@ -708,6 +727,12 @@ const loginUser = async (req,res,next)=>{
         );
 
       }
+
+    if(user.status === "suspended"){
+      return res.status(403).json({
+        message:"Account suspended"
+      });
+    }
 
     if(user.status === "deleted"){
       return res.status(403).json({
@@ -813,84 +838,6 @@ userAgent:req.headers["user-agent"]
 
 
 };
-
-
-
-
-
-// Forgot password
-const forgotPassword = async(req,res,next)=>{
-
-
-  try{
-
-
-    const {
-      phone,
-      newPassword
-    } = req.body;
-
-
-
-    const cleanPhone = normalizePhone(phone);
-
-      if(!email){
-        throw new AppError("Email is required", 400);
-      }
-
-
-
-    const user = await User.findOne({
-
-      phone: cleanPhone
-
-    });
-
-
-
-    if(!user){
-
-      throw new AppError("User not found", 404);
-
-    }
-
-
-
-
-    user.password = await bcrypt.hash(
-
-      newPassword,
-
-      10
-
-    );
-
-
-
-    await user.save();
-
-
-
-    res.json({
-
-      message:"Password reset successful"
-
-    });
-
-
-
-  }catch(error){
-
-
-    next(error);
-
-  }
-
-
-};
-
-
-
 
 
 
@@ -1132,7 +1079,7 @@ if(!user){
 throw new AppError("User not found",404);
 }
 
-const otp=Math.floor(100000 + Math.random()*900000).toString();
+const otp=crypto.randomInt(100000,1000000).toString();
 
 await ProfileOTP.deleteMany({
 email:cleanEmail
@@ -1424,7 +1371,6 @@ module.exports = {
 
   loginUser,
 
-  forgotPassword,
 
   sendResetOTP,
 

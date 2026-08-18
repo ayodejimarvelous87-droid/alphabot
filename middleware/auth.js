@@ -22,7 +22,7 @@ const auth = async (req, res, next) => {
 
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "alphabotsecret"
+      process.env.JWT_SECRET
     );
 
 
@@ -46,6 +46,23 @@ const auth = async (req, res, next) => {
       account = await User.findById(decoded.id);
 
     }
+
+
+      // Block suspended/deleted upgraded User admins
+      if(
+        decoded.role === "admin" &&
+        account &&
+        account.constructor.modelName === "User" &&
+        account.status !== "active"
+      ){
+
+        return res.status(403).json({
+          message:
+            account.status === "suspended"
+              ? "Account suspended"
+              : "Account deleted"
+        });
+      }
 
 
     if(

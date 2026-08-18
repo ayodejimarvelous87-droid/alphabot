@@ -15,7 +15,6 @@ const {
 const {
   registerUser,
   loginUser,
-  forgotPassword,
   sendResetOTP,
   verifyResetOTP,
   getProfile,
@@ -41,11 +40,10 @@ router.post("/register", validate(registerSchema), registerUser);
 // Login
 router.post(
   "/login",
+  loginLimiter,
+  loginPhoneLimiter,
   validate(loginSchema),
-  (req,res,next)=>{
-    console.log("USER LOGIN ROUTE HIT");
-    loginUser(req,res,next);
-  }
+  loginUser
 );
 
 
@@ -58,7 +56,6 @@ router.post(
 
 
 // Forgot password
-router.post("/forgot-password", forgotPassword);
 
 
 // Send reset OTP

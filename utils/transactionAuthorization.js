@@ -6,7 +6,7 @@ const TransactionPin = require("../models/TransactionPin");
 const BiometricAuthorization = require("../models/BiometricAuthorization");
 
 const SECRET =
-  process.env.JWT_SECRET || "alphabotsecret";
+  process.env.JWT_SECRET;
 
 const createBiometricAuthorization = async (phone) => {
 

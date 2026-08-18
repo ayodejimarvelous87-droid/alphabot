@@ -1,6 +1,7 @@
 const AppError = require("../utils/AppError");
 const Wallet = require("../models/wallet");
 const Transaction = require("../models/Transaction");
+const auditLogger = require("../services/auditLogger");
 
 const MAX_ADMIN_WALLET_ADJUSTMENT = 500000;
 
@@ -80,7 +81,24 @@ const addFunds = async (req, res) => {
 
       adminId:req.user.id
 
-    });
+      });
+
+      await auditLogger({
+        actor:req.user.id,
+        role:"admin",
+        action:"ADMIN_WALLET_CREDIT",
+        target:phone,
+        ip:req.ip,
+        userAgent:req.headers["user-agent"],
+        details:{
+          amount:Number(amount),
+          balanceBefore,
+          balanceAfter:wallet.balance
+        }
+      });
+
+
+
 
 
     res.json({
@@ -165,7 +183,24 @@ const deductFunds = async (req,res)=>{
 
       adminId:req.user.id
 
-    });
+      });
+
+      await auditLogger({
+        actor:req.user.id,
+        role:"admin",
+        action:"ADMIN_WALLET_DEBIT",
+        target:phone,
+        ip:req.ip,
+        userAgent:req.headers["user-agent"],
+        details:{
+          amount:Number(amount),
+          balanceBefore,
+          balanceAfter:wallet.balance
+        }
+      });
+
+
+
 
 
     res.json({

@@ -1,3 +1,5 @@
+const crypto = require("crypto");
+const hashAdminOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 const AppError = require("../utils/AppError");
 const auditLogger = require("../services/auditLogger");
 const Admin = require("../models/Admin");
@@ -35,6 +37,17 @@ role:"admin"
 
 accountType = "user";
 
+if(admin && admin.status !== "active"){
+
+return res.status(403).json({
+message:
+admin.status === "suspended"
+? "Account suspended"
+: "Account deleted"
+});
+
+}
+
 }
 
 
@@ -64,13 +77,12 @@ message:"Invalid username or password"
 
 // Generate OTP
 
-const otp = Math.floor(
-100000 + Math.random() * 900000
-).toString();
+const otp = crypto.randomInt(100000, 1000000).toString();
 
 
 await AdminOTP.deleteMany({
-username
+username,
+accountType
 });
 
 
@@ -80,7 +92,7 @@ username,
 
 accountType,
 
-otp,
+otp:hashAdminOTP(otp),
 
 expiresAt:new Date(
 Date.now() + 5 * 60 * 1000
@@ -109,7 +121,7 @@ requiresOTP:true
 
 }catch(error){
 
-res.status(500).json({
+res.status(error.statusCode || 500).json({
 message:error.message
 });
 
@@ -131,8 +143,31 @@ try{
 const {username, otp}=req.body;
 
 
-const record = await AdminOTP.findOne({
+const adminAccount = await Admin.findOne({
 username
+});
+
+const userAccount = await User.findOne({
+phone:username,
+role:"admin"
+});
+
+let accountType;
+
+if(adminAccount){
+accountType = "admin";
+}else if(userAccount){
+accountType = "user";
+}else{
+throw new AppError(
+"Invalid username/phone",
+401
+);
+}
+
+const record = await AdminOTP.findOne({
+username,
+accountType
 });
 
 
@@ -169,7 +204,9 @@ throw new AppError(
 
 
 
-if(record.otp !== otp){
+const otpHash = hashAdminOTP(otp);
+
+if(record.otp !== otpHash){
 
 
 record.attempts += 1;
@@ -187,7 +224,7 @@ _id:record._id
 
 throw new AppError(
   "Too many failed attempts",
-  400
+  429
 );
 
 }
@@ -273,7 +310,7 @@ token
 
 }catch(error){
 
-res.status(500).json({
+res.status(error.statusCode || 500).json({
 message:error.message
 });
 
