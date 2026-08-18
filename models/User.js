@@ -189,6 +189,57 @@ const userSchema = new mongoose.Schema(
   withdrawAccountName:{
     type:String,
     default:null
+  },
+
+
+  // Flutterwave virtual account
+  virtualAccountId:{
+    type:String,
+    default:null,
+    sparse:true
+  },
+
+  virtualAccountReference:{
+    type:String,
+    default:null,
+    sparse:true
+  },
+
+  virtualAccountNumber:{
+    type:String,
+    default:null,
+    unique:true,
+    sparse:true
+  },
+
+  virtualAccountBankName:{
+    type:String,
+    default:null
+  },
+
+  virtualAccountBankCode:{
+    type:String,
+    default:null
+  },
+
+  virtualAccountName:{
+    type:String,
+    default:null
+  },
+
+  virtualAccountStatus:{
+    type:String,
+    enum:[
+      "pending",
+      "active",
+      "failed"
+    ],
+    default:null
+  },
+
+  virtualAccountCreatedAt:{
+    type:Date,
+    default:null
   }
 
 },

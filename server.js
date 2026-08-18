@@ -171,6 +171,7 @@ const adminElectricityRoutes = require("./routes/adminElectricityRoutes");
 const adminBettingRoutes = require("./routes/adminBettingRoutes");
 const adminRecurringRoutes = require("./routes/adminRecurringRoutes");
 const flutterwaveRoutes = require("./routes/flutterwaveRoutes");
+const virtualAccountRoutes = require("./routes/virtualAccountRoutes");
 const blogPartnerRoutes = require("./routes/blogPartnerRoutes");
 const blogPayoutRoutes = require("./routes/blogPayoutRoutes");
 const wakeRoutes = require("./routes/wakeRoutes");
@@ -240,6 +241,7 @@ app.use("/admin/electricity-settings", adminElectricityRoutes);
 app.use("/admin/dashboard", adminDashboardRoutes);
 app.use("/funding", fundingRoutes);
 app.use("/flutterwave", flutterwaveRoutes);
+app.use("/virtual-account", virtualAccountRoutes);
 app.use("/bank", bankRoutes);
 app.use("/webhook", whatsappWebhook);
 
