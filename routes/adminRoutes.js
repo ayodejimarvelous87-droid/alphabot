@@ -15,6 +15,7 @@ const {
   updateFootballSettings,
   updatePricingSettings,
   getUserDetails,
+  adjustUserCoins,
   suspendUser,
   activateUser,
   deleteUser,
@@ -50,6 +51,14 @@ router.post("/verify-otp", otpLimiter, verifyAdminOTP);
 // Protected admin routes
 
 router.get("/user/:phone", auth, admin, getUserDetails);
+
+
+router.put(
+  "/user/coins/:phone",
+  auth,
+  admin,
+  adjustUserCoins
+);
 
 router.put("/user/suspend/:phone", auth, admin, suspendUser);
 

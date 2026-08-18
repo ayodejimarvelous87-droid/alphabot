@@ -24,6 +24,166 @@ const Profit = require("../models/Profit");
 const TransactionPin = require("../models/TransactionPin");
 const UserState = require("../models/UserState");
 const ProfileOTP = require("../models/ProfileOTP");
+const ABCoinTransaction = require("../models/ABCoinTransaction");
+const mongoose = require("mongoose");
+
+
+
+// Adjust a user's AB Coins
+const adjustUserCoins = async (req, res) => {
+
+  const session = await mongoose.startSession();
+
+  try {
+
+    const phone = req.params.phone;
+
+    const {
+      action,
+      amount,
+      reason
+    } = req.body;
+
+    const numericAmount = Number(amount);
+
+    if (!["increase", "deduct"].includes(action)) {
+      return res.status(400).json({
+        message: "Action must be increase or deduct"
+      });
+    }
+
+    if (
+      !Number.isFinite(numericAmount) ||
+      numericAmount <= 0
+    ) {
+      return res.status(400).json({
+        message: "Invalid coin amount"
+      });
+    }
+
+    if (numericAmount > 1000000) {
+      return res.status(400).json({
+        message: "Coin adjustment limit exceeded"
+      });
+    }
+
+    if (
+      reason !== undefined &&
+      reason !== null &&
+      String(reason).trim().length > 500
+    ) {
+      return res.status(400).json({
+        message: "Reason is too long"
+      });
+    }
+
+    let result;
+
+    await session.withTransaction(async () => {
+
+      const user = await User.findOne({
+        phone
+      }).session(session);
+
+      if (!user) {
+        throw new AppError(
+          "User not found",
+          404
+        );
+      }
+
+      const balanceBefore =
+        Number(user.abCoins || 0);
+
+      const signedAmount =
+        action === "increase"
+          ? numericAmount
+          : -numericAmount;
+
+      const balanceAfter =
+        Math.round(
+          (balanceBefore + signedAmount) * 100
+        ) / 100;
+
+      if (balanceAfter < 0) {
+        throw new AppError(
+          "Insufficient AB Coins",
+          400
+        );
+      }
+
+      user.abCoins = balanceAfter;
+
+      await user.save({
+        session
+      });
+
+      const adjustmentReason =
+        String(reason || "").trim() ||
+        (
+          action === "increase"
+            ? "Admin increased AB Coins"
+            : "Admin deducted AB Coins"
+        );
+
+      await ABCoinTransaction.create(
+        [{
+          phone,
+
+          type: "admin_adjustment",
+
+          coins: signedAmount,
+
+          balanceBefore,
+
+          balanceAfter,
+
+          description:
+            adjustmentReason,
+
+          reference:
+            `ABADMIN-${Date.now()}-${Math.random()
+              .toString(36)
+              .slice(2, 10)}`
+        }],
+        {
+          session
+        }
+      );
+
+      result = {
+        phone,
+        action,
+        coinsAdjusted: signedAmount,
+        balanceBefore,
+        balanceAfter
+      };
+
+    });
+
+    return res.json({
+      message:
+        action === "increase"
+          ? "AB Coins increased successfully"
+          : "AB Coins deducted successfully",
+
+      result
+    });
+
+  } catch (error) {
+
+    return res.status(
+      error.statusCode || 500
+    ).json({
+      message: error.message
+    });
+
+  } finally {
+
+    await session.endSession();
+
+  }
+};
 
 
 // Get all users
@@ -378,6 +538,13 @@ createdAt:-1
 });
 
 
+const abCoinTransactions = await ABCoinTransaction.find({
+phone
+})
+.sort({
+createdAt:-1
+});
+
 
 res.json({
 
@@ -389,7 +556,9 @@ transactions,
 
 orders,
 
-withdrawals
+withdrawals,
+
+abCoinTransactions
 
 });
 
@@ -1102,6 +1271,7 @@ module.exports = {
   updateFootballSettings,
   updatePricingSettings,
   getUserDetails,
+  adjustUserCoins,
   suspendUser,
   activateUser,
   deleteUser,
