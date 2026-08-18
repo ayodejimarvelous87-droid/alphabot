@@ -8,6 +8,9 @@ const axios = require("axios");
 const { recordProviderResult, canUseProvider } = require("../services/providerMonitorService");
 const { createNotification } = require("../services/notificationService");
 const { completeFlutterwaveFunding } = require("../services/flutterwaveFundingService");
+const {
+  processPermanentVirtualAccountFunding
+} = require("../services/permanentVirtualAccountFundingService");
 
 const flw = new Flutterwave(
   process.env.FLW_PUBLIC_KEY,
@@ -317,6 +320,77 @@ const flutterwaveWebhook = async (req, res, next) => {
     console.log("🔥 FLUTTERWAVE HIT WEBHOOK");
     const data = req.body;
     console.log("FLW WEBHOOK RECEIVED:", JSON.stringify(data));
+
+    /*
+     * PERMANENT VIRTUAL ACCOUNT FUNDING
+     *
+     * Completely separate from the existing
+     * Flutterwave wallet-funding flow below.
+     */
+    if (
+      data.event === "charge.completed" ||
+      data.type === "charge.completed"
+    ) {
+
+      const charge = data.data;
+
+      if (!charge) {
+        return res.status(200).json({
+          message: "Invalid permanent virtual account webhook"
+        });
+      }
+
+      /*
+       * Only process bank-transfer deposits here.
+       * Card payments must continue through the
+       * existing funding flow.
+       */
+      const paymentType =
+        charge.payment_type ||
+        charge.payment_method?.type ||
+        charge.payment_method_details?.type;
+
+      if (paymentType === "bank_transfer") {
+
+        const fundingResult =
+          await processPermanentVirtualAccountFunding({
+            flutterwaveId: String(charge.id),
+            txRef:
+              charge.tx_ref ||
+              charge.reference,
+            amount: Number(charge.amount),
+            currency: charge.currency,
+            accountNumber:
+              charge.account_number ||
+              charge.accountNumber ||
+              charge.payment_account_number ||
+              charge.bank_transfer?.account_number
+          });
+
+        if (fundingResult.alreadyProcessed) {
+          return res.status(200).json({
+            message: "Permanent virtual account payment already processed"
+          });
+        }
+
+        await createNotification(
+          fundingResult.user.phone,
+          "Wallet Funded",
+          `Your wallet has been funded successfully with ₦${Number(
+            fundingResult.transaction.amount
+          ).toLocaleString()}.`,
+          "success",
+          fundingResult.transaction._id
+        );
+
+        return res.status(200).json({
+          message:
+            "Permanent virtual account funding processed"
+        });
+
+      }
+
+    }
 
     const event = data.event;
 
