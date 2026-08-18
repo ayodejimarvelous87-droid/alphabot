@@ -281,6 +281,276 @@ const getReferralLeaderboard = async(event)=>{
 };
 
 
+const getPurchaseReferralLeaderboard = async(event)=>{
+
+  const leaderboardStart =
+    event.leaderboardResetAt || event.startsAt;
+
+
+  /*
+   * PURCHASE POINTS
+   *
+   * Each successful service purchase is scored individually:
+   *
+   * <= 500       = 3 points
+   * > 500-1000   = 5 points
+   * > 1000-5000  = 8 points
+   * > 5000       = 10 points
+   */
+
+  const purchaseRows = await Transaction.aggregate([
+
+    {
+      $match:{
+
+        status:"successful",
+
+        direction:"debit",
+
+        type:{
+          $in:SERVICE_PURCHASE_TYPES
+        },
+
+        createdAt:{
+          $gte:leaderboardStart,
+          $lt:event.endsAt
+        }
+
+      }
+    },
+
+    {
+      $group:{
+
+        _id:"$phone",
+
+        purchasePoints:{
+          $sum:{
+            $switch:{
+              branches:[
+
+                {
+                  case:{
+                    $lte:["$amount",500]
+                  },
+                  then:3
+                },
+
+                {
+                  case:{
+                    $lte:["$amount",1000]
+                  },
+                  then:5
+                },
+
+                {
+                  case:{
+                    $lte:["$amount",5000]
+                  },
+                  then:8
+                }
+
+              ],
+
+              default:10
+            }
+          }
+        }
+
+      }
+
+    }
+
+  ]);
+
+
+  /*
+   * REFERRAL POINTS
+   *
+   * Every user registered with a valid referral code
+   * during this event period gives the referrer 2 points.
+   */
+
+  const referralRows = await User.aggregate([
+
+    {
+      $match:{
+
+        referredBy:{
+          $ne:null
+        },
+
+        createdAt:{
+          $gte:leaderboardStart,
+          $lt:event.endsAt
+        }
+
+      }
+
+    },
+
+    {
+      $group:{
+
+        _id:"$referredBy",
+
+        referrals:{
+          $sum:1
+        }
+
+      }
+
+    }
+
+  ]);
+
+
+  /*
+   * Build a combined points map using phone numbers.
+   */
+
+  const pointsMap = new Map();
+
+
+  for(const row of purchaseRows){
+
+    const phone = String(row._id);
+
+    pointsMap.set(
+      phone,
+      (pointsMap.get(phone) || 0) +
+      Number(row.purchasePoints || 0)
+    );
+
+  }
+
+
+  /*
+   * Referral codes belong to users.
+   * Convert referral-code totals into the referrer's phone.
+   */
+
+  if(referralRows.length){
+
+    const referralCodes = referralRows.map(
+      row=>row._id
+    );
+
+
+    const referrers = await User.find({
+
+      referralCode:{
+        $in:referralCodes
+      }
+
+    })
+    .select("phone referralCode")
+    .lean();
+
+
+    const referrerMap = new Map(
+      referrers.map(user=>[
+        user.referralCode,
+        user.phone
+      ])
+    );
+
+
+    for(const row of referralRows){
+
+      const phone =
+        referrerMap.get(row._id);
+
+      if(!phone){
+        continue;
+      }
+
+
+      const referralPoints =
+        Number(row.referrals || 0) * 2;
+
+
+      pointsMap.set(
+        phone,
+        (pointsMap.get(phone) || 0) +
+        referralPoints
+      );
+
+    }
+
+  }
+
+
+  if(!pointsMap.size){
+    return [];
+  }
+
+
+  const phones = [
+    ...pointsMap.keys()
+  ];
+
+
+  const users = await User.find({
+
+    phone:{
+      $in:phones
+    }
+
+  })
+  .select("phone name")
+  .lean();
+
+
+  const userMap = new Map(
+    users.map(user=>[
+      user.phone,
+      user
+    ])
+  );
+
+
+  return [...pointsMap.entries()]
+
+    .map(([phone,points])=>({
+
+      phone,
+
+      points:Number(points),
+
+      username:
+        userMap.get(phone)?.name ||
+        "AlphaBot User"
+
+    }))
+
+    .sort((a,b)=>{
+
+      if(b.points !== a.points){
+        return b.points - a.points;
+      }
+
+      return a.username.localeCompare(
+        b.username
+      );
+
+    })
+
+    .slice(0,100)
+
+    .map((row,index)=>({
+
+      rank:index + 1,
+
+      username:row.username,
+
+      points:row.points
+
+    }));
+
+};
+
+
 const getABCoinsLeaderboard = async(event)=>{
 
   const leaderboardStart =
@@ -561,6 +831,17 @@ const getPublicEvents = async(req,res)=>{
             );
 
         }
+        else if(
+          event.type === "purchase_referral"
+        ){
+
+          leaderboard =
+            await getPurchaseReferralLeaderboard(
+              event
+            );
+
+        }
+
         else if(
           event.type === "ab_coins"
         ){
