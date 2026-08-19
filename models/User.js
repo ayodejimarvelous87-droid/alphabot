@@ -195,19 +195,16 @@ const userSchema = new mongoose.Schema(
   // Flutterwave virtual account
   virtualAccountId:{
     type:String,
-    default:null,
     sparse:true
   },
 
   virtualAccountReference:{
     type:String,
-    default:null,
     sparse:true
   },
 
   virtualAccountNumber:{
     type:String,
-    default:null,
     unique:true,
     sparse:true
   },
