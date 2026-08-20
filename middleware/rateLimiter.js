@@ -145,7 +145,18 @@ const loginPhoneLimiter = createLimiter(
 const otpLimiter = createLimiter(
   10 * 60 * 1000,
   20,
-  "Too many OTP attempts. Try again later."
+  "Too many OTP attempts. Try again later.",
+  (req)=>{
+    const route = req.originalUrl.split("?")[0];
+
+    const identifier =
+      req.user?.phone ||
+      req.body?.phone ||
+      req.body?.email ||
+      ipKeyGenerator(req.ip);
+
+    return `otp:${route}:${String(identifier).trim().toLowerCase()}`;
+  }
 );
 
 

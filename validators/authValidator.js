@@ -1,7 +1,20 @@
 const Joi = require("joi");
 
 exports.registerSchema = Joi.object({
-  name: Joi.string().trim().min(2).max(100).required(),
+  name: Joi.string()
+    .trim()
+    .max(100)
+    .pattern(/^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[ -][A-Za-zÀ-ÖØ-öø-ÿ]+)+$/)
+    .custom((value, helpers) => {
+      const parts = value.trim().split(/[ -]+/);
+
+      if (parts.length < 2 || parts.some(part => part.length < 3)) {
+        return helpers.message("First name and last name must each be at least 3 characters");
+      }
+
+      return value;
+    })
+    .required(),
   phone: Joi.string().trim().min(10).max(15).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).max(100).required(),

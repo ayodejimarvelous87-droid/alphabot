@@ -351,6 +351,20 @@ if(!name || !phone || !email || !password){
 throw new AppError("All fields are required", 400);
 }
 
+const namePattern = /^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[ -][A-Za-zÀ-ÖØ-öø-ÿ]+)+$/;
+const nameParts = name.trim().split(/[ -]+/);
+
+if(
+  !namePattern.test(name.trim()) ||
+  nameParts.length < 2 ||
+  nameParts.some(part => part.length < 3)
+){
+  throw new AppError(
+    "First name and last name must each be at least 3 characters",
+    400
+  );
+}
+
 const cleanPhone = normalizePhone(phone);
 
 const existingUser = await User.findOne({phone:cleanPhone});
